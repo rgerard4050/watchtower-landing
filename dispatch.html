@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Watchtower Dispatch</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700&display=swap');
+
+  :root {
+    --black: #080c0f;
+    --dark: #0d1318;
+    --panel: #111820;
+    --panel2: #161f28;
+    --border: #1e2d3a;
+    --green: #00ff88;
+    --green-dim: #00cc6a;
+    --green-glow: rgba(0,255,136,0.12);
+    --amber: #ffaa00;
+    --amber-glow: rgba(255,170,0,0.12);
+    --red: #ff4455;
+    --blue: #00aaff;
+    --text: #c8d8e8;
+    --muted: #5a7a8a;
+    --mono: 'Share Tech Mono', monospace;
+    --sans: 'Inter', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+
+  body {
+    background: var(--black);
+    color: var(--text);
+    font-family: var(--sans);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* HEADER */
+  header {
+    background: rgba(8,12,15,0.98);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    z-index: 200;
+  }
+
+  .logo {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--green);
+    letter-spacing: 0.12em;
+  }
+
+  .driver-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 12px;
+  }
+
+  .driver-dot {
+    width: 7px; height: 7px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  .driver-dot.offline { background: var(--muted); animation: none; }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; box-shadow: 0 0 0 0 rgba(0,255,136,0.4); }
+    50% { opacity:0.6; box-shadow: 0 0 0 4px rgba(0,255,136,0); }
+  }
+
+  .driver-name {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text);
+  }
+
+  /* EARNINGS BAR */
+  .earnings-bar {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .earn-item {
+    text-align: center;
+  }
+
+  .earn-val {
+    font-family: var(--mono);
+    font-size: 16px;
+    color: var(--green);
+    display: block;
+    line-height: 1;
+  }
+
+  .earn-label {
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 3px;
+  }
+
+  .earn-divider {
+    width: 1px;
+    height: 28px;
+    background: var(--border);
+  }
+
+  /* MAP AREA */
+  .map-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: var(--dark);
+  }
+
+  /* FAKE MAP GRID */
+  .map-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(30,45,58,0.4) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(30,45,58,0.4) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  /* Road lines */
+  .road {
+    position: absolute;
+    background: rgba(30,45,58,0.9);
+  }
+
+  .road.h { height: 8px; left: 0; right: 0; }
+  .road.v { width: 8px; top: 0; bottom: 0; }
+  .road.major { background: rgba(40,60,75,0.95); }
+  .road.major.h { height: 14px; }
+  .road.major.v { width: 14px; }
+
+  /* MAP LABEL */
+  .map-label {
+    position: absolute;
+    font-family: var(--mono);
+    font-size: 9px;
+    color: rgba(90,122,138,0.5);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+
+  /* BOUNTY PINS */
+  .pin {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    z-index: 10;
+  }
+
+  .pin-ring {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: transform 0.15s;
+  }
+
+  .pin:active .pin-ring { transform: scale(0.9); }
+
+  .pin-ring.available {
+    background: rgba(0,255,136,0.12);
+    border: 2px solid var(--green);
+    box-shadow: 0 0 16px rgba(0,255,136,0.3);
+    animation: pinpulse 2.5s infinite;
+  }
+
+  .pin-ring.claimed {
+    background: rgba(255,170,0,0.1);
+    border: 2px solid var(--amber);
+    box-shadow: 0 0 10px rgba(255,170,0,0.2);
+    animation: none;
+  }
+
+  .pin-ring.mine {
+    background: rgba(0,170,255,0.12);
+    border: 2px solid var(--blue);
+    box-shadow: 0 0 16px rgba(0,170,255,0.3);
+    animation: none;
+  }
+
+  @keyframes pinpulse {
+    0%,100% { box-shadow: 0 0 8px rgba(0,255,136,0.3); }
+    50% { box-shadow: 0 0 24px rgba(0,255,136,0.6); }
+  }
+
+  .pin-icon { font-size: 18px; line-height: 1; }
+
+  .pin-payout {
+    position: absolute;
+    top: -10px; right: -10px;
+    background: var(--green);
+    color: #000;
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 5px;
+    border-radius: 4px;
+    white-space: nowrap;
+    letter-spacing: 0.05em;
+  }
+
+  .pin-payout.claimed-tag {
+    background: var(--amber);
+  }
+
+  .pin-payout.mine-tag {
+    background: var(--blue);
+  }
+
+  /* MY LOCATION */
+  .my-location {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    z-index: 20;
+  }
+
+  .my-dot {
+    width: 16px; height: 16px;
+    background: var(--blue);
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 6px rgba(0,170,255,0.2);
+  }
+
+  /* BOUNTY SHEET */
+  .sheet-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    display: none;
+    backdrop-filter: blur(2px);
+  }
+
+  .sheet-backdrop.open { display: block; }
+
+  .bounty-sheet {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    border-radius: 16px 16px 0 0;
+    padding: 0 0 40px;
+    z-index: 101;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
+  }
+
+  .bounty-sheet.open { transform: translateY(0); }
+
+  .sheet-handle {
+    width: 36px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 12px auto 20px;
+  }
+
+  .sheet-body { padding: 0 20px; }
+
+  .sheet-status {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .sheet-status.available { color: var(--green); }
+  .sheet-status.claimed { color: var(--amber); }
+  .sheet-status.mine { color: var(--blue); }
+
+  .sheet-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+
+  .sheet-addr {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .detail-box {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 10px;
+    text-align: center;
+  }
+
+  .detail-val {
+    font-family: var(--mono);
+    font-size: 15px;
+    color: #fff;
+    display: block;
+    margin-bottom: 3px;
+  }
+
+  .detail-label {
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .payout-box {
+    background: var(--green-glow);
+    border: 1px solid var(--green);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .payout-box.claimed-box {
+    background: var(--amber-glow);
+    border-color: var(--amber);
+  }
+
+  .payout-label {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 2px;
+  }
+
+  .payout-amount {
+    font-family: var(--mono);
+    font-size: 26px;
+    color: var(--green);
+    font-weight: 400;
+  }
+
+  .payout-amount.claimed { color: var(--amber); }
+
+  .payout-sub {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .claim-btn {
+    width: 100%;
+    background: var(--green);
+    color: #000;
+    border: none;
+    border-radius: 10px;
+    padding: 18px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+
+  .claim-btn:active { transform: scale(0.97); background: var(--green-dim); }
+
+  .claim-btn.nav-btn {
+    background: var(--blue);
+    margin-top: 10px;
+  }
+
+  .claim-btn.nav-btn:active { background: #0088cc; }
+
+  .claim-btn.disabled {
+    background: var(--border);
+    color: var(--muted);
+    cursor: not-allowed;
+  }
+
+  .close-btn {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 10px;
+    padding: 14px;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+
+  /* BOTTOM NAV */
+  .bottom-nav {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(8,12,15,0.97);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding: 10px 0 20px;
+    z-index: 50;
+    backdrop-filter: blur(8px);
+  }
+
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    padding: 4px 0;
+  }
+
+  .nav-icon { font-size: 20px; }
+
+  .nav-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .nav-item.active .nav-label { color: var(--green); }
+
+  /* TOAST */
+  .toast {
+    position: absolute;
+    top: 16px; left: 50%;
+    transform: translateX(-50%) translateY(-80px);
+    background: var(--green);
+    color: #000;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 10px 20px;
+    border-radius: 8px;
+    z-index: 300;
+    transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
+    white-space: nowrap;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* LEGEND */
+  .legend {
+    position: absolute;
+    top: 12px; left: 12px;
+    background: rgba(8,12,15,0.9);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">WTWR // DISPATCH</div>
+  <div class="driver-badge">
+    <div class="driver-dot" id="statusDot"></div>
+    <div class="driver-name" id="driverName">DRIVER_01</div>
+  </div>
+</header>
+
+<!-- EARNINGS BAR -->
+<div class="earnings-bar">
+  <div class="earn-item">
+    <span class="earn-val" id="todayEarn">0 WTWR</span>
+    <div class="earn-label">Today</div>
+  </div>
+  <div class="earn-divider"></div>
+  <div class="earn-item">
+    <span class="earn-val" id="runsToday">0</span>
+    <div class="earn-label">Runs</div>
+  </div>
+  <div class="earn-divider"></div>
+  <div class="earn-item">
+    <span class="earn-val" id="openBounties">4</span>
+    <div class="earn-label">Open</div>
+  </div>
+  <div class="earn-divider"></div>
+  <div class="earn-item">
+    <span class="earn-val" id="totalEarn">0 WTWR</span>
+    <div class="earn-label">All Time</div>
+  </div>
+</div>
+
+<!-- MAP -->
+<div class="map-container" id="mapContainer">
+  <div class="map-grid"></div>
+
+  <!-- Roads -->
+  <div class="road major h" style="top:30%"></div>
+  <div class="road major h" style="top:60%"></div>
+  <div class="road h" style="top:15%"></div>
+  <div class="road h" style="top:45%"></div>
+  <div class="road h" style="top:75%"></div>
+  <div class="road major v" style="left:25%"></div>
+  <div class="road major v" style="left:65%"></div>
+  <div class="road v" style="left:10%"></div>
+  <div class="road v" style="left:45%"></div>
+  <div class="road v" style="left:82%"></div>
+
+  <!-- Map labels -->
+  <div class="map-label" style="top:28%; left:27%; transform:translateY(-12px)">SW 17th St</div>
+  <div class="map-label" style="top:58%; left:27%; transform:translateY(-12px)">College Rd</div>
+  <div class="map-label" style="top:20%; left:26%; transform:rotate(-90deg) translateX(-50%)">Pine Ave</div>
+  <div class="map-label" style="top:20%; left:64%; transform:rotate(-90deg) translateX(-50%)">US-441</div>
+
+  <!-- My location -->
+  <div class="my-location" style="left:45%; top:50%">
+    <div class="my-dot"></div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-dot" style="background:var(--green); box-shadow:0 0 6px rgba(0,255,136,0.5)"></div>
+      Available
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:var(--amber)"></div>
+      Claimed
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:var(--blue)"></div>
+      Yours
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <!-- BOUNTY PINS (rendered by JS) -->
+  <div id="pins"></div>
+
+  <!-- Bottom nav -->
+  <div class="bottom-nav">
+    <div class="nav-item active">
+      <div class="nav-icon">🗺️</div>
+      <div class="nav-label">Map</div>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon">📦</div>
+      <div class="nav-label">My Runs</div>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon">💰</div>
+      <div class="nav-label">Wallet</div>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon">👤</div>
+      <div class="nav-label">Profile</div>
+    </div>
+  </div>
+</div>
+
+<!-- SHEET BACKDROP -->
+<div class="sheet-backdrop" id="backdrop" onclick="closeSheet()"></div>
+
+<!-- BOUNTY SHEET -->
+<div class="bounty-sheet" id="bountySheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-body">
+    <div class="sheet-status" id="sheetStatus">AVAILABLE</div>
+    <div class="sheet-title" id="sheetTitle">Aluminum + Cardboard</div>
+    <div class="sheet-addr" id="sheetAddr">📍 1234 SW 17th St, Ocala</div>
+
+    <div class="detail-grid">
+      <div class="detail-box">
+        <span class="detail-val" id="sheetMaterial">ALU</span>
+        <div class="detail-label">Material</div>
+      </div>
+      <div class="detail-box">
+        <span class="detail-val" id="sheetWeight">~28 lbs</span>
+        <div class="detail-label">Est. Weight</div>
+      </div>
+      <div class="detail-box">
+        <span class="detail-val" id="sheetDist">0.8 mi</span>
+        <div class="detail-label">Distance</div>
+      </div>
+    </div>
+
+    <div class="payout-box" id="payoutBox">
+      <div>
+        <div class="payout-label">Bounty Payout</div>
+        <div class="payout-amount" id="sheetPayout">420 WTWR</div>
+      </div>
+      <div style="text-align:right">
+        <div class="payout-sub" id="sheetUsd">≈ $4.20</div>
+        <div class="payout-sub" style="margin-top:2px" id="sheetTime">~25 min</div>
+      </div>
+    </div>
+
+    <button class="claim-btn" id="claimBtn" onclick="claimBounty()">⚡ CLAIM THIS BOUNTY</button>
+    <button class="claim-btn nav-btn" id="navBtn" style="display:none" onclick="navigate()">🧭 NAVIGATE</button>
+    <button class="close-btn" onclick="closeSheet()">CLOSE</button>
+  </div>
+</div>
+
+<script>
+// Bounty data
+const bounties = [
+  {
+    id: 1,
+    title: 'Aluminum Cans + Cardboard',
+    addr: '2847 SW 17th St, Ocala',
+    material: 'ALU+CARD',
+    weight: '~32 lbs',
+    dist: '0.6 mi',
+    payout: 380,
+    usd: '$3.80',
+    time: '~20 min',
+    status: 'available',
+    icon: '🥫',
+    left: '22%',
+    top: '28%'
+  },
+  {
+    id: 2,
+    title: 'Mixed Metals',
+    addr: '1105 NE 8th Ave, Ocala',
+    material: 'METALS',
+    weight: '~58 lbs',
+    dist: '1.2 mi',
+    payout: 720,
+    usd: '$7.20',
+    time: '~35 min',
+    status: 'available',
+    icon: '🔩',
+    left: '68%',
+    top: '22%'
+  },
+  {
+    id: 3,
+    title: 'Cardboard + Plastic',
+    addr: '4412 SW College Rd, Ocala',
+    material: 'CARD+PLA',
+    weight: '~44 lbs',
+    dist: '1.8 mi',
+    payout: 290,
+    usd: '$2.90',
+    time: '~30 min',
+    status: 'available',
+    icon: '📦',
+    left: '38%',
+    top: '62%'
+  },
+  {
+    id: 4,
+    title: 'Copper Wire',
+    addr: '891 NW 23rd Ave, Ocala',
+    material: 'COPPER',
+    weight: '~12 lbs',
+    dist: '2.1 mi',
+    payout: 950,
+    usd: '$9.50',
+    time: '~40 min',
+    status: 'available',
+    icon: '🔌',
+    left: '74%',
+    top: '55%'
+  },
+  {
+    id: 5,
+    title: 'Aluminum + Glass',
+    addr: '3301 E Silver Springs Blvd',
+    material: 'ALU+GLA',
+    weight: '~25 lbs',
+    dist: '3.4 mi',
+    payout: 310,
+    usd: '$3.10',
+    time: '~45 min',
+    status: 'claimed',
+    icon: '🍶',
+    left: '85%',
+    top: '38%'
+  }
+];
+
+let activeBounty = null;
+let myBounties = [];
+let todayWTWR = 0;
+let runsCompleted = 0;
+
+function renderPins() {
+  const container = document.getElementById('pins');
+  container.innerHTML = '';
+  bounties.forEach(b => {
+    const pin = document.createElement('div');
+    pin.className = 'pin';
+    pin.style.left = b.left;
+    pin.style.top = b.top;
+
+    const isMine = myBounties.includes(b.id);
+    const statusClass = isMine ? 'mine' : b.status;
+    const tagClass = isMine ? 'mine-tag' : (b.status === 'claimed' ? 'claimed-tag' : '');
+
+    pin.innerHTML = `
+      <div class="pin-ring ${statusClass}">
+        <span class="pin-icon">${b.icon}</span>
+        <div class="pin-payout ${tagClass}">${b.payout} W</div>
+      </div>
+    `;
+    pin.onclick = () => openSheet(b.id);
+    container.appendChild(pin);
+  });
+}
+
+function openSheet(id) {
+  const b = bounties.find(x => x.id === id);
+  if (!b) return;
+  activeBounty = b;
+
+  const isMine = myBounties.includes(b.id);
+  const statusEl = document.getElementById('sheetStatus');
+  const claimBtn = document.getElementById('claimBtn');
+  const navBtn = document.getElementById('navBtn');
+  const payoutBox = document.getElementById('payoutBox');
+  const payoutAmt = document.getElementById('sheetPayout');
+
+  document.getElementById('sheetTitle').textContent = b.title;
+  document.getElementById('sheetAddr').textContent = '📍 ' + b.addr;
+  document.getElementById('sheetMaterial').textContent = b.material;
+  document.getElementById('sheetWeight').textContent = b.weight;
+  document.getElementById('sheetDist').textContent = b.dist;
+  document.getElementById('sheetPayout').textContent = b.payout + ' WTWR';
+  document.getElementById('sheetUsd').textContent = '≈ ' + b.usd;
+  document.getElementById('sheetTime').textContent = b.time;
+
+  if (isMine) {
+    statusEl.textContent = '// YOUR BOUNTY — IN PROGRESS';
+    statusEl.className = 'sheet-status mine';
+    payoutBox.className = 'payout-box';
+    payoutAmt.className = 'payout-amount';
+    claimBtn.textContent = '✅ MARK AS DELIVERED';
+    claimBtn.className = 'claim-btn';
+    claimBtn.onclick = deliverBounty;
+    navBtn.style.display = 'block';
+  } else if (b.status === 'claimed') {
+    statusEl.textContent = '// CLAIMED BY ANOTHER DRIVER';
+    statusEl.className = 'sheet-status claimed';
+    payoutBox.className = 'payout-box claimed-box';
+    payoutAmt.className = 'payout-amount claimed';
+    claimBtn.textContent = 'UNAVAILABLE';
+    claimBtn.className = 'claim-btn disabled';
+    claimBtn.onclick = null;
+    navBtn.style.display = 'none';
+  } else {
+    statusEl.textContent = '// AVAILABLE';
+    statusEl.className = 'sheet-status available';
+    payoutBox.className = 'payout-box';
+    payoutAmt.className = 'payout-amount';
+    claimBtn.textContent = '⚡ CLAIM THIS BOUNTY';
+    claimBtn.className = 'claim-btn';
+    claimBtn.onclick = claimBounty;
+    navBtn.style.display = 'none';
+  }
+
+  document.getElementById('backdrop').classList.add('open');
+  document.getElementById('bountySheet').classList.add('open');
+}
+
+function closeSheet() {
+  document.getElementById('backdrop').classList.remove('open');
+  document.getElementById('bountySheet').classList.remove('open');
+  activeBounty = null;
+}
+
+function claimBounty() {
+  if (!activeBounty) return;
+  const b = activeBounty;
+
+  // Lock it
+  b.status = 'claimed';
+  myBounties.push(b.id);
+
+  // Update open count
+  const openCount = bounties.filter(x => x.status === 'available').length;
+  document.getElementById('openBounties').textContent = openCount;
+
+  closeSheet();
+  renderPins();
+  showToast('⚡ BOUNTY LOCKED — ' + b.payout + ' WTWR');
+
+  // Reopen as mine
+  setTimeout(() => openSheet(b.id), 600);
+}
+
+function deliverBounty() {
+  if (!activeBounty) return;
+  const b = activeBounty;
+
+  todayWTWR += b.payout;
+  runsCompleted += 1;
+
+  // Remove from my bounties and mark completed
+  myBounties = myBounties.filter(id => id !== b.id);
+  bounties.splice(bounties.indexOf(b), 1);
+
+  document.getElementById('todayEarn').textContent = todayWTWR + ' WTWR';
+  document.getElementById('totalEarn').textContent = todayWTWR + ' WTWR';
+  document.getElementById('runsToday').textContent = runsCompleted;
+  document.getElementById('openBounties').textContent = bounties.filter(x => x.status === 'available').length;
+
+  closeSheet();
+  renderPins();
+  showToast('✅ DELIVERED — +' + b.payout + ' WTWR EARNED');
+}
+
+function navigate() {
+  if (!activeBounty) return;
+  const addr = encodeURIComponent(activeBounty.addr);
+  window.open('https://maps.google.com/?q=' + addr, '_blank');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// Init
+renderPins();
+</script>
+</body>
+</html>
