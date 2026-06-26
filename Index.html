@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Watchtower Protocol — Know What Your Scrap Is Worth</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --black: #0A0A0A;
+    --dark: #111214;
+    --panel: #16181C;
+    --border: #2A2D35;
+    --steel: #8A9BA8;
+    --copper: #B87333;
+    --copper-bright: #D4874A;
+    --signal: #00FFB3;
+    --white: #F0F0F0;
+    --dim: #4A5568;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--black); color: var(--white); font-family: 'Space Grotesk', sans-serif; overflow-x: hidden; }
+
+  .ticker-wrap { background: var(--panel); border-bottom: 1px solid var(--border); overflow: hidden; padding: 10px 0; position: sticky; top: 0; z-index: 100; }
+  .ticker-track { display: flex; gap: 0; animation: ticker 35s linear infinite; width: max-content; }
+  .ticker-item { display: flex; align-items: center; gap: 8px; padding: 0 32px; font-family: 'Space Mono', monospace; font-size: 12px; border-right: 1px solid var(--border); white-space: nowrap; }
+  .ticker-label { color: var(--steel); }
+  .ticker-value { color: var(--signal); font-weight: 700; }
+  .ticker-unit { color: var(--dim); font-size: 10px; }
+  .ticker-up { color: #4ADE80; }
+  .ticker-down { color: #F87171; }
+  @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+  nav { display: flex; justify-content: space-between; align-items: center; padding: 24px 48px; border-bottom: 1px solid var(--border); }
+  .logo { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; letter-spacing: 0.15em; color: var(--white); }
+  .logo span { color: var(--signal); }
+  .nav-links { display: flex; gap: 32px; list-style: none; }
+  .nav-links a { color: var(--steel); text-decoration: none; font-size: 13px; letter-spacing: 0.05em; transition: color 0.2s; }
+  .nav-links a:hover { color: var(--white); }
+  .nav-cta { background: var(--copper); color: var(--black); padding: 10px 24px; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; transition: background 0.2s; }
+  .nav-cta:hover { background: var(--copper-bright); }
+
+  .hero { padding: 100px 48px 80px; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+  .hero-eyebrow { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.2em; color: var(--signal); text-transform: uppercase; margin-bottom: 20px; }
+  .hero h1 { font-size: clamp(36px, 5vw, 64px); font-weight: 700; line-height: 1.05; letter-spacing: -0.02em; margin-bottom: 24px; }
+  .hero h1 em { font-style: normal; color: var(--copper); }
+  .hero-sub { color: var(--steel); font-size: 16px; line-height: 1.7; margin-bottom: 40px; max-width: 480px; }
+  .hero-actions { display: flex; gap: 16px; align-items: center; }
+  .btn-primary { background: var(--signal); color: var(--black); padding: 14px 32px; font-weight: 700; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; transition: opacity 0.2s; }
+  .btn-primary:hover { opacity: 0.85; }
+  .btn-ghost { color: var(--steel); font-size: 13px; text-decoration: none; border-bottom: 1px solid var(--border); padding-bottom: 2px; transition: color 0.2s; }
+  .btn-ghost:hover { color: var(--white); }
+
+  .terminal { background: var(--panel); border: 1px solid var(--border); font-family: 'Space Mono', monospace; font-size: 12px; }
+  .terminal-header { background: var(--dark); padding: 10px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-r { background: #F87171; }
+  .dot-y { background: #FBBF24; }
+  .dot-g { background: #4ADE80; }
+  .terminal-title { margin-left: 8px; color: var(--dim); font-size: 11px; letter-spacing: 0.1em; }
+  .terminal-body { padding: 20px; }
+  .t-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #1E2026; }
+  .t-row:last-child { border-bottom: none; }
+  .t-grade { color: var(--steel); font-size: 11px; }
+  .t-grade strong { color: var(--white); display: block; font-size: 13px; }
+  .t-price { color: var(--signal); text-align: right; }
+  .t-price span { color: var(--dim); font-size: 10px; display: block; }
+  .t-wtwr { color: var(--copper); font-size: 11px; text-align: right; }
+  .terminal-footer { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .pulse { width: 8px; height: 8px; background: var(--signal); border-radius: 50%; animation: pulse 2s infinite; display: inline-block; margin-right: 8px; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+  .live-label { color: var(--signal); font-size: 11px; }
+  .wtwr-rate { color: var(--copper); font-size: 11px; }
+
+  .section { padding: 80px 48px; max-width: 1200px; margin: 0 auto; }
+  .section-label { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.2em; color: var(--copper); text-transform: uppercase; margin-bottom: 16px; }
+  .section h2 { font-size: clamp(28px, 4vw, 48px); font-weight: 700; letter-spacing: -0.02em; margin-bottom: 48px; max-width: 600px; }
+
+  .flow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; position: relative; }
+  .flow::before { content: ''; position: absolute; top: 28px; left: 10%; right: 10%; height: 1px; background: linear-gradient(90deg, var(--copper), var(--signal)); z-index: 0; }
+  .flow-step { position: relative; z-index: 1; text-align: center; padding: 0 12px; }
+  .flow-icon { width: 56px; height: 56px; background: var(--panel); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 20px; }
+  .flow-step h4 { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--white); }
+  .flow-step p { font-size: 12px; color: var(--steel); line-height: 1.5; }
+
+  .materials-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); margin-top: 48px; }
+  .material-cat { background: var(--panel); padding: 28px; }
+  .mat-header { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.15em; color: var(--copper); text-transform: uppercase; margin-bottom: 16px; }
+  .mat-grades { display: flex; flex-direction: column; gap: 8px; }
+  .mat-grade { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--dark); border-left: 2px solid transparent; transition: border-color 0.2s; }
+  .mat-grade:hover { border-left-color: var(--copper); }
+  .mat-grade-name { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--white); }
+  .mat-grade-tag { font-size: 10px; color: var(--steel); font-family: 'Space Mono', monospace; }
+
+  .wtwr-section { background: var(--panel); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 80px 48px; }
+  .wtwr-inner { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: start; }
+  .wtwr-mechanics { display: flex; flex-direction: column; gap: 20px; margin-top: 40px; }
+  .mechanic { display: flex; gap: 16px; align-items: flex-start; }
+  .mechanic-icon { width: 40px; height: 40px; background: var(--black); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .mechanic h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .mechanic p { font-size: 13px; color: var(--steel); line-height: 1.6; }
+
+  .token-display { background: var(--black); border: 1px solid var(--border); padding: 32px; }
+  .token-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+  .token-name { font-family: 'Space Mono', monospace; font-size: 24px; font-weight: 700; color: var(--signal); }
+  .token-sub { font-size: 12px; color: var(--steel); margin-top: 4px; }
+  .token-badge { font-family: 'Space Mono', monospace; font-size: 10px; padding: 6px 12px; border: 1px solid var(--signal); color: var(--signal); letter-spacing: 0.1em; }
+  .token-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .token-stat { padding: 16px; background: var(--panel); border: 1px solid var(--border); }
+  .token-stat-label { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--steel); letter-spacing: 0.1em; margin-bottom: 6px; }
+  .token-stat-value { font-family: 'Space Mono', monospace; font-size: 18px; font-weight: 700; color: var(--white); }
+  .token-stat-value.copper { color: var(--copper); }
+  .token-stat-value.signal { color: var(--signal); }
+  .burn-bar { margin-top: 20px; }
+  .burn-label { display: flex; justify-content: space-between; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--steel); margin-bottom: 8px; }
+  .burn-track { height: 4px; background: var(--border); position: relative; }
+  .burn-fill { height: 100%; width: 40%; background: linear-gradient(90deg, var(--copper), var(--copper-bright)); }
+
+  .tiers-section { padding: 80px 48px; max-width: 1200px; margin: 0 auto; }
+  .tiers-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); margin-top: 48px; }
+  .tier { background: var(--panel); padding: 40px 32px; position: relative; transition: background 0.2s; }
+  .tier:hover { background: #1A1D22; }
+  .tier.featured { background: var(--dark); border: 1px solid var(--copper); margin: -1px; z-index: 1; }
+  .tier-badge { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.2em; color: var(--black); background: var(--copper); padding: 4px 10px; position: absolute; top: -1px; left: 32px; }
+  .tier-name { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.15em; color: var(--steel); text-transform: uppercase; margin-bottom: 8px; margin-top: 16px; }
+  .tier-price { font-size: 48px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px; color: var(--white); }
+  .tier-price sup { font-size: 20px; vertical-align: top; margin-top: 12px; display: inline-block; color: var(--steel); }
+  .tier-cycle { font-size: 13px; color: var(--steel); margin-bottom: 32px; }
+  .tier-features { list-style: none; display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px; }
+  .tier-features li { font-size: 13px; color: var(--steel); display: flex; gap: 10px; align-items: flex-start; line-height: 1.4; }
+  .tier-features li::before { content: '→'; color: var(--signal); font-family: 'Space Mono', monospace; font-size: 11px; flex-shrink: 0; margin-top: 1px; }
+  .tier-features li.inactive { opacity: 0.35; }
+  .tier-features li.inactive::before { content: '—'; color: var(--dim); }
+  .tier-cta { display: block; text-align: center; padding: 14px; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; border: 1px solid var(--border); color: var(--steel); transition: all 0.2s; }
+  .tier-cta:hover { border-color: var(--signal); color: var(--signal); }
+  .tier.featured .tier-cta { background: var(--copper); color: var(--black); border-color: var(--copper); }
+  .tier.featured .tier-cta:hover { background: var(--copper-bright); border-color: var(--copper-bright); color: var(--black); }
+
+  .pow-section { background: var(--panel); border-top: 1px solid var(--border); padding: 80px 48px; }
+  .pow-inner { max-width: 1200px; margin: 0 auto; text-align: center; }
+  .pow-inner h2 { font-size: clamp(32px, 5vw, 56px); font-weight: 700; letter-spacing: -0.02em; margin-bottom: 16px; }
+  .pow-inner h2 span { color: var(--signal); }
+  .pow-sub { color: var(--steel); font-size: 16px; max-width: 560px; margin: 0 auto 48px; line-height: 1.7; }
+  .pow-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); max-width: 700px; margin: 0 auto 48px; }
+  .pow-stat { background: var(--black); padding: 32px 24px; }
+  .pow-stat-value { font-family: 'Space Mono', monospace; font-size: 28px; font-weight: 700; color: var(--signal); margin-bottom: 8px; }
+  .pow-stat-label { font-size: 12px; color: var(--steel); line-height: 1.4; }
+
+  .signup-section { padding: 80px 48px; max-width: 700px; margin: 0 auto; }
+  .signup-section h2 { font-size: clamp(28px, 4vw, 40px); font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; }
+  .signup-section p { color: var(--steel); font-size: 15px; margin-bottom: 40px; line-height: 1.6; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .form-field { display: flex; flex-direction: column; gap: 6px; }
+  .form-field.full { grid-column: 1 / -1; }
+  label { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.15em; color: var(--steel); text-transform: uppercase; }
+  input, select, textarea { background: var(--panel); border: 1px solid var(--border); color: var(--white); padding: 12px 16px; font-family: 'Space Grotesk', sans-serif; font-size: 14px; outline: none; transition: border-color 0.2s; -webkit-appearance: none; }
+  input:focus, select:focus, textarea:focus { border-color: var(--signal); }
+  select option { background: var(--panel); }
+  .materials-check { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
+  .check-item { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--border); cursor: pointer; transition: border-color 0.2s; font-size: 12px; color: var(--steel); font-family: 'Space Mono', monospace; }
+  .check-item input[type="checkbox"] { width: 14px; height: 14px; padding: 0; accent-color: var(--signal); flex-shrink: 0; }
+  .submit-btn { width: 100%; background: var(--signal); color: var(--black); border: none; padding: 16px; font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; margin-top: 16px; font-family: 'Space Grotesk', sans-serif; transition: opacity 0.2s; }
+  .submit-btn:hover { opacity: 0.85; }
+
+  footer { border-top: 1px solid var(--border); padding: 40px 48px; display: flex; justify-content: space-between; align-items: center; }
+  .footer-logo { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--dim); letter-spacing: 0.1em; }
+  .footer-links { display: flex; gap: 24px; list-style: none; }
+  .footer-links a { color: var(--dim); text-decoration: none; font-size: 12px; transition: color 0.2s; }
+  .footer-links a:hover { color: var(--steel); }
+  .footer-signal { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 8px; }
+
+  @media (max-width: 768px) {
+    nav { padding: 16px 20px; }
+    .nav-links { display: none; }
+    .hero { grid-template-columns: 1fr; padding: 48px 20px; gap: 40px; }
+    .section { padding: 60px 20px; }
+    .tiers-section { padding: 60px 20px; }
+    .flow { grid-template-columns: 1fr; gap: 24px; }
+    .flow::before { display: none; }
+    .flow-step { text-align: left; display: flex; gap: 16px; align-items: flex-start; }
+    .flow-icon { margin: 0; flex-shrink: 0; }
+    .materials-grid { grid-template-columns: 1fr; }
+    .wtwr-section { padding: 60px 20px; }
+    .wtwr-inner { grid-template-columns: 1fr; gap: 40px; }
+    .tiers-grid { grid-template-columns: 1fr; }
+    .tier.featured { margin: -1px 0; }
+    .pow-section { padding: 60px 20px; }
+    .pow-stats { grid-template-columns: 1fr; max-width: 100%; }
+    .signup-section { padding: 60px 20px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .materials-check { grid-template-columns: repeat(2, 1fr); }
+    footer { flex-direction: column; gap: 20px; padding: 32px 20px; }
+    .footer-links { flex-wrap: wrap; justify-content: center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="ticker-wrap">
+  <div class="ticker-track" id="ticker"></div>
+</div>
+
+<nav>
+  <div class="logo">WATCHTOWER<span>//</span>PROTOCOL</div>
+  <ul class="nav-links">
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#materials">Materials</a></li>
+    <li><a href="#wtwr">$WTWR</a></li>
+    <li><a href="#tiers">Tiers</a></li>
+  </ul>
+  <a href="#signup" class="nav-cta">Get Access</a>
+</nav>
+
+<section style="border-bottom: 1px solid var(--border);">
+  <div class="hero">
+    <div class="hero-content">
+      <div class="hero-eyebrow">▸ SENTINEL TERMINAL ACTIVE</div>
+      <h1>Every Pound.<br><em>Proven.</em><br>Every Token.<br><em>Earned.</em></h1>
+      <p class="hero-sub">Watchtower Protocol logs your scrap by grade from the moment it arrives. Clean loads earn $WTWR. $WTWR earns real value. The Sentinel watches everything.</p>
+      <div class="hero-actions">
+        <a href="#signup" class="btn-primary">Create Account</a>
+        <a href="#how" class="btn-ghost">See how it works</a>
+      </div>
+    </div>
+    <div class="terminal">
+      <div class="terminal-header">
+        <div class="dot dot-r"></div>
+        <div class="dot dot-y"></div>
+        <div class="dot dot-g"></div>
+        <span class="terminal-title">INTAKE_TERMINAL v2.1 — LIVE</span>
+      </div>
+      <div class="terminal-body">
+        <div class="t-row"><div class="t-grade"><strong>Bare Bright Copper</strong>GRADE: BB-1</div><div><div class="t-price">$4.21<span>/lb</span></div><div class="t-wtwr">+12.4 WTWR</div></div></div>
+        <div class="t-row"><div class="t-grade"><strong>#1 Copper</strong>GRADE: CU-1</div><div><div class="t-price">$3.87<span>/lb</span></div><div class="t-wtwr">+11.1 WTWR</div></div></div>
+        <div class="t-row"><div class="t-grade"><strong>#2 Copper</strong>GRADE: CU-2</div><div><div class="t-price">$3.42<span>/lb</span></div><div class="t-wtwr">+9.8 WTWR</div></div></div>
+        <div class="t-row"><div class="t-grade"><strong>Al Extrusion</strong>GRADE: AL-EX</div><div><div class="t-price">$0.68<span>/lb</span></div><div class="t-wtwr">+2.1 WTWR</div></div></div>
+        <div class="t-row"><div class="t-grade"><strong>Cast Aluminum</strong>GRADE: AL-CA</div><div><div class="t-price">$0.54<span>/lb</span></div><div class="t-wtwr">+1.6 WTWR</div></div></div>
+        <div class="t-row"><div class="t-grade"><strong>Light Steel</strong>GRADE: ST-LT</div><div><div class="t-price">$0.09<span>/lb</span></div><div class="t-wtwr">+0.3 WTWR</div></div></div>
+      </div>
+      <div class="terminal-footer">
+        <div><span class="pulse"></span><span class="live-label">LIVE FEED</span></div>
+        <div class="wtwr-rate">1 WTWR = $0.34</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how" style="border-bottom: 1px solid var(--border);">
+  <div class="section">
+    <div class="section-label">The Process</div>
+    <h2>Clean loads in. Proven value out.</h2>
+    <div class="flow">
+      <div class="flow-step"><div class="flow-icon">🏢</div><h4>Sign Up</h4><p>Business creates account, selects tier, declares material types</p></div>
+      <div class="flow-step"><div class="flow-icon">⚖️</div><h4>Load In</h4><p>Material arrives and is weighed at intake by pound</p></div>
+      <div class="flow-step"><div class="flow-icon">🔍</div><h4>Grade It</h4><p>Every load separated and assigned to exact industry grade</p></div>
+      <div class="flow-step"><div class="flow-icon">🧾</div><h4>Ticket Generated</h4><p>Weight + grade + value recorded. Immutable. On-chain proof.</p></div>
+      <div class="flow-step"><div class="flow-icon">⚡</div><h4>WTWR Earned</h4><p>Token credited to account. Clean grade = more earned.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="materials" style="border-bottom: 1px solid var(--border);">
+  <div class="section">
+    <div class="section-label">Material Grades</div>
+    <h2>Every grade tracked. No mixed loads accepted.</h2>
+    <div class="materials-grid">
+      <div class="material-cat">
+        <div class="mat-header">⚡ High Value PCM — Copper</div>
+        <div class="mat-grades">
+          <div class="mat-grade"><span class="mat-grade-name">Bare Bright</span><span class="mat-grade-tag">BB-1 · Highest</span></div>
+          <div class="mat-grade"><span class="mat-grade-name">#1 Copper</span><span class="mat-grade-tag">CU-1</span></div>
+          <div class="mat-grade"><span class="mat-grade-name">#2 Copper</span><span class="mat-grade-tag">CU-2</span></div>
+          <div class="mat-grade"><span class="mat-grade-name">#3 Copper</span><span class="mat-grade-tag">CU-3</span></div>
+        </div>
+      </div>
+      <div class="material-cat">
+        <div class="mat-header">🔩 High Value PCM — Aluminum</div>
+        <div class="mat-grades">
+          <div class="mat-grade"><span class="mat-grade-name">Aluminum Extrusion</span><span class="mat-grade-tag">AL-EX</span></div>
+          <div class="mat-grade"><span class="mat-grade-name">Cast Aluminum</span><span class="mat-grade-tag">AL-CA</span></div>
+          <div class="mat-grade"><span class="mat-grade-name">Mixed Aluminum</span><span class="mat-grade-tag">AL-MX</span></div>
+        </div>
+      </div>
+      <div class="material-cat">
+        <div class="mat-header">🏗️ Steel & Ferrous</div>
+        <div class="mat-grades">
+          <div class="mat-grade"><span class="mat-grade-name">Light Iron / Steel</span><span class="mat-grade-tag">ST-LT</span></div>
+          <div class="mat-grade"><span class="mat-grade-name">Heavy Melt Steel</span><span class="mat-grade-tag">ST-HM</span></div>
+          <div class="mat-grade"><span class="mat-grade-name">Shredded Steel</span><span class="mat-grade-tag">ST-SH</span></div>
+        </div>
+      </div>
+      <div class="material-cat">
+        <div class="mat-header">♻️ Common Recyclables</div>
+        <div class="mat-grades">
+          <div class="mat-grade"><span class="mat-grade-name">Cardboard (OCC)</span><span class="mat-grade-tag">RCY-CB</span></div>
+          <div class="mat-grade"><span class="mat-grade-name">PET Plastic Bottles</span><span class="mat-grade-tag">RCY-PET</span></div>
+          <div class="mat-grade"><span class="mat-grade-name">HDPE Plastic</span><span class="mat-grade-tag">RCY-HDPE</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="wtwr" class="wtwr-section">
+  <div class="wtwr-inner">
+    <div>
+      <div class="section-label">The Token</div>
+      <h2 style="font-size:clamp(28px,4vw,48px);font-weight:700;letter-spacing:-0.02em;margin-bottom:16px;">$WTWR is proof.<br>Not promise.</h2>
+      <p style="color:var(--steel);font-size:15px;line-height:1.7;margin-bottom:8px;">Every WTWR token has a ticket behind it. Every ticket has a weight, a grade, and a date. You either did the work or you didn't.</p>
+      <p style="color:var(--steel);font-size:15px;line-height:1.7;">$G2 watches the network, earns 1% of every transaction, and burns 40% — growing scarcer as the platform grows.</p>
+      <div class="wtwr-mechanics">
+        <div class="mechanic"><div class="mechanic-icon">⚖️</div><div><h4>Commodity Backed</h4><p>WTWR value is seeded by real scrap purchases at market rate. Not speculation — commodity backing.</p></div></div>
+        <div class="mechanic"><div class="mechanic-icon">🔥</div><div><h4>G2 Burns on Every Transaction</h4><p>40% of G2 used in each transaction is destroyed. More volume = scarcer supply = rising value.</p></div></div>
+        <div class="mechanic"><div class="mechanic-icon">🤖</div><div><h4>Sentinel Watches Everything</h4><p>Built on Trust Wallet Agent Kit. Tracks on-chain velocity. Hard rules prevent interaction with unverified contracts.</p></div></div>
+      </div>
+    </div>
+    <div class="token-display">
+      <div class="token-header">
+        <div><div class="token-name">$WTWR</div><div class="token-sub">Watchtower Protocol Token · Base Chain</div></div>
+        <div class="token-badge">PROOF OF WORK</div>
+      </div>
+      <div class="token-stats">
+        <div class="token-stat"><div class="token-stat-label">Current Rate</div><div class="token-stat-value signal">$0.34</div></div>
+        <div class="token-stat"><div class="token-stat-label">G2 Fee</div><div class="token-stat-value copper">1% / TX</div></div>
+        <div class="token-stat"><div class="token-stat-label">Burn Rate</div><div class="token-stat-value copper">40%</div></div>
+        <div class="token-stat"><div class="token-stat-label">Chain</div><div class="token-stat-value" style="font-size:14px;">Base · TWAK</div></div>
+      </div>
+      <div class="burn-bar">
+        <div class="burn-label"><span>G2 BURN PER TRANSACTION</span><span style="color:var(--copper)">40%</span></div>
+        <div class="burn-track"><div class="burn-fill"></div></div>
+      </div>
+      <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border);">
+        <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--steel);letter-spacing:0.1em;margin-bottom:12px;">EARNING RATE BY GRADE</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;justify-content:space-between;font-family:'Space Mono',monospace;font-size:11px;"><span style="color:var(--white)">Bare Bright</span><span style="color:var(--signal)">12.4 WTWR/lb</span></div>
+          <div style="display:flex;justify-content:space-between;font-family:'Space Mono',monospace;font-size:11px;"><span style="color:var(--white)">#1 Copper</span><span style="color:var(--signal)">11.1 WTWR/lb</span></div>
+          <div style="display:flex;justify-content:space-between;font-family:'Space Mono',monospace;font-size:11px;"><span style="color:var(--white)">#2 Copper</span><span style="color:var(--signal)">9.8 WTWR/lb</span></div>
+          <div style="display:flex;justify-content:space-between;font-family:'Space Mono',monospace;font-size:11px;"><span style="color:var(--steel)">#3 Copper</span><span style="color:var(--steel)">7.2 WTWR/lb</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tiers" style="border-bottom: 1px solid var(--border);">
+  <div class="tiers-section">
+    <div class="section-label">Access Tiers</div>
+    <h2 style="font-size:clamp(28px,4vw,48px);font-weight:700;letter-spacing:-0.02em;margin-bottom:8px;">Better sorting.<br>Better tier. Better returns.</h2>
+    <div class="tiers-grid">
+      <div class="tier">
+        <div class="tier-name">Signal</div>
+        <div class="tier-price"><sup>$</sup>1,000</div>
+        <div class="tier-cycle">one-time access</div>
+        <ul class="tier-features">
+          <li>Account + ticket logging</li>
+          <li>Common recyclables (cardboard, plastic)</li>
+          <li>Basic weight tracking by load</li>
+          <li>WTWR earning on common grades</li>
+          <li class="inactive">PCM copper/aluminum grading</li>
+          <li class="inactive">Live price feed</li>
+          <li class="inactive">Revenue opportunity alerts</li>
+        </ul>
+        <a href="#signup" class="tier-cta">Get Signal Access</a>
+      </div>
+      <div class="tier featured">
+        <div class="tier-badge">MOST POPULAR</div>
+        <div class="tier-name">Enforcer</div>
+        <div class="tier-price"><sup>$</sup>2,500</div>
+        <div class="tier-cycle">one-time access</div>
+        <ul class="tier-features">
+          <li>Everything in Signal</li>
+          <li>Full PCM grading — all copper grades</li>
+          <li>Aluminum extrusion + cast tracking</li>
+          <li>Steel grade logging</li>
+          <li>Full ticket history + export</li>
+          <li>WTWR earning on all grades</li>
+          <li class="inactive">Live price feed</li>
+        </ul>
+        <a href="#signup" class="tier-cta">Get Enforcer Access</a>
+      </div>
+      <div class="tier">
+        <div class="tier-name">Sentinel</div>
+        <div class="tier-price"><sup>$</sup>5,000</div>
+        <div class="tier-cycle">one-time access</div>
+        <ul class="tier-features">
+          <li>Everything in Enforcer</li>
+          <li>Live commodity price feed</li>
+          <li>Price spike alerts on your materials</li>
+          <li>Revenue opportunity notifications</li>
+          <li>Multi-location support</li>
+          <li>Upgrade prompts when grades improve</li>
+          <li>Direct Sentinel Terminal access</li>
+        </ul>
+        <a href="#signup" class="tier-cta">Get Sentinel Access</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="pow-section">
+  <div class="pow-inner">
+    <div class="section-label" style="text-align:center">Proof of Work</div>
+    <h2>No ticket. <span>No token.</span></h2>
+    <p class="pow-sub">Every WTWR in circulation has a physical event behind it. A real load. A real weight. A real grade. The ledger doesn't lie.</p>
+    <div class="pow-stats">
+      <div class="pow-stat"><div class="pow-stat-value">100%</div><div class="pow-stat-label">Token backed by commodity purchases</div></div>
+      <div class="pow-stat"><div class="pow-stat-value">0</div><div class="pow-stat-label">Tokens issued without a verified ticket</div></div>
+      <div class="pow-stat"><div class="pow-stat-value">40%</div><div class="pow-stat-label">G2 burned per transaction — forever</div></div>
+    </div>
+    <a href="#signup" class="btn-primary">Start Earning</a>
+  </div>
+</section>
+
+<section id="signup" style="border-top: 1px solid var(--border);">
+  <div class="signup-section">
+    <div class="section-label">Create Account</div>
+    <h2>Get your business on the protocol.</h2>
+    <p>Tell us what you handle and we'll match you to the right tier. Every load starts earning from day one.</p>
+    <div class="form-grid">
+      <div class="form-field"><label>Business Name</label><input type="text" placeholder="Your Business Name"></div>
+      <div class="form-field"><label>Contact Name</label><input type="text" placeholder="Your Name"></div>
+      <div class="form-field"><label>Email</label><input type="email" placeholder="you@yourbusiness.com"></div>
+      <div class="form-field"><label>Phone</label><input type="tel" placeholder="Your Phone Number"></div>
+      <div class="form-field full"><label>Monthly Volume (estimated lbs)</label><input type="text" placeholder="e.g. 5,000 lbs / month"></div>
+      <div class="form-field full">
+        <label>Materials You Handle</label>
+        <div class="materials-check">
+          <label class="check-item"><input type="checkbox"> Bare Bright</label>
+          <label class="check-item"><input type="checkbox"> #1 Copper</label>
+          <label class="check-item"><input type="checkbox"> #2 Copper</label>
+          <label class="check-item"><input type="checkbox"> #3 Copper</label>
+          <label class="check-item"><input type="checkbox"> Al Extrusion</label>
+          <label class="check-item"><input type="checkbox"> Cast Aluminum</label>
+          <label class="check-item"><input type="checkbox"> Steel</label>
+          <label class="check-item"><input type="checkbox"> Cardboard</label>
+          <label class="check-item"><input type="checkbox"> Plastic</label>
+        </div>
+      </div>
+      <div class="form-field full">
+        <label>Access Tier</label>
+        <select>
+          <option value="">Select tier...</option>
+          <option>Signal — $1,000</option>
+          <option>Enforcer — $2,500</option>
+          <option>Sentinel — $5,000</option>
+        </select>
+      </div>
+    </div>
+    <button class="submit-btn">Submit for Access →</button>
+    <p style="font-size:12px;color:var(--dim);margin-top:16px;font-family:'Space Mono',monospace;line-height:1.6;">By submitting you agree to the Watchtower Protocol terms. $WTWR is a utility token. This is not financial advice. All token mechanics are subject to applicable law.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">WATCHTOWER//PROTOCOL · BASE CHAIN</div>
+  <ul class="footer-links">
+    <li><a href="#">Terms</a></li>
+    <li><a href="#">Privacy</a></li>
+    <li><a href="https://twitter.com/x_OLDG">@x_OLDG</a></li>
+  </ul>
+  <div class="footer-signal"><span class="pulse"></span>SENTINEL ACTIVE</div>
+</footer>
+
+<script>
+  const grades = [
+    { label: 'BARE BRIGHT', value: '$4.21', unit: '/lb', delta: '+2.1%', up: true },
+    { label: '#1 COPPER', value: '$3.87', unit: '/lb', delta: '+1.8%', up: true },
+    { label: '#2 COPPER', value: '$3.42', unit: '/lb', delta: '+0.9%', up: true },
+    { label: '#3 COPPER', value: '$2.98', unit: '/lb', delta: '-0.3%', up: false },
+    { label: 'AL EXTRUSION', value: '$0.68', unit: '/lb', delta: '+1.2%', up: true },
+    { label: 'CAST ALUMINUM', value: '$0.54', unit: '/lb', delta: '+0.6%', up: true },
+    { label: 'LIGHT STEEL', value: '$0.09', unit: '/lb', delta: '-1.1%', up: false },
+    { label: 'HEAVY MELT', value: '$0.12', unit: '/lb', delta: '+0.5%', up: true },
+    { label: 'CARDBOARD OCC', value: '$0.04', unit: '/lb', delta: '+3.2%', up: true },
+    { label: 'PET PLASTIC', value: '$0.07', unit: '/lb', delta: '+1.5%', up: true },
+    { label: '$WTWR RATE', value: '$0.34', unit: '/token', delta: '+4.7%', up: true },
+    { label: '$G2 BURN', value: '40%', unit: '/tx', delta: 'DEFLATIONARY', up: true },
+  ];
+  const track = document.getElementById('ticker');
+  [...grades, ...grades].forEach(g => {
+    const item = document.createElement('div');
+    item.className = 'ticker-item';
+    item.innerHTML = `<span class="ticker-label">${g.label}</span><span class="ticker-value">${g.value}</span><span class="ticker-unit">${g.unit}</span><span class="${g.up ? 'ticker-up' : 'ticker-down'}">${g.delta}</span>`;
+    track.appendChild(item);
+  });
+</script>
+</body>
+</html>
