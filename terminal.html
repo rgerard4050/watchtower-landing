@@ -3,1114 +3,1089 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>WTWR Hand Terminal</title>
+<title>Watchtower Terminal v2</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700&display=swap');
-
-  :root {
-    --black: #080c0f;
-    --dark: #0d1318;
-    --panel: #111820;
-    --panel2: #161f28;
-    --border: #1e2d3a;
-    --green: #00ff88;
-    --green-dim: #00cc6a;
-    --green-glow: rgba(0,255,136,0.10);
-    --amber: #ffaa00;
-    --red: #ff4455;
-    --blue: #00aaff;
-    --text: #c8d8e8;
-    --muted: #5a7a8a;
-    --mono: 'Share Tech Mono', monospace;
-    --sans: 'Inter', sans-serif;
-  }
-
-  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html, body { height:100%; overflow:hidden; background:var(--black); color:var(--text); font-family:var(--sans); }
-
-  /* SCREENS */
-  .screen { display:none; flex-direction:column; height:100%; overflow-y:auto; }
-  .screen.active { display:flex; }
-
-  /* HEADER */
-  .hdr {
-    background:rgba(8,12,15,0.98);
-    border-bottom:1px solid var(--border);
-    padding:12px 16px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    flex-shrink:0;
-    position:sticky; top:0; z-index:50;
-  }
-  .hdr-logo { font-family:var(--mono); font-size:12px; color:var(--green); letter-spacing:0.12em; }
-  .hdr-sub { font-family:var(--mono); font-size:10px; color:var(--muted); }
-  .hdr-right { display:flex; align-items:center; gap:8px; }
-  .wallet-pill {
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:20px;
-    padding:5px 10px;
-    font-family:var(--mono);
-    font-size:10px;
-    color:var(--muted);
-    cursor:pointer;
-  }
-  .wallet-pill.connected { color:var(--green); border-color:var(--green); }
-
-  /* SCAN SCREEN */
-  .scan-body { padding:16px; display:flex; flex-direction:column; gap:14px; flex:1; }
-
-  .section-label {
-    font-family:var(--mono);
-    font-size:10px;
-    color:var(--muted);
-    letter-spacing:0.15em;
-    text-transform:uppercase;
-    margin-bottom:8px;
-  }
-
-  /* MATERIAL GRID */
-  .material-grid {
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:8px;
-  }
-
-  .mat-btn {
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:10px;
-    padding:14px 10px;
-    cursor:pointer;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:6px;
-    transition:all 0.15s;
-    -webkit-tap-highlight-color:transparent;
-  }
-
-  .mat-btn:active { transform:scale(0.96); }
-
-  .mat-btn.selected {
-    border-color:var(--green);
-    background:var(--green-glow);
-    box-shadow:0 0 12px rgba(0,255,136,0.15);
-  }
-
-  .mat-icon {
-    font-family:var(--mono);
-    font-size:20px;
-    font-weight:700;
-    color:var(--green);
-    letter-spacing:0.05em;
-    line-height:1;
-  }
-  .mat-atomic {
-    font-family:var(--mono);
-    font-size:9px;
-    color:var(--muted);
-    margin-top:1px;
-  }
-  .mat-name { font-family:var(--mono); font-size:11px; color:var(--text); }
-  .mat-rate { font-size:10px; color:var(--muted); }
-  .mat-rate span { color:var(--green); }
-
-  /* WEIGHT INPUT */
-  .weight-section {
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:10px;
-    padding:16px;
-  }
-
-  .weight-tabs {
-    display:flex;
-    gap:6px;
-    margin-bottom:14px;
-  }
-
-  .wtab {
-    flex:1;
-    background:var(--panel2);
-    border:1px solid var(--border);
-    border-radius:6px;
-    padding:8px;
-    font-family:var(--mono);
-    font-size:10px;
-    color:var(--muted);
-    text-align:center;
-    cursor:pointer;
-    letter-spacing:0.08em;
-  }
-
-  .wtab.active { border-color:var(--green); color:var(--green); background:var(--green-glow); }
-
-  .weight-input-row {
-    display:flex;
-    gap:10px;
-    align-items:flex-end;
-  }
-
-  .weight-field {
-    flex:1;
-    background:var(--black);
-    border:1px solid var(--border);
-    border-radius:8px;
-    padding:14px;
-    font-family:var(--mono);
-    font-size:28px;
-    color:var(--green);
-    text-align:right;
-    outline:none;
-    width:100%;
-    -webkit-appearance:none;
-  }
-
-  .weight-field:focus { border-color:var(--green); box-shadow:0 0 8px rgba(0,255,136,0.1); }
-
-  .unit-toggle {
-    background:var(--panel2);
-    border:1px solid var(--border);
-    border-radius:8px;
-    padding:10px 14px;
-    font-family:var(--mono);
-    font-size:12px;
-    color:var(--text);
-    cursor:pointer;
-    flex-shrink:0;
-    white-space:nowrap;
-  }
-
-  /* SCALE CONNECT */
-  .scale-row {
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    margin-top:12px;
-    padding-top:12px;
-    border-top:1px solid var(--border);
-  }
-
-  .scale-status {
-    font-family:var(--mono);
-    font-size:10px;
-    color:var(--muted);
-    display:flex;
-    align-items:center;
-    gap:6px;
-  }
-
-  .scale-dot {
-    width:7px; height:7px;
-    border-radius:50%;
-    background:var(--muted);
-  }
-
-  .scale-dot.live { background:var(--green); animation:pulse 2s infinite; }
-
-  @keyframes pulse {
-    0%,100% { opacity:1; } 50% { opacity:0.4; }
-  }
-
-  .scale-btn {
-    background:var(--panel2);
-    border:1px solid var(--border);
-    border-radius:6px;
-    padding:7px 12px;
-    font-family:var(--mono);
-    font-size:10px;
-    color:var(--text);
-    cursor:pointer;
-  }
-
-  /* PAYOUT PREVIEW */
-  .payout-preview {
-    background:var(--green-glow);
-    border:1px solid var(--border);
-    border-radius:10px;
-    padding:16px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-  }
-
-  .payout-preview.ready { border-color:var(--green); }
-
-  .preview-label { font-size:11px; color:var(--muted); margin-bottom:4px; }
-
-  .preview-amount {
-    font-family:var(--mono);
-    font-size:32px;
-    color:var(--muted);
-    transition:color 0.3s;
-  }
-
-  .preview-amount.ready { color:var(--green); }
-
-  .preview-right { text-align:right; }
-  .preview-mat { font-family:var(--mono); font-size:11px; color:var(--text); margin-bottom:3px; }
-  .preview-rate { font-size:10px; color:var(--muted); }
-
-  /* NOTES */
-  .notes-field {
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:8px;
-    padding:12px;
-    font-family:var(--sans);
-    font-size:13px;
-    color:var(--text);
-    width:100%;
-    resize:none;
-    outline:none;
-    height:70px;
-  }
-
-  .notes-field:focus { border-color:var(--border); }
-
-  /* SUBMIT */
-  .submit-btn {
-    background:var(--green);
-    color:#000;
-    border:none;
-    border-radius:12px;
-    padding:18px;
-    font-family:var(--mono);
-    font-size:14px;
-    font-weight:700;
-    letter-spacing:0.12em;
-    width:100%;
-    cursor:pointer;
-    transition:all 0.15s;
-    flex-shrink:0;
-  }
-
-  .submit-btn:active { transform:scale(0.98); background:var(--green-dim); }
-  .submit-btn:disabled { background:var(--border); color:var(--muted); cursor:not-allowed; transform:none; }
-
-  /* TICKET SCREEN */
-  .ticket-body {
-    padding:16px;
-    display:flex;
-    flex-direction:column;
-    gap:14px;
-    flex:1;
-  }
-
-  .ticket-card {
-    background:var(--panel);
-    border:1px solid var(--green);
-    border-radius:12px;
-    overflow:hidden;
-    box-shadow:0 0 24px rgba(0,255,136,0.08);
-  }
-
-  .ticket-top {
-    background:var(--green-glow);
-    padding:20px 16px;
-    border-bottom:1px solid var(--border);
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-  }
-
-  .ticket-id {
-    font-family:var(--mono);
-    font-size:11px;
-    color:var(--muted);
-    margin-bottom:4px;
-  }
-
-  .ticket-status {
-    font-family:var(--mono);
-    font-size:10px;
-    letter-spacing:0.15em;
-  }
-
-  .ticket-status.queued { color:var(--amber); }
-  .ticket-status.minted { color:var(--green); }
-
-  .ticket-payout {
-    font-family:var(--mono);
-    font-size:36px;
-    color:var(--green);
-    text-align:right;
-  }
-
-  .ticket-payout-label { font-size:10px; color:var(--muted); text-align:right; margin-top:2px; }
-
-  .ticket-rows { padding:16px; display:flex; flex-direction:column; gap:12px; }
-
-  .ticket-row {
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding-bottom:12px;
-    border-bottom:1px solid var(--border);
-  }
-
-  .ticket-row:last-child { border-bottom:none; padding-bottom:0; }
-
-  .tr-label { font-size:11px; color:var(--muted); }
-  .tr-val { font-family:var(--mono); font-size:13px; color:var(--text); }
-  .tr-val.green { color:var(--green); }
-
-  /* MINT PROGRESS */
-  .mint-bar-wrap {
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:10px;
-    padding:16px;
-  }
-
-  .mint-steps {
-    display:flex;
-    flex-direction:column;
-    gap:12px;
-  }
-
-  .mint-step {
-    display:flex;
-    align-items:center;
-    gap:12px;
-  }
-
-  .step-icon {
-    width:28px; height:28px;
-    border-radius:50%;
-    background:var(--panel2);
-    border:1px solid var(--border);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:12px;
-    flex-shrink:0;
-    font-family:var(--mono);
-    color:var(--muted);
-  }
-
-  .step-icon.done { background:var(--green-glow); border-color:var(--green); color:var(--green); }
-  .step-icon.active { background:rgba(255,170,0,0.1); border-color:var(--amber); color:var(--amber); animation:pulse 1s infinite; }
-
-  .step-text { font-family:var(--mono); font-size:11px; color:var(--muted); }
-  .step-text.done { color:var(--text); }
-  .step-text.active { color:var(--amber); }
-
-  /* LOG SCREEN */
-  .log-body { padding:16px; flex:1; }
-
-  .log-summary {
-    display:grid;
-    grid-template-columns:1fr 1fr 1fr;
-    gap:8px;
-    margin-bottom:16px;
-  }
-
-  .sum-box {
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:8px;
-    padding:12px 10px;
-    text-align:center;
-  }
-
-  .sum-val { font-family:var(--mono); font-size:16px; color:var(--green); display:block; }
-  .sum-label { font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:0.1em; margin-top:3px; }
-
-  .log-list { display:flex; flex-direction:column; gap:8px; }
-
-  .log-item {
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:8px;
-    padding:14px;
-    display:flex;
-    align-items:center;
-    gap:12px;
-    cursor:pointer;
-  }
-
-  .log-mat-icon { font-size:22px; flex-shrink:0; }
-
-  .log-info { flex:1; }
-  .log-title { font-size:13px; color:var(--text); margin-bottom:3px; }
-  .log-meta { font-family:var(--mono); font-size:10px; color:var(--muted); }
-
-  .log-right { text-align:right; }
-  .log-wtwr { font-family:var(--mono); font-size:14px; color:var(--green); }
-  .log-status { font-size:9px; font-family:var(--mono); margin-top:3px; }
-  .log-status.minted { color:var(--green); }
-  .log-status.queued { color:var(--amber); }
-
-  /* BOTTOM NAV */
-  .bottom-nav {
-    background:rgba(8,12,15,0.97);
-    border-top:1px solid var(--border);
-    display:flex;
-    padding:10px 0 24px;
-    flex-shrink:0;
-  }
-
-  .nav-item {
-    flex:1;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:3px;
-    cursor:pointer;
-    padding:4px 0;
-  }
-
-  .nav-icon { font-size:20px; }
-  .nav-label { font-family:var(--mono); font-size:9px; color:var(--muted); letter-spacing:0.08em; text-transform:uppercase; }
-  .nav-item.active .nav-label { color:var(--green); }
-
-  /* TOAST */
-  .toast {
-    position:fixed;
-    top:70px; left:50%;
-    transform:translateX(-50%) translateY(-100px);
-    background:var(--panel);
-    border:1px solid var(--green);
-    color:var(--green);
-    font-family:var(--mono);
-    font-size:11px;
-    padding:10px 20px;
-    border-radius:8px;
-    z-index:999;
-    transition:transform 0.3s cubic-bezier(0.32,0.72,0,1);
-    white-space:nowrap;
-    letter-spacing:0.1em;
-  }
-
-  .toast.show { transform:translateX(-50%) translateY(0); }
-
-  .empty-state {
-    text-align:center;
-    padding:48px 20px;
-    font-family:var(--mono);
-    font-size:12px;
-    color:var(--muted);
-    line-height:1.8;
-  }
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700&display=swap');
+:root {
+  --black:#080c0f; --dark:#0d1318; --panel:#111820; --panel2:#161f28;
+  --border:#1e2d3a; --green:#00ff88; --green-dim:#00cc6a; --green-glow:rgba(0,255,136,0.10);
+  --amber:#ffaa00; --amber-dim:#cc8800; --amber-glow:rgba(255,170,0,0.10);
+  --red:#ff4455; --red-glow:rgba(255,68,85,0.10);
+  --blue:#00aaff; --blue-dim:#0077cc; --blue-glow:rgba(0,170,255,0.10);
+  --purple:#aa66ff;
+  --text:#c8d8e8; --muted:#5a7a8a;
+  --mono:'Share Tech Mono',monospace; --sans:'Inter',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;background:var(--black);color:var(--text);font-family:var(--sans);overflow:hidden;}
+
+/* HEADER */
+header{background:rgba(8,12,15,0.98);border-bottom:1px solid var(--border);padding:8px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0;z-index:100;}
+.logo{font-family:var(--mono);font-size:11px;color:var(--green);letter-spacing:0.12em;white-space:nowrap;}
+.ticker-bar{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:5px 10px;flex:1;min-width:0;overflow:hidden;}
+.t-item{display:flex;align-items:center;gap:5px;white-space:nowrap;}
+.t-label{font-family:var(--mono);font-size:9px;color:var(--muted);}
+.t-price{font-family:var(--mono);font-size:12px;color:var(--green);font-weight:600;}
+.t-chg{font-family:var(--mono);font-size:9px;}
+.t-chg.up{color:var(--green);} .t-chg.dn{color:var(--red);}
+.t-div{width:1px;height:14px;background:var(--border);flex-shrink:0;}
+.t-status{font-family:var(--mono);font-size:9px;color:var(--muted);}
+.admin-btn{font-family:var(--mono);font-size:9px;color:var(--amber);border:1px solid var(--amber-dim);background:var(--amber-glow);padding:5px 10px;border-radius:4px;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+
+/* TABS */
+.tab-nav{display:flex;background:var(--dark);border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;scrollbar-width:none;}
+.tab-nav::-webkit-scrollbar{display:none;}
+.tab-btn{font-family:var(--mono);font-size:10px;letter-spacing:0.07em;padding:10px 14px;color:var(--muted);border:none;background:transparent;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:color 0.15s,border-color 0.15s;}
+.tab-btn.active{color:var(--green);border-bottom-color:var(--green);}
+.badge{display:inline-block;font-size:8px;font-family:var(--mono);padding:1px 4px;border-radius:3px;margin-left:4px;vertical-align:middle;}
+.badge-red{background:var(--red);color:#fff;}
+.badge-blue{background:var(--blue);color:#000;}
+.badge-amber{background:var(--amber);color:#000;}
+
+/* LAYOUT */
+.app{display:flex;flex-direction:column;height:100vh;}
+.tab-content{flex:1;overflow:hidden;display:none;}
+.tab-content.active{display:flex;flex-direction:column;}
+.scroll{flex:1;overflow-y:auto;padding:12px;}
+.scroll::-webkit-scrollbar{width:3px;}
+.scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* SECTION HEADER */
+.sh{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border);}
+
+/* CARDS */
+.card{background:var(--panel);border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden;}
+.card-header{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-bottom:1px solid var(--border);}
+.card-body{padding:10px 12px;}
+.card-footer{display:flex;gap:7px;padding:9px 12px;border-top:1px solid var(--border);}
+
+/* MATERIAL GRID */
+.mat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:7px;margin-bottom:14px;}
+.mat-card{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:9px 11px;cursor:pointer;transition:border-color 0.15s,background 0.15s;}
+.mat-card:active{transform:scale(0.97);}
+.mat-card.selected{border-color:var(--green);background:var(--green-glow);}
+.mat-card.cat-copper{border-left:3px solid #b87333;}
+.mat-card.cat-aluminum{border-left:3px solid #aac8e0;}
+.mat-card.cat-brass{border-left:3px solid #d4aa70;}
+.mat-card.cat-steel{border-left:3px solid #8899aa;}
+.mat-card.cat-ferrous{border-left:3px solid #cc4444;}
+.mat-card.cat-battery{border-left:3px solid var(--amber);}
+.mat-card.cat-telecom{border-left:3px solid var(--purple);}
+.mat-card.cat-ewaste{border-left:3px solid var(--blue);}
+.mat-card.cat-plastic{border-left:3px solid #cc66ff;}
+.mat-card.cat-glass{border-left:3px solid #66ddcc;}
+.mat-card.cat-bulk{border-left:3px solid #557788;}
+.mat-name{font-size:11px;font-weight:600;color:var(--text);margin-bottom:2px;}
+.mat-grade{font-size:8px;color:var(--muted);margin-bottom:5px;line-height:1.3;}
+.mat-rate{font-family:var(--mono);font-size:11px;color:var(--green);display:flex;justify-content:space-between;align-items:center;}
+.mat-unit-label{font-size:8px;color:var(--muted);}
+
+/* FORMS */
+.form-row{display:flex;gap:8px;margin-bottom:9px;align-items:flex-end;}
+.fg{display:flex;flex-direction:column;gap:4px;flex:1;}
+.fl{font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:0.08em;}
+.fi{background:var(--dark);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:13px;padding:8px 10px;width:100%;outline:none;}
+.fi:focus{border-color:var(--green);}
+.fs{background:var(--dark);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:11px;padding:8px 10px;width:100%;outline:none;}
+
+/* PAYOUT PREVIEW */
+.payout-box{background:var(--dark);border:1px solid var(--green);border-radius:6px;padding:11px 13px;margin-bottom:11px;}
+.payout-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.payout-col{text-align:center;}
+.payout-val{font-family:var(--mono);font-size:16px;display:block;line-height:1.1;}
+.payout-val.green{color:var(--green);}
+.payout-val.amber{color:var(--amber);}
+.payout-val.blue{color:var(--blue);}
+.payout-sub{font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:2px;}
+.payout-divider{width:1px;background:var(--border);}
+.flag-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.flag{font-family:var(--mono);font-size:8px;padding:3px 8px;border-radius:3px;border:1px solid;}
+.flag-warn{background:var(--amber-glow);color:var(--amber);border-color:rgba(255,170,0,0.3);}
+.flag-ok{background:var(--green-glow);color:var(--green);border-color:rgba(0,255,136,0.3);}
+.flag-bad{background:var(--red-glow);color:var(--red);border-color:rgba(255,68,85,0.3);}
+.flag-info{background:var(--blue-glow);color:var(--blue);border-color:rgba(0,170,255,0.3);}
+.flag-mfg{background:rgba(170,102,255,0.1);color:var(--purple);border-color:rgba(170,102,255,0.3);}
+
+/* BUTTONS */
+.btn{font-family:var(--mono);font-size:10px;letter-spacing:0.08em;padding:10px 14px;border-radius:5px;cursor:pointer;border:none;text-transform:uppercase;}
+.btn-green{background:var(--green);color:#000;font-weight:700;}
+.btn-green:active{opacity:0.8;}
+.btn-amber{background:var(--amber);color:#000;font-weight:700;}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.btn-approve{flex:1;background:var(--green-glow);color:var(--green);border:1px solid rgba(0,255,136,0.3);font-family:var(--mono);font-size:10px;padding:9px;border-radius:5px;cursor:pointer;text-transform:uppercase;letter-spacing:0.07em;}
+.btn-reject{flex:1;background:var(--red-glow);color:var(--red);border:1px solid rgba(255,68,85,0.25);font-family:var(--mono);font-size:10px;padding:9px;border-radius:5px;cursor:pointer;text-transform:uppercase;letter-spacing:0.07em;}
+.btn-blue{flex:1;background:var(--blue-glow);color:var(--blue);border:1px solid rgba(0,170,255,0.3);font-family:var(--mono);font-size:10px;padding:9px;border-radius:5px;cursor:pointer;text-transform:uppercase;letter-spacing:0.07em;}
+.btn-full{width:100%;}
+
+/* STATUS PILLS */
+.pill{font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:3px;}
+.pill-pending{background:var(--amber-glow);color:var(--amber);border:1px solid rgba(255,170,0,0.3);}
+.pill-approved{background:var(--green-glow);color:var(--green);border:1px solid rgba(0,255,136,0.3);}
+.pill-rejected{background:var(--red-glow);color:var(--red);border:1px solid rgba(255,68,85,0.3);}
+.pill-transit{background:var(--blue-glow);color:var(--blue);border:1px solid rgba(0,170,255,0.3);}
+.pill-mfg{background:rgba(170,102,255,0.1);color:var(--purple);border:1px solid rgba(170,102,255,0.3);}
+.pill-spv{background:rgba(255,215,0,0.1);color:#ffd700;border:1px solid rgba(255,215,0,0.3);}
+
+/* QUEUE ROWS */
+.q-id{font-family:var(--mono);font-size:10px;color:var(--green);}
+.q-time{font-family:var(--mono);font-size:9px;color:var(--muted);}
+.q-row{display:flex;justify-content:space-between;margin-bottom:4px;}
+.q-key{font-size:10px;color:var(--muted);}
+.q-val{font-family:var(--mono);font-size:10px;color:var(--text);}
+.q-val.g{color:var(--green);} .q-val.a{color:var(--amber);} .q-val.b{color:var(--blue);} .q-val.p{color:var(--purple);}
+
+/* NODE SIGNAL */
+.node-signal{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;display:flex;align-items:center;gap:12px;}
+.node-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.node-dot.active{background:var(--green);animation:pulse 2s infinite;}
+.node-dot.full{background:var(--amber);animation:pulse 1s infinite;}
+.node-dot.alert{background:var(--red);animation:pulse 0.5s infinite;}
+.node-dot.offline{background:var(--muted);}
+.node-info{flex:1;}
+.node-id{font-family:var(--mono);font-size:11px;color:var(--text);font-weight:600;}
+.node-meta{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px;}
+.node-fill{font-family:var(--mono);font-size:11px;color:var(--amber);}
+
+/* LEDGER */
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px;}
+.stat-card{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:9px 11px;text-align:center;}
+.stat-val{font-family:var(--mono);font-size:15px;color:var(--green);display:block;}
+.stat-lbl{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;}
+.ledger-tbl{width:100%;border-collapse:collapse;font-size:10px;}
+.ledger-tbl th{font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:0.07em;padding:5px 7px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;}
+.ledger-tbl td{font-family:var(--mono);font-size:9px;padding:7px 7px;border-bottom:1px solid rgba(30,45,58,0.4);}
+.ledger-tbl td.g{color:var(--green);} .ledger-tbl td.a{color:var(--amber);} .ledger-tbl td.m{color:var(--muted);}
+
+/* CASHIER */
+.cashier-calc{background:var(--dark);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:11px;}
+.cc-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;}
+.cc-key{font-size:10px;color:var(--muted);}
+.cc-val{font-family:var(--mono);font-size:11px;color:var(--text);}
+.cc-total{font-family:var(--mono);font-size:20px;color:var(--amber);}
+.cc-div{height:1px;background:var(--border);margin:7px 0;}
+
+/* ADMIN MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:500;overflow-y:auto;align-items:flex-start;justify-content:center;padding:20px;}
+.overlay.open{display:flex;}
+.modal{background:var(--dark);border:1px solid var(--border);border-radius:10px;width:min(540px,96vw);padding:18px;margin:auto;}
+.modal-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.modal-title{font-family:var(--mono);font-size:11px;color:var(--amber);letter-spacing:0.1em;}
+.modal-close{background:transparent;border:none;color:var(--muted);font-size:18px;cursor:pointer;}
+.price-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;max-height:55vh;overflow-y:auto;}
+.price-item{background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:9px;}
+.price-name{font-size:9px;color:var(--text);margin-bottom:5px;font-weight:600;line-height:1.3;}
+.price-row{display:flex;align-items:center;gap:4px;}
+.price-inp{background:var(--dark);border:1px solid var(--border);border-radius:3px;color:var(--green);font-family:var(--mono);font-size:12px;padding:5px 7px;width:75px;outline:none;text-align:right;}
+.price-inp:focus{border-color:var(--amber);}
+.price-u{font-family:var(--mono);font-size:8px;color:var(--muted);}
+
+/* PIN */
+.pin-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.93);z-index:600;align-items:center;justify-content:center;}
+.pin-overlay.open{display:flex;}
+.pin-box{background:var(--dark);border:1px solid var(--amber);border-radius:10px;padding:22px;width:270px;text-align:center;}
+.pin-title{font-family:var(--mono);font-size:10px;color:var(--amber);letter-spacing:0.1em;margin-bottom:14px;}
+.pin-dots{display:flex;justify-content:center;gap:10px;margin-bottom:14px;}
+.pin-dot{width:13px;height:13px;border-radius:50%;border:1.5px solid var(--border);background:transparent;transition:background 0.12s;}
+.pin-dot.on{background:var(--amber);border-color:var(--amber);}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+.pin-key{background:var(--panel);border:1px solid var(--border);border-radius:5px;font-family:var(--mono);font-size:15px;color:var(--text);padding:13px;cursor:pointer;text-align:center;}
+.pin-key:active{background:var(--amber-glow);color:var(--amber);}
+.pin-key.sm{font-size:11px;color:var(--muted);}
+.pin-err{font-family:var(--mono);font-size:9px;color:var(--red);margin-top:7px;min-height:14px;}
+
+/* MISC */
+.empty{text-align:center;padding:36px 16px;}
+.empty-ico{font-size:28px;margin-bottom:8px;opacity:0.25;}
+.empty-txt{font-family:var(--mono);font-size:9px;color:var(--muted);}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--green);color:#000;font-family:var(--mono);font-size:10px;font-weight:700;padding:9px 18px;border-radius:5px;opacity:0;transition:opacity 0.25s;z-index:999;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;}
+.toast.err{background:var(--red);color:#fff;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+.spv-banner{background:rgba(255,215,0,0.07);border:1px solid rgba(255,215,0,0.25);border-radius:6px;padding:9px 12px;margin-bottom:10px;font-family:var(--mono);font-size:9px;color:#ffd700;line-height:1.5;}
 </style>
 </head>
 <body>
+<div class="app">
+
+<!-- HEADER -->
+<header>
+  <div class="logo">◈ WTWR</div>
+  <div class="ticker-bar">
+    <div class="t-item"><span class="t-label">$WTWR</span><span class="t-price" id="tPrice">—</span><span class="t-chg" id="tChg">—</span></div>
+    <div class="t-div"></div>
+    <div class="t-item"><span class="t-label">VOL</span><span class="t-price" id="tVol">—</span></div>
+    <div class="t-div"></div>
+    <span class="t-status" id="tStatus">⟳</span>
+  </div>
+  <button class="admin-btn" onclick="openPin()">⚙ ADMIN</button>
+</header>
+
+<!-- TABS -->
+<nav class="tab-nav">
+  <button class="tab-btn active" onclick="goTab('intake')">INTAKE</button>
+  <button class="tab-btn" onclick="goTab('queue')">QUEUE<span class="badge badge-red" id="bQueue">0</span></button>
+  <button class="tab-btn" onclick="goTab('nodes')">NODES<span class="badge badge-amber" id="bNodes">0</span></button>
+  <button class="tab-btn" onclick="goTab('dispatch')">DISPATCH<span class="badge badge-blue" id="bDispatch">0</span></button>
+  <button class="tab-btn" onclick="goTab('cashier')">CASHIER</button>
+  <button class="tab-btn" onclick="goTab('ledger')">LEDGER</button>
+</nav>
+
+<!-- ══ INTAKE ══ -->
+<div class="tab-content active" id="tab-intake">
+<div class="scroll">
+  <div class="sh">// SELECT MATERIAL</div>
+  <div class="mat-grid" id="matGrid"></div>
+
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-body">
+      <div class="sh">// TICKET DETAILS</div>
+      <div class="form-row">
+        <div class="fg" style="flex:2">
+          <label class="fl">SELECTED MATERIAL</label>
+          <div class="fi" id="selMatDisplay" style="color:var(--muted);font-size:11px">— tap material above —</div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="fg">
+          <label class="fl">QUANTITY</label>
+          <input class="fi" type="number" id="qtyInput" placeholder="0" step="0.01" min="0" oninput="calcPayout()">
+        </div>
+        <div class="fg">
+          <label class="fl">UNIT</label>
+          <div class="fi" id="unitDisplay" style="color:var(--muted);font-size:11px">—</div>
+        </div>
+        <div class="fg">
+          <label class="fl">SOURCE TYPE</label>
+          <select class="fs" id="srcSelect">
+            <option value="resident">Resident</option>
+            <option value="business">Business</option>
+            <option value="driver">Driver / Hauler</option>
+            <option value="it-refresh">IT Refresh</option>
+            <option value="scrapper">Scrapper</option>
+            <option value="node-auto">Node Auto-Signal</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="fg">
+          <label class="fl">NODE / TOTE ID</label>
+          <input class="fi" type="text" id="nodeInput" placeholder="NODE-001 or tote serial">
+        </div>
+        <div class="fg">
+          <label class="fl">WALLET / SELLER ID</label>
+          <input class="fi" type="text" id="walletInput" placeholder="0x... or seller handle">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="fg">
+          <label class="fl">PREF PAYMENT</label>
+          <select class="fs" id="payPref">
+            <option value="wtwr">WTWR Token</option>
+            <option value="cash">Cash</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="fl">MFG INPUT?</label>
+          <select class="fs" id="mfgFlag">
+            <option value="no">No — Standard Scrap</option>
+            <option value="yes">Yes — Manufacturing Input</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="fg">
+          <label class="fl">NOTES / CONDITION</label>
+          <input class="fi" type="text" id="notesInput" placeholder="Grade, contamination, moisture...">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLAGS -->
+  <div class="flag-row" id="flagRow"></div>
+
+  <!-- PAYOUT PREVIEW -->
+  <div class="payout-box" id="payoutBox">
+    <div style="font-family:var(--mono);font-size:8px;color:var(--muted);margin-bottom:8px;letter-spacing:0.1em">// PAYOUT ESTIMATE</div>
+    <div class="payout-grid">
+      <div class="payout-col">
+        <span class="payout-val green" id="pResident">0.00</span>
+        <div class="payout-sub">WTWR → RESIDENT</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--muted)" id="pResidentUSD">$0.00</div>
+      </div>
+      <div class="payout-divider"></div>
+      <div class="payout-col">
+        <span class="payout-val amber" id="pDriver">0.00</span>
+        <div class="payout-sub">WTWR → DRIVER</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--muted)" id="pDriverUSD">$0.00</div>
+      </div>
+      <div class="payout-divider"></div>
+      <div class="payout-col">
+        <span class="payout-val blue" id="pMargin">0.00</span>
+        <div class="payout-sub">USD MARGIN</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--muted)" id="pRate">@$—/unit</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-bottom:14px">
+    <button class="btn btn-ghost" onclick="clearIntake()">CLEAR</button>
+    <button class="btn btn-green btn-full" onclick="submitTicket()">LOG TICKET →</button>
+  </div>
+</div>
+</div>
+
+<!-- ══ QUEUE ══ -->
+<div class="tab-content" id="tab-queue">
+<div class="scroll">
+  <div class="sh">// PENDING APPROVAL</div>
+  <div id="queueList"></div>
+</div>
+</div>
+
+<!-- ══ NODES ══ -->
+<div class="tab-content" id="tab-nodes">
+<div class="scroll">
+  <div class="sh">// LIVE NODE STATUS</div>
+  <div id="nodeList"></div>
+  <div class="sh" style="margin-top:14px">// REGISTER NODE</div>
+  <div class="card">
+    <div class="card-body">
+      <div class="form-row">
+        <div class="fg"><label class="fl">NODE ID</label><input class="fi" type="text" id="nRegId" placeholder="NODE-XXX"></div>
+        <div class="fg"><label class="fl">LABEL / LOCATION</label><input class="fi" type="text" id="nRegLabel" placeholder="SR-40 plaza, apt 4B..."></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label class="fl">OWNER / ACCOUNT</label><input class="fi" type="text" id="nRegOwner" placeholder="wallet or name"></div>
+        <div class="fg"><label class="fl">TYPE</label>
+          <select class="fs" id="nRegType">
+            <option value="residential">Residential Tote</option>
+            <option value="business">Business Node</option>
+            <option value="dropsite">Drop Site</option>
+            <option value="sensor">Smart Sensor Node</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-green btn-full" onclick="registerNode()">REGISTER NODE →</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ DISPATCH ══ -->
+<div class="tab-content" id="tab-dispatch">
+<div class="scroll">
+  <div class="sh">// OPEN PICKUPS — FIRST COME FIRST SERVED</div>
+  <div id="dispatchList"></div>
+  <div class="sh" style="margin-top:14px">// IN TRANSIT</div>
+  <div id="transitList"></div>
+</div>
+</div>
+
+<!-- ══ CASHIER ══ -->
+<div class="tab-content" id="tab-cashier">
+<div class="scroll">
+  <div class="card">
+    <div class="card-body">
+      <div class="sh">// REDEMPTION WINDOW</div>
+      <div class="form-row">
+        <div class="fg"><label class="fl">WALLET / ID</label><input class="fi" type="text" id="rdmWallet" placeholder="0x... or seller ID"></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label class="fl">WTWR AMOUNT</label><input class="fi" type="number" id="rdmAmt" placeholder="0" oninput="calcRedeem()"></div>
+        <div class="fg"><label class="fl">REDEEM AS</label>
+          <select class="fs" id="rdmType" onchange="calcRedeem()">
+            <option value="cash">Cash (1:1)</option>
+            <option value="credit">Store Credit (1.10x)</option>
+            <option value="fuel">Fuel Credit (1.05x)</option>
+            <option value="merch">Merchandise (1.15x)</option>
+          </select>
+        </div>
+      </div>
+      <div class="cashier-calc">
+        <div class="cc-row"><span class="cc-key">WTWR AMOUNT</span><span class="cc-val" id="ccWTWR">0.00 WTWR</span></div>
+        <div class="cc-row"><span class="cc-key">SPOT PRICE</span><span class="cc-val" id="ccSpot">$—</span></div>
+        <div class="cc-row"><span class="cc-key">MULTIPLIER</span><span class="cc-val" id="ccMult">1.00x</span></div>
+        <div class="cc-div"></div>
+        <div class="cc-row"><span class="cc-key">TOTAL VALUE</span><span class="cc-total" id="ccTotal">$0.00</span></div>
+      </div>
+      <button class="btn btn-amber btn-full" onclick="processRedeem()">PROCESS REDEMPTION →</button>
+    </div>
+  </div>
+  <div class="sh" style="margin-top:12px">// RECENT REDEMPTIONS</div>
+  <div id="rdmList"></div>
+</div>
+</div>
+
+<!-- ══ LEDGER ══ -->
+<div class="tab-content" id="tab-ledger">
+<div class="scroll">
+  <div class="stat-grid">
+    <div class="stat-card"><span class="stat-val" id="stTickets">0</span><span class="stat-lbl">Tickets</span></div>
+    <div class="stat-card"><span class="stat-val" id="stWTWR">0</span><span class="stat-lbl">WTWR Out</span></div>
+    <div class="stat-card"><span class="stat-val" id="stQty">0</span><span class="stat-lbl">Units/Lbs</span></div>
+  </div>
+  <div class="spv-banner" id="spvBanner" style="display:none"></div>
+  <div style="display:flex;gap:7px;margin-bottom:11px">
+    <button class="btn btn-ghost" onclick="exportCSV()">↓ CSV</button>
+    <button class="btn btn-ghost" style="color:var(--red);border-color:rgba(255,68,85,0.3)" onclick="clearLedger()">✕ CLEAR</button>
+  </div>
+  <div class="sh">// TRANSACTION LOG</div>
+  <div style="overflow-x:auto">
+    <table class="ledger-tbl">
+      <thead><tr><th>ID</th><th>TIME</th><th>MATERIAL</th><th>QTY</th><th>RES WTWR</th><th>DRV WTWR</th><th>SRC</th><th>STATUS</th><th>SPV</th></tr></thead>
+      <tbody id="ledgerBody"></tbody>
+    </table>
+  </div>
+</div>
+</div>
+
+</div><!-- /app -->
+
+<!-- PIN -->
+<div class="pin-overlay" id="pinOverlay">
+  <div class="pin-box">
+    <div class="pin-title">// ADMIN ACCESS</div>
+    <div class="pin-dots" id="pinDots">
+      <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-pad">
+      <div class="pin-key" onclick="pk('1')">1</div><div class="pin-key" onclick="pk('2')">2</div><div class="pin-key" onclick="pk('3')">3</div>
+      <div class="pin-key" onclick="pk('4')">4</div><div class="pin-key" onclick="pk('5')">5</div><div class="pin-key" onclick="pk('6')">6</div>
+      <div class="pin-key" onclick="pk('7')">7</div><div class="pin-key" onclick="pk('8')">8</div><div class="pin-key" onclick="pk('9')">9</div>
+      <div class="pin-key sm" onclick="pdel()">⌫</div><div class="pin-key" onclick="pk('0')">0</div><div class="pin-key sm" onclick="closePin()">✕</div>
+    </div>
+    <div class="pin-err" id="pinErr"></div>
+  </div>
+</div>
+
+<!-- ADMIN MODAL -->
+<div class="overlay" id="adminModal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-title">⚙ PRICE CONTROLS</div>
+      <button class="modal-close" onclick="closeAdmin()">✕</button>
+    </div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:8px">
+      WTWR SPOT: <span id="aSpot" style="color:var(--green)">—</span> &nbsp;|&nbsp;
+      DRIVER CUT: <input id="aDrv" type="number" style="background:var(--dark);border:1px solid var(--border);color:var(--amber);font-family:var(--mono);font-size:11px;padding:2px 6px;width:50px;border-radius:3px;outline:none" value="25"> %
+      &nbsp;|&nbsp; MFG BONUS: <input id="aMfg" type="number" style="background:var(--dark);border:1px solid var(--border);color:var(--purple);font-family:var(--mono);font-size:11px;padding:2px 6px;width:50px;border-radius:3px;outline:none" value="40"> %
+    </div>
+    <div style="font-family:var(--mono);font-size:8px;color:var(--muted);margin-bottom:10px">Set rate per material. Unit shown on each card. Rates auto-convert to WTWR at live spot.</div>
+    <div class="price-grid" id="priceGrid"></div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn btn-ghost" onclick="closeAdmin()">CANCEL</button>
+      <button class="btn btn-green btn-full" onclick="savePrices()">SAVE ALL →</button>
+    </div>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
-<!-- ══════════════ SCAN SCREEN ══════════════ -->
-<div class="screen active" id="scanScreen">
-  <div class="hdr">
-    <div>
-      <div class="hdr-logo">WTWR // TERMINAL</div>
-      <div class="hdr-sub">INTAKE SCANNER v1.0</div>
-    </div>
-    <div class="wallet-pill" id="walletPill" onclick="toggleWallet()">CONNECT WALLET</div>
-  </div>
-
-  <div class="scan-body">
-
-    <!-- MATERIAL SELECT -->
-    <div>
-      <div class="section-label">// Select Material</div>
-      <div class="material-grid" id="matGrid">
-        <!-- rendered by JS -->
-      </div>
-    </div>
-
-    <!-- WEIGHT -->
-    <div class="weight-section">
-      <div class="section-label">// Weight</div>
-      <div class="weight-tabs">
-        <div class="wtab active" id="tabManual" onclick="setWeightMode('manual')">MANUAL</div>
-        <div class="wtab" id="tabScale" onclick="setWeightMode('scale')">SCALE</div>
-      </div>
-
-      <div class="weight-input-row">
-        <input
-          class="weight-field"
-          id="weightInput"
-          type="number"
-          inputmode="decimal"
-          placeholder="0.0"
-          oninput="updatePreview()"
-        >
-        <div class="unit-toggle" id="unitToggle" onclick="toggleUnit()">LBS</div>
-      </div>
-
-      <div class="scale-row">
-        <div class="scale-status">
-          <div class="scale-dot" id="scaleDot"></div>
-          <span id="scaleLabel">Scale: not connected</span>
-        </div>
-        <div class="scale-btn" onclick="connectScale()">CONNECT SCALE</div>
-      </div>
-    </div>
-
-    <!-- PAYOUT PREVIEW -->
-    <div class="payout-preview" id="payoutPreview">
-      <div>
-        <div class="preview-label">Est. Payout</div>
-        <div class="preview-amount" id="previewAmount">— WTWR</div>
-      </div>
-      <div class="preview-right">
-        <div class="preview-mat" id="previewMat">Select material</div>
-        <div class="preview-rate" id="previewRate">—</div>
-      </div>
-    </div>
-
-    <!-- NOTES -->
-    <div>
-      <div class="section-label">// Notes (optional)</div>
-      <textarea class="notes-field" id="notesField" placeholder="Load notes, source location, driver ID..."></textarea>
-    </div>
-
-    <!-- SUBMIT -->
-    <button class="submit-btn" id="submitBtn" disabled onclick="submitTicket()">
-      ⚡ GENERATE INTAKE TICKET
-    </button>
-
-    <div style="height:8px"></div>
-  </div>
-
-  <div class="bottom-nav">
-    <div class="nav-item active" onclick="showScreen('scan')">
-      <div class="nav-icon">📡</div>
-      <div class="nav-label">Scan</div>
-    </div>
-    <div class="nav-item" onclick="showScreen('log')">
-      <div class="nav-icon">📋</div>
-      <div class="nav-label">Log</div>
-    </div>
-    <div class="nav-item" onclick="showScreen('wallet')">
-      <div class="nav-icon">💰</div>
-      <div class="nav-label">Wallet</div>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════════ TICKET SCREEN ══════════════ -->
-<div class="screen" id="ticketScreen">
-  <div class="hdr">
-    <div>
-      <div class="hdr-logo">WTWR // TICKET</div>
-      <div class="hdr-sub">INTAKE RECEIPT</div>
-    </div>
-    <div class="hdr-sub" id="ticketTime"></div>
-  </div>
-
-  <div class="ticket-body">
-
-    <div class="ticket-card">
-      <div class="ticket-top">
-        <div>
-          <div class="ticket-id" id="ticketId">TKT-000000</div>
-          <div class="ticket-status queued" id="ticketStatus">⏳ QUEUED FOR MINT</div>
-        </div>
-        <div>
-          <div class="ticket-payout" id="ticketPayout">0 WTWR</div>
-          <div class="ticket-payout-label">PENDING MINT</div>
-        </div>
-      </div>
-
-      <div class="ticket-rows">
-        <div class="ticket-row">
-          <span class="tr-label">Material</span>
-          <span class="tr-val" id="trMaterial">—</span>
-        </div>
-        <div class="ticket-row">
-          <span class="tr-label">Weight</span>
-          <span class="tr-val" id="trWeight">—</span>
-        </div>
-        <div class="ticket-row">
-          <span class="tr-label">Rate</span>
-          <span class="tr-val green" id="trRate">—</span>
-        </div>
-        <div class="ticket-row">
-          <span class="tr-label">Operator</span>
-          <span class="tr-val" id="trOperator">Ocala Asset Security</span>
-        </div>
-        <div class="ticket-row">
-          <span class="tr-label">Notes</span>
-          <span class="tr-val" id="trNotes" style="max-width:180px;text-align:right;font-size:11px">—</span>
-        </div>
-        <div class="ticket-row">
-          <span class="tr-label">Mint Destination</span>
-          <span class="tr-val green" id="trWallet">NOT CONNECTED</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- MINT PROGRESS -->
-    <div class="mint-bar-wrap">
-      <div class="section-label">// Mint Queue Status</div>
-      <div class="mint-steps">
-        <div class="mint-step">
-          <div class="step-icon done" id="step1">✓</div>
-          <div class="step-text done">Ticket generated & signed</div>
-        </div>
-        <div class="mint-step">
-          <div class="step-icon active" id="step2">◎</div>
-          <div class="step-text active" id="step2text">Awaiting Base network submission</div>
-        </div>
-        <div class="mint-step">
-          <div class="step-icon" id="step3">3</div>
-          <div class="step-text" id="step3text">Contract mint confirmation</div>
-        </div>
-        <div class="mint-step">
-          <div class="step-icon" id="step4">4</div>
-          <div class="step-text" id="step4text">WTWR delivered to wallet</div>
-        </div>
-      </div>
-    </div>
-
-    <button class="submit-btn" onclick="newScan()" style="margin-top:4px">
-      + NEW SCAN
-    </button>
-    <button class="submit-btn" onclick="showScreen('log')" style="background:var(--panel);color:var(--text);border:1px solid var(--border);margin-top:8px">
-      VIEW LOG
-    </button>
-
-    <div style="height:8px"></div>
-  </div>
-</div>
-
-<!-- ══════════════ LOG SCREEN ══════════════ -->
-<div class="screen" id="logScreen">
-  <div class="hdr">
-    <div>
-      <div class="hdr-logo">WTWR // LOG</div>
-      <div class="hdr-sub">INTAKE HISTORY</div>
-    </div>
-  </div>
-
-  <div class="log-body">
-    <div class="log-summary">
-      <div class="sum-box">
-        <span class="sum-val" id="sumTickets">0</span>
-        <div class="sum-label">Tickets</div>
-      </div>
-      <div class="sum-box">
-        <span class="sum-val" id="sumWeight">0 lbs</span>
-        <div class="sum-label">Total Weight</div>
-      </div>
-      <div class="sum-box">
-        <span class="sum-val" id="sumWTWR">0</span>
-        <div class="sum-label">WTWR Minted</div>
-      </div>
-    </div>
-
-    <div class="log-list" id="logList">
-      <div class="empty-state">NO TICKETS YET<br>SCAN YOUR FIRST LOAD</div>
-    </div>
-  </div>
-
-  <div class="bottom-nav">
-    <div class="nav-item" onclick="showScreen('scan')">
-      <div class="nav-icon">📡</div>
-      <div class="nav-label">Scan</div>
-    </div>
-    <div class="nav-item active" onclick="showScreen('log')">
-      <div class="nav-icon">📋</div>
-      <div class="nav-label">Log</div>
-    </div>
-    <div class="nav-item" onclick="showScreen('wallet')">
-      <div class="nav-icon">💰</div>
-      <div class="nav-label">Wallet</div>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════════ WALLET SCREEN ══════════════ -->
-<div class="screen" id="walletScreen">
-  <div class="hdr">
-    <div>
-      <div class="hdr-logo">WTWR // WALLET</div>
-      <div class="hdr-sub">MINT DESTINATION</div>
-    </div>
-  </div>
-
-  <div style="padding:20px;flex:1;display:flex;flex-direction:column;gap:14px;">
-    <div class="section-label">// Connected Wallet</div>
-    <div class="weight-section">
-      <div class="section-label">Wallet Address</div>
-      <input
-        class="weight-field"
-        id="walletInput"
-        type="text"
-        placeholder="0x..."
-        style="font-size:14px;"
-        oninput="updateWallet()"
-      >
-      <div style="margin-top:12px;font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.8;">
-        WTWR will be minted directly to this address on Base after each verified intake ticket. Keep this your operator wallet or assign per-driver.
-      </div>
-    </div>
-
-    <div class="weight-section" id="walletBalanceBox" style="display:none">
-      <div class="section-label">Balance</div>
-      <div style="font-family:var(--mono);font-size:28px;color:var(--green)" id="walletBalance">0 WTWR</div>
-      <div style="font-size:10px;color:var(--muted);margin-top:4px">Queued from this session (live balance requires contract)</div>
-    </div>
-
-    <button class="submit-btn" onclick="saveWallet()">SAVE WALLET ADDRESS</button>
-  </div>
-
-  <div class="bottom-nav">
-    <div class="nav-item" onclick="showScreen('scan')">
-      <div class="nav-icon">📡</div>
-      <div class="nav-label">Scan</div>
-    </div>
-    <div class="nav-item" onclick="showScreen('log')">
-      <div class="nav-icon">📋</div>
-      <div class="nav-label">Log</div>
-    </div>
-    <div class="nav-item active" onclick="showScreen('wallet')">
-      <div class="nav-icon">💰</div>
-      <div class="nav-label">Wallet</div>
-    </div>
-  </div>
-</div>
-
 <script>
-// ── COMMODITY RATES (WTWR per lb) ──
-const MATERIALS = [
-  { id:'copper',    name:'Copper',    icon:'Cu', atomic:29, rate:50,  unit:'WTWR/lb', color:'#f59e0b' },
-  { id:'aluminum',  name:'Aluminum',  icon:'Al', atomic:13, rate:8,   unit:'WTWR/lb', color:'#60a5fa' },
-  { id:'steel',     name:'Steel',     icon:'Fe', atomic:26, rate:3,   unit:'WTWR/lb', color:'#94a3b8' },
-  { id:'brass',     name:'Brass',     icon:'Zn', atomic:30, rate:22,  unit:'WTWR/lb', color:'#fbbf24' },
-  { id:'lithium',   name:'Lithium',   icon:'Li', atomic:3,  rate:40,  unit:'WTWR/lb', color:'#34d399' },
-  { id:'silver',    name:'Silver',    icon:'Ag', atomic:47, rate:180, unit:'WTWR/lb', color:'#e2e8f0' },
-  { id:'gold',      name:'Gold',      icon:'Au', atomic:79, rate:800, unit:'WTWR/lb', color:'#fbbf24' },
-  { id:'ss304',     name:'304 Stainless', icon:'304', atomic:null, rate:5,  unit:'WTWR/lb', color:'#94a3b8' },
-  { id:'ss316',     name:'316 Stainless', icon:'316', atomic:null, rate:7,  unit:'WTWR/lb', color:'#cbd5e1' },
-  { id:'ss302',     name:'302 Stainless', icon:'302', atomic:null, rate:4,  unit:'WTWR/lb', color:'#64748b' },
-  { id:'lead',      name:'Lead',      icon:'Pb', atomic:82, rate:12, unit:'WTWR/lb', color:'#6b7280' },
-  { id:'wheelwgt',  name:'Wheel Weights', icon:'Pb·', atomic:82, rate:10, unit:'WTWR/lb', color:'#4b5563' },
-  { id:'rimsteel',  name:'Steel Rim',  icon:'Fe·', atomic:26, rate:3,  unit:'WTWR/lb', color:'#78716c' },
-  { id:'rimalum',   name:'Alloy Rim',  icon:'Al·', atomic:13, rate:8,  unit:'WTWR/lb', color:'#60a5fa' },
-  { id:'cardboard', name:'Cardboard', icon:'C₆', atomic:null, rate:1, unit:'WTWR/lb', color:'#a78bfa' },
+// ═══════════════════ MATERIALS ═══════════════════
+const MAT = [
+  // COPPER
+  {id:'cu-bb',   name:'Bare Bright',      grade:'Uncoated, unalloyed',          cat:'copper',   unit:'lb',  rate:4.20},
+  {id:'cu-1',    name:'Copper #1',         grade:'Clean, no coat',               cat:'copper',   unit:'lb',  rate:3.85},
+  {id:'cu-2',    name:'Copper #2',         grade:'Coated / painted',             cat:'copper',   unit:'lb',  rate:3.20},
+  {id:'cu-ins',  name:'Insulated Wire',    grade:'65% recovery est.',            cat:'copper',   unit:'lb',  rate:1.40},
+  {id:'cu-hair', name:'Hair Wire',         grade:'Comm thin insulated',          cat:'copper',   unit:'lb',  rate:0.55},
+  // ALUMINUM
+  {id:'al-can',  name:'Al Cans',           grade:'Clean, crushed',               cat:'aluminum', unit:'lb',  rate:0.72},
+  {id:'al-cast', name:'Cast Aluminum',     grade:'Engine block, wheels',         cat:'aluminum', unit:'lb',  rate:0.55},
+  {id:'al-sheet',name:'Sheet Aluminum',    grade:'Clean sheet / extrusion',      cat:'aluminum', unit:'lb',  rate:0.68},
+  {id:'al-wire', name:'Al Wire',           grade:'ACSR / THHN',                  cat:'aluminum', unit:'lb',  rate:0.58},
+  {id:'al-rad',  name:'Al Radiators',      grade:'Clean Al/Cu radiator',         cat:'aluminum', unit:'lb',  rate:0.62},
+  // BRASS
+  {id:'br-yel',  name:'Yellow Brass',      grade:'Faucets, valves',              cat:'brass',    unit:'lb',  rate:2.10},
+  {id:'br-red',  name:'Red Brass',         grade:'>85% Cu content',              cat:'brass',    unit:'lb',  rate:2.45},
+  {id:'br-shell',name:'Brass Shells',      grade:'Range brass, clean only',      cat:'brass',    unit:'lb',  rate:1.85},
+  // STAINLESS / STEEL
+  {id:'ss-304',  name:'Stainless 304',     grade:'Non-magnetic',                 cat:'steel',    unit:'lb',  rate:0.38},
+  {id:'ss-316',  name:'Stainless 316',     grade:'Marine / food grade',          cat:'steel',    unit:'lb',  rate:0.55},
+  {id:'fe-lt',   name:'Light Iron',        grade:'Sheet, auto body',             cat:'ferrous',  unit:'lb',  rate:0.08},
+  {id:'fe-cast', name:'Cast Iron',         grade:'Engine, machine parts',        cat:'ferrous',  unit:'lb',  rate:0.10},
+  // BATTERIES
+  {id:'bat-lead',name:'Lead Batteries',    grade:'Wet cell / sealed AGM',        cat:'battery',  unit:'lb',  rate:0.28},
+  {id:'bat-li',  name:'Li-Ion Packs',      grade:'Hazmat protocol required',     cat:'battery',  unit:'lb',  rate:0.35},
+  // TELECOM / HIGH-GRADE E-WASTE
+  {id:'tc-cell', name:'Cell Phones',       grade:'Whole units — Au/Pd/rare earth',cat:'telecom', unit:'lb',  rate:8.50},
+  {id:'tc-board',name:'Telecom Boards',    grade:'Gold fingers, edge connectors', cat:'telecom', unit:'lb',  rate:7.20},
+  {id:'tc-med',  name:'Medical / Military',grade:'Dense boards, specialized',    cat:'telecom',  unit:'lb',  rate:6.80},
+  {id:'tc-srv',  name:'Server / Enterprise',grade:'Rack blades, datacenter',     cat:'telecom',  unit:'lb',  rate:5.50},
+  {id:'tc-hdd',  name:'Hard Drives',       grade:'Al body + rare earth magnets', cat:'telecom',  unit:'lb',  rate:2.20},
+  // MIXED E-WASTE
+  {id:'ew-desk', name:'Desktop Mixed',     grade:'Motherboards, GPUs, Grade B',  cat:'ewaste',   unit:'lb',  rate:2.50},
+  {id:'ew-mix',  name:'Mixed Low-Grade',   grade:'Consumer junk, Grade C',       cat:'ewaste',   unit:'lb',  rate:0.80},
+  {id:'ew-mot',  name:'Electric Motors',   grade:'Copper wound',                 cat:'ewaste',   unit:'lb',  rate:0.22},
+  {id:'ew-ac',   name:'AC Units',          grade:'Complete w/ coils',            cat:'ewaste',   unit:'lb',  rate:0.45},
+  // PLASTICS
+  {id:'pl-1',    name:'PET #1',            grade:'Clear bottles, clean',         cat:'plastic',  unit:'lb',  rate:0.08},
+  {id:'pl-2',    name:'HDPE #2',           grade:'Jugs, containers',             cat:'plastic',  unit:'lb',  rate:0.07},
+  {id:'pl-5',    name:'PP #5',             grade:'Tubs, lids',                   cat:'plastic',  unit:'lb',  rate:0.04},
+  {id:'pl-eps',  name:'EPS Styrofoam',     grade:'Clean, densified only',        cat:'plastic',  unit:'lb',  rate:0.12},
+  // GLASS
+  {id:'gl-cl',   name:'Clear Glass',       grade:'Clean, no caps / lids',        cat:'glass',    unit:'lb',  rate:0.02},
+  {id:'gl-br',   name:'Brown Glass',       grade:'Clean bottles',                cat:'glass',    unit:'lb',  rate:0.01},
+  {id:'gl-gr',   name:'Green Glass',       grade:'Clean bottles',                cat:'glass',    unit:'lb',  rate:0.01},
+  // BULK / UNIT-PRICED
+  {id:'bk-card', name:'Cardboard (Mill)',  grade:'Collapsed, dry, baled',        cat:'bulk',     unit:'lb',  rate:0.06},
+  {id:'bk-pal',  name:'Pallets (GMA)',     grade:'48×40 standard, 6-board',      cat:'bulk',     unit:'unit',rate:4.50},
+  {id:'bk-oil',  name:'Used Motor Oil',    grade:'Clean petroleum only',         cat:'bulk',     unit:'gal', rate:0.50},
+  {id:'bk-wd',   name:'Waste Oil (Other)', grade:'Mixed / contaminated',         cat:'bulk',     unit:'gal', rate:0.18},
 ];
 
-// ── STATE ──
-let selectedMat = null;
-let weightUnit = 'lbs';
-let weightMode = 'manual';
-let scaleConnected = false;
-let walletAddr = '';
-let tickets = [];
-let totalWTWR = 0;
+// ═══════════════════ STATE ═══════════════════
+let S = {
+  prices:{}, drvCut:25, mfgBonus:40,
+  tickets:[], nodes:[], redemptions:[],
+  selMat:null, wtwrPrice:0,
+};
 
-// ── INIT ──
-function init() {
-  renderMaterials();
-  loadFromStorage();
+function load(){
+  try{
+    const d=JSON.parse(localStorage.getItem('wtwr_v3')||'{}');
+    S.prices=d.prices||{};
+    S.drvCut=d.drvCut??25;
+    S.mfgBonus=d.mfgBonus??40;
+    S.tickets=d.tickets||[];
+    S.nodes=d.nodes||[];
+    S.redemptions=d.redemptions||[];
+  }catch(e){}
+  MAT.forEach(m=>{ if(S.prices[m.id]===undefined) S.prices[m.id]=m.rate; });
+}
+function save(){
+  localStorage.setItem('wtwr_v3',JSON.stringify({
+    prices:S.prices,drvCut:S.drvCut,mfgBonus:S.mfgBonus,
+    tickets:S.tickets,nodes:S.nodes,redemptions:S.redemptions
+  }));
 }
 
-function renderMaterials() {
-  const grid = document.getElementById('matGrid');
-  grid.innerHTML = MATERIALS.map(m => `
-    <div class="mat-btn" id="mat_${m.id}" onclick="selectMat('${m.id}')">
-      <div class="mat-icon">${m.icon}</div>
-      ${m.atomic ? `<div class="mat-atomic">${m.atomic}</div>` : '<div class="mat-atomic">&nbsp;</div>'}
-      <div class="mat-name">${m.name}</div>
-      <div class="mat-rate"><span>${m.rate}</span> WTWR/lb</div>
-    </div>
-  `).join('');
-}
-
-function selectMat(id) {
-  selectedMat = MATERIALS.find(m => m.id === id);
-  document.querySelectorAll('.mat-btn').forEach(b => b.classList.remove('selected'));
-  document.getElementById('mat_' + id).classList.add('selected');
-  updatePreview();
-}
-
-function setWeightMode(mode) {
-  weightMode = mode;
-  document.getElementById('tabManual').classList.toggle('active', mode === 'manual');
-  document.getElementById('tabScale').classList.toggle('active', mode === 'scale');
-  document.getElementById('weightInput').readOnly = mode === 'scale';
-  if (mode === 'scale' && scaleConnected) pollScale();
-}
-
-function toggleUnit() {
-  const input = document.getElementById('weightInput');
-  const val = parseFloat(input.value) || 0;
-  if (weightUnit === 'lbs') {
-    weightUnit = 'tons';
-    if (val) input.value = (val / 2000).toFixed(4);
-  } else {
-    weightUnit = 'lbs';
-    if (val) input.value = (val * 2000).toFixed(1);
-  }
-  document.getElementById('unitToggle').textContent = weightUnit.toUpperCase();
-  updatePreview();
-}
-
-function getLbs() {
-  const raw = parseFloat(document.getElementById('weightInput').value) || 0;
-  return weightUnit === 'tons' ? raw * 2000 : raw;
-}
-
-function updatePreview() {
-  const lbs = getLbs();
-  const preview = document.getElementById('payoutPreview');
-  const amountEl = document.getElementById('previewAmount');
-  const matEl = document.getElementById('previewMat');
-  const rateEl = document.getElementById('previewRate');
-  const btn = document.getElementById('submitBtn');
-
-  if (selectedMat && lbs > 0) {
-    const payout = Math.round(lbs * selectedMat.rate);
-    amountEl.textContent = payout.toLocaleString() + ' WTWR';
-    amountEl.classList.add('ready');
-    preview.classList.add('ready');
-    matEl.textContent = selectedMat.icon + ' ' + selectedMat.name;
-    rateEl.textContent = selectedMat.rate + ' WTWR/lb × ' + lbs.toFixed(1) + ' lbs';
-    btn.disabled = false;
-  } else {
-    amountEl.textContent = '— WTWR';
-    amountEl.classList.remove('ready');
-    preview.classList.remove('ready');
-    matEl.textContent = selectedMat ? selectedMat.name : 'Select material';
-    rateEl.textContent = lbs > 0 ? '' : 'Enter weight';
-    btn.disabled = true;
-  }
-}
-
-function connectScale() {
-  showToast('⚠️ BLUETOOTH SCALE — COMING IN v1.1');
-  // Stub: simulate scale reading
-  if (!scaleConnected) {
-    scaleConnected = true;
-    document.getElementById('scaleDot').classList.add('live');
-    document.getElementById('scaleLabel').textContent = 'Scale: DEMO MODE';
-    if (weightMode === 'scale') pollScale();
-  }
-}
-
-function pollScale() {
-  // Simulate live scale reading
-  const simWeight = (Math.random() * 80 + 5).toFixed(1);
-  document.getElementById('weightInput').value = simWeight;
-  updatePreview();
-}
-
-function submitTicket() {
-  if (!selectedMat) return;
-  const lbs = getLbs();
-  if (!lbs) return;
-
-  const payout = Math.round(lbs * selectedMat.rate);
-  const ticketId = 'TKT-' + Date.now().toString().slice(-6);
-  const now = new Date();
-  const notes = document.getElementById('notesField').value.trim();
-
-  const ticket = {
-    id: ticketId,
-    material: selectedMat,
-    weightLbs: lbs,
-    unit: weightUnit,
-    payout,
-    notes,
-    wallet: walletAddr,
-    timestamp: now.toISOString(),
-    status: 'queued'
-  };
-
-  tickets.unshift(ticket);
-  totalWTWR += payout;
-  saveToStorage();
-  showTicketScreen(ticket);
-  simulateMint(ticket);
-}
-
-function showTicketScreen(t) {
-  const now = new Date(t.timestamp);
-  document.getElementById('ticketId').textContent = t.id;
-  document.getElementById('ticketTime').textContent = now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-  document.getElementById('ticketPayout').textContent = t.payout.toLocaleString() + ' WTWR';
-  document.getElementById('ticketStatus').textContent = '⏳ QUEUED FOR MINT';
-  document.getElementById('ticketStatus').className = 'ticket-status queued';
-  document.getElementById('trMaterial').textContent = t.material.icon + ' ' + t.material.name;
-  document.getElementById('trWeight').textContent = t.weightLbs.toFixed(1) + ' lbs';
-  document.getElementById('trRate').textContent = t.material.rate + ' WTWR/lb';
-  document.getElementById('trNotes').textContent = t.notes || '—';
-  document.getElementById('trWallet').textContent = walletAddr ? walletAddr.slice(0,6)+'...'+walletAddr.slice(-4) : 'NOT SET';
-
-  // Reset steps
-  ['step2','step3','step4'].forEach(id => {
-    document.getElementById(id).className = 'step-icon';
-    document.getElementById(id).textContent = id.replace('step','');
-  });
-  document.getElementById('step2text').className = 'step-text active';
-  document.getElementById('step3text').className = 'step-text';
-  document.getElementById('step4text').className = 'step-text';
-
-  showScreen('ticket');
-}
-
-function simulateMint(ticket) {
-  // Step 2 — submitting
-  setTimeout(() => {
-    document.getElementById('step2').className = 'step-icon active';
-    document.getElementById('step2text').textContent = 'Submitting to Base network...';
-  }, 800);
-
-  // Step 2 done
-  setTimeout(() => {
-    document.getElementById('step2').className = 'step-icon done';
-    document.getElementById('step2').textContent = '✓';
-    document.getElementById('step2text').className = 'step-text done';
-    document.getElementById('step2text').textContent = 'Submitted to Base network';
-    document.getElementById('step3').className = 'step-icon active';
-    document.getElementById('step3text').className = 'step-text active';
-    document.getElementById('step3text').textContent = 'Contract confirming mint...';
-  }, 2800);
-
-  // Step 3 done
-  setTimeout(() => {
-    document.getElementById('step3').className = 'step-icon done';
-    document.getElementById('step3').textContent = '✓';
-    document.getElementById('step3text').className = 'step-text done';
-    document.getElementById('step3text').textContent = 'Mint confirmed on-chain';
-    document.getElementById('step4').className = 'step-icon active';
-    document.getElementById('step4text').className = 'step-text active';
-    document.getElementById('step4text').textContent = 'Delivering WTWR...';
-  }, 5200);
-
-  // Step 4 done — MINTED
-  setTimeout(() => {
-    document.getElementById('step4').className = 'step-icon done';
-    document.getElementById('step4').textContent = '✓';
-    document.getElementById('step4text').className = 'step-text done';
-    document.getElementById('step4text').textContent = 'WTWR delivered to wallet ✓';
-    document.getElementById('ticketStatus').textContent = '✅ MINTED ON BASE';
-    document.getElementById('ticketStatus').className = 'ticket-status minted';
-    ticket.status = 'minted';
-    saveToStorage();
-    showToast('✅ +' + ticket.payout.toLocaleString() + ' WTWR MINTED');
-    updateLogSummary();
-  }, 7200);
-}
-
-function newScan() {
-  selectedMat = null;
-  document.querySelectorAll('.mat-btn').forEach(b => b.classList.remove('selected'));
-  document.getElementById('weightInput').value = '';
-  document.getElementById('notesField').value = '';
-  updatePreview();
-  showScreen('scan');
-}
-
-// ── LOG ──
-function renderLog() {
-  const list = document.getElementById('logList');
-  if (!tickets.length) {
-    list.innerHTML = '<div class="empty-state">NO TICKETS YET<br>SCAN YOUR FIRST LOAD</div>';
-    return;
-  }
-  list.innerHTML = tickets.map(t => {
-    const d = new Date(t.timestamp);
-    const time = d.toLocaleDateString([], {month:'short',day:'numeric'}) + ' ' + d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-    return `
-      <div class="log-item">
-        <div class="log-mat-icon">${t.material.icon}</div>
-        <div class="log-info">
-          <div class="log-title">${t.material.name} — ${t.weightLbs.toFixed(1)} lbs</div>
-          <div class="log-meta">${t.id} · ${time}</div>
-        </div>
-        <div class="log-right">
-          <div class="log-wtwr">${t.payout.toLocaleString()} W</div>
-          <div class="log-status ${t.status}">${t.status === 'minted' ? '✅ MINTED' : '⏳ QUEUED'}</div>
-        </div>
-      </div>
-    `;
-  }).join('');
-  updateLogSummary();
-}
-
-function updateLogSummary() {
-  const totalLbs = tickets.reduce((a,t) => a + t.weightLbs, 0);
-  const minted = tickets.filter(t => t.status === 'minted').reduce((a,t) => a + t.payout, 0);
-  document.getElementById('sumTickets').textContent = tickets.length;
-  document.getElementById('sumWeight').textContent = totalLbs.toFixed(0) + ' lbs';
-  document.getElementById('sumWTWR').textContent = minted.toLocaleString();
-}
-
-// ── WALLET ──
-function toggleWallet() { showScreen('wallet'); }
-
-function updateWallet() {
-  walletAddr = document.getElementById('walletInput').value.trim();
-}
-
-function saveWallet() {
-  walletAddr = document.getElementById('walletInput').value.trim();
-  if (walletAddr) {
-    const pill = document.getElementById('walletPill');
-    pill.textContent = walletAddr.slice(0,6)+'...'+walletAddr.slice(-4);
-    pill.classList.add('connected');
-    document.getElementById('walletBalanceBox').style.display = 'block';
-    document.getElementById('walletBalance').textContent = totalWTWR.toLocaleString() + ' WTWR';
-    saveToStorage();
-    showToast('✅ WALLET SAVED');
-    setTimeout(() => showScreen('scan'), 1200);
-  } else {
-    showToast('⚠️ ENTER A VALID ADDRESS');
-  }
-}
-
-// ── STORAGE ──
-function saveToStorage() {
-  try {
-    localStorage.setItem('wtwr_tickets', JSON.stringify(tickets));
-    localStorage.setItem('wtwr_wallet', walletAddr);
-  } catch(e) {}
-}
-
-function loadFromStorage() {
-  try {
-    const t = localStorage.getItem('wtwr_tickets');
-    if (t) tickets = JSON.parse(t);
-    const w = localStorage.getItem('wtwr_wallet');
-    if (w) {
-      walletAddr = w;
-      document.getElementById('walletInput').value = w;
-      const pill = document.getElementById('walletPill');
-      pill.textContent = w.slice(0,6)+'...'+w.slice(-4);
-      pill.classList.add('connected');
-      document.getElementById('walletBalanceBox').style.display = 'block';
-      totalWTWR = tickets.reduce((a,t) => a + t.payout, 0);
-      document.getElementById('walletBalance').textContent = totalWTWR.toLocaleString() + ' WTWR';
+// ═══════════════════ TICKER ═══════════════════
+async function fetchTicker(){
+  try{
+    const r=await fetch('https://api.dexscreener.com/latest/dex/search?q=WTWR',{signal:AbortSignal.timeout(8000)});
+    const d=await r.json();
+    const p=d.pairs&&d.pairs.find(x=>x.baseToken&&x.baseToken.symbol==='WTWR');
+    if(p){
+      S.wtwrPrice=parseFloat(p.priceUsd)||0;
+      const ch=parseFloat(p.priceChange&&p.priceChange.h24)||0;
+      const vol=parseFloat(p.volume&&p.volume.h24)||0;
+      document.getElementById('tPrice').textContent='$'+S.wtwrPrice.toFixed(6);
+      const el=document.getElementById('tChg');
+      el.textContent=(ch>=0?'+':'')+ch.toFixed(2)+'%';
+      el.className='t-chg '+(ch>=0?'up':'dn');
+      document.getElementById('tVol').textContent='$'+fmtN(vol);
+      document.getElementById('tStatus').textContent='● LIVE';
+      calcPayout(); calcRedeem();
+      return;
     }
-    updateLogSummary();
-  } catch(e) {}
+  }catch(e){}
+  document.getElementById('tStatus').textContent='⚠ OFFLINE';
+  if(!S.wtwrPrice) S.wtwrPrice=0.0042;
+}
+function fmtN(n){if(n>=1e6)return(n/1e6).toFixed(2)+'M';if(n>=1e3)return(n/1e3).toFixed(1)+'K';return n.toFixed(0);}
+
+// ═══════════════════ MATERIAL GRID ═══════════════════
+function renderMatGrid(){
+  document.getElementById('matGrid').innerHTML=MAT.map(m=>`
+    <div class="mat-card cat-${m.cat}" id="mc_${m.id}" onclick="selMat('${m.id}')">
+      <div class="mat-name">${m.name}</div>
+      <div class="mat-grade">${m.grade}</div>
+      <div class="mat-rate">
+        <span>$${(S.prices[m.id]||m.rate).toFixed(m.unit==='lb'?2:2)}</span>
+        <span class="mat-unit-label">/${m.unit}</span>
+      </div>
+    </div>`).join('');
 }
 
-// ── SCREEN NAV ──
-function showScreen(name) {
-  const map = { scan:'scanScreen', ticket:'ticketScreen', log:'logScreen', wallet:'walletScreen' };
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(map[name]).classList.add('active');
-  if (name === 'log') renderLog();
-  if (name === 'wallet') {
-    document.getElementById('walletBalance').textContent = totalWTWR.toLocaleString() + ' WTWR';
+function selMat(id){
+  S.selMat=id;
+  document.querySelectorAll('.mat-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('mc_'+id).classList.add('selected');
+  const m=MAT.find(x=>x.id===id);
+  document.getElementById('selMatDisplay').textContent=m.name+' — '+m.grade;
+  document.getElementById('selMatDisplay').style.color='var(--green)';
+  document.getElementById('unitDisplay').textContent=m.unit.toUpperCase();
+  document.getElementById('unitDisplay').style.color='var(--text)';
+  document.getElementById('qtyInput').placeholder=m.unit==='unit'?'0 units':m.unit==='gal'?'0.0 gal':'0.0 lbs';
+  calcPayout();
+}
+
+// ═══════════════════ PAYOUT CALC ═══════════════════
+function calcPayout(){
+  if(!S.selMat) return;
+  const m=MAT.find(x=>x.id===S.selMat);
+  const qty=parseFloat(document.getElementById('qtyInput').value)||0;
+  const rate=S.prices[S.selMat]||m.rate;
+  const isMfg=document.getElementById('mfgFlag').value==='yes';
+  const mfgMult=isMfg?(1+S.mfgBonus/100):1;
+  const grossUSD=qty*rate*mfgMult;
+  const drvFrac=S.drvCut/100;
+  const resFrac=1-drvFrac;
+  // Overhead/margin: we keep ~20% of gross, residents get resFrac of 80%, driver gets drvFrac of 80%
+  const payPool=grossUSD*0.80;
+  const resUSD=payPool*resFrac;
+  const drvUSD=payPool*drvFrac;
+  const marginUSD=grossUSD*0.20;
+  const resWTWR=S.wtwrPrice>0?resUSD/S.wtwrPrice:0;
+  const drvWTWR=S.wtwrPrice>0?drvUSD/S.wtwrPrice:0;
+
+  document.getElementById('pResident').textContent=resWTWR.toFixed(2);
+  document.getElementById('pResidentUSD').textContent='$'+resUSD.toFixed(2)+' USD';
+  document.getElementById('pDriver').textContent=drvWTWR.toFixed(2);
+  document.getElementById('pDriverUSD').textContent='$'+drvUSD.toFixed(2)+' USD';
+  document.getElementById('pMargin').textContent='$'+marginUSD.toFixed(2);
+  document.getElementById('pRate').textContent='@$'+rate.toFixed(2)+'/'+m.unit+(isMfg?' ×MFG':'');
+
+  // Flags
+  const flags=[];
+  if(isMfg) flags.push({cls:'flag-mfg',txt:'◈ MFG INPUT — '+S.mfgBonus+'% VALUE UPLIFT'});
+  if(m.cat==='telecom') flags.push({cls:'flag-info',txt:'⚠ PRECIOUS METAL STREAM — CERT PENDING'});
+  if(m.cat==='battery'&&m.id==='bat-li') flags.push({cls:'flag-bad',txt:'⚠ HAZMAT — LI-ION PROTOCOL REQUIRED'});
+  if(m.id==='pl-eps') flags.push({cls:'flag-warn',txt:'⚠ DENSIFIED ONLY — LOOSE NOT ACCEPTED'});
+  if(m.id==='bk-oil'||m.id==='bk-wd') flags.push({cls:'flag-info',txt:'ℹ FLUID — MEASURE IN GALLONS'});
+  if(qty>0&&grossUSD>0) flags.push({cls:'flag-ok',txt:'✓ RATE LOCKED — SUBMIT TO QUEUE'});
+  document.getElementById('flagRow').innerHTML=flags.map(f=>`<div class="flag ${f.cls}">${f.txt}</div>`).join('');
+}
+
+// ═══════════════════ SUBMIT TICKET ═══════════════════
+function submitTicket(){
+  if(!S.selMat){toast('Select a material first',true);return;}
+  const qty=parseFloat(document.getElementById('qtyInput').value);
+  if(!qty||qty<=0){toast('Enter quantity',true);return;}
+  const wallet=document.getElementById('walletInput').value.trim();
+  if(!wallet){toast('Enter wallet or seller ID',true);return;}
+  const m=MAT.find(x=>x.id===S.selMat);
+  const rate=S.prices[S.selMat]||m.rate;
+  const isMfg=document.getElementById('mfgFlag').value==='yes';
+  const mfgMult=isMfg?(1+S.mfgBonus/100):1;
+  const grossUSD=qty*rate*mfgMult;
+  const payPool=grossUSD*0.80;
+  const resFrac=(100-S.drvCut)/100;
+  const drvFrac=S.drvCut/100;
+  const resUSD=payPool*resFrac;
+  const drvUSD=payPool*drvFrac;
+  const resWTWR=S.wtwrPrice>0?resUSD/S.wtwrPrice:0;
+  const drvWTWR=S.wtwrPrice>0?drvUSD/S.wtwrPrice:0;
+
+  const t={
+    id:'TKT-'+Date.now().toString(36).toUpperCase(),
+    ts:new Date().toISOString(),
+    matId:S.selMat, matName:m.name,
+    qty, unit:m.unit, rate,
+    grossUSD:grossUSD.toFixed(2),
+    resWTWR:resWTWR.toFixed(2), resUSD:resUSD.toFixed(2),
+    drvWTWR:drvWTWR.toFixed(2), drvUSD:drvUSD.toFixed(2),
+    wallet, nodeId:document.getElementById('nodeInput').value.trim(),
+    src:document.getElementById('srcSelect').value,
+    payPref:document.getElementById('payPref').value,
+    isMfg, notes:document.getElementById('notesInput').value,
+    status:'pending', spv:false,
+    certIssued:false,
+    driverClaimed:null, driverWallet:null,
+  };
+  S.tickets.unshift(t);
+  save(); updateBadges(); renderQueue(); renderLedger(); clearIntake();
+  toast('Ticket '+t.id+' queued ✓');
+
+  // Auto-dispatch to dispatch tab
+  renderDispatch();
+}
+
+function clearIntake(){
+  S.selMat=null;
+  document.querySelectorAll('.mat-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('selMatDisplay').textContent='— tap material above —';
+  document.getElementById('selMatDisplay').style.color='var(--muted)';
+  document.getElementById('unitDisplay').textContent='—';
+  document.getElementById('unitDisplay').style.color='var(--muted)';
+  ['qtyInput','walletInput','nodeInput','notesInput'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('mfgFlag').value='no';
+  document.getElementById('flagRow').innerHTML='';
+  document.getElementById('pResident').textContent='0.00';
+  document.getElementById('pDriver').textContent='0.00';
+  document.getElementById('pMargin').textContent='0.00';
+  document.getElementById('pResidentUSD').textContent='$0.00';
+  document.getElementById('pDriverUSD').textContent='$0.00';
+  document.getElementById('pRate').textContent='@$—/unit';
+}
+
+// ═══════════════════ QUEUE ═══════════════════
+function renderQueue(){
+  const pending=S.tickets.filter(t=>t.status==='pending');
+  const el=document.getElementById('queueList');
+  if(!pending.length){el.innerHTML=empty('📋','NO PENDING TICKETS');return;}
+  el.innerHTML=pending.map(t=>`
+    <div class="card">
+      <div class="card-header">
+        <span class="q-id">${t.id}</span>
+        <span class="pill pill-pending">PENDING</span>
+        <span class="q-time">${fmtT(t.ts)}</span>
+      </div>
+      <div class="card-body">
+        <div class="q-row"><span class="q-key">Material</span><span class="q-val">${t.matName}</span></div>
+        <div class="q-row"><span class="q-key">Quantity</span><span class="q-val">${t.qty} ${t.unit}</span></div>
+        <div class="q-row"><span class="q-key">Rate</span><span class="q-val">$${t.rate.toFixed(2)}/${t.unit}</span></div>
+        <div class="q-row"><span class="q-key">Resident Payout</span><span class="q-val g">${t.resWTWR} WTWR ($${t.resUSD}) — on pickup</span></div>
+        <div class="q-row"><span class="q-key">Driver Payout</span><span class="q-val a">${t.drvWTWR} WTWR ($${t.drvUSD}) — on delivery</span></div>
+        <div class="q-row"><span class="q-key">Pay Pref</span><span class="q-val">${t.payPref.toUpperCase()}</span></div>
+        <div class="q-row"><span class="q-key">Wallet/ID</span><span class="q-val" style="font-size:9px;word-break:break-all">${t.wallet}</span></div>
+        ${t.nodeId?`<div class="q-row"><span class="q-key">Node</span><span class="q-val b">${t.nodeId}</span></div>`:''}
+        <div class="q-row"><span class="q-key">Source</span><span class="q-val a">${t.src.toUpperCase()}</span></div>
+        ${t.isMfg?`<div class="q-row"><span class="q-key">Type</span><span class="q-val p">MFG INPUT</span></div>`:''}
+        ${t.notes?`<div class="q-row"><span class="q-key">Notes</span><span class="q-val">${t.notes}</span></div>`:''}
+      </div>
+      <div class="card-footer">
+        <button class="btn-approve" onclick="approveTicket('${t.id}')">✓ APPROVE + DISPATCH</button>
+        <button class="btn-reject" onclick="rejectTicket('${t.id}')">✕ REJECT</button>
+      </div>
+    </div>`).join('');
+}
+
+function approveTicket(id){
+  const t=S.tickets.find(x=>x.id===id);
+  if(!t)return;
+  t.status='dispatched';
+  if(t.isMfg) t.spv=true;
+  save(); updateBadges(); renderQueue(); renderDispatch(); renderLedger();
+  toast(id+' approved — live on dispatch ✓');
+}
+function rejectTicket(id){
+  const t=S.tickets.find(x=>x.id===id);
+  if(!t)return;
+  t.status='rejected';
+  save(); updateBadges(); renderQueue(); renderLedger();
+  toast(id+' rejected',true);
+}
+
+// ═══════════════════ NODES ═══════════════════
+function registerNode(){
+  const id=document.getElementById('nRegId').value.trim();
+  const label=document.getElementById('nRegLabel').value.trim();
+  const owner=document.getElementById('nRegOwner').value.trim();
+  const type=document.getElementById('nRegType').value;
+  if(!id||!owner){toast('Node ID and owner required',true);return;}
+  if(S.nodes.find(n=>n.id===id)){toast('Node ID already exists',true);return;}
+  S.nodes.push({id,label,owner,type,fill:0,status:'active',ts:new Date().toISOString()});
+  save(); updateBadges(); renderNodes();
+  ['nRegId','nRegLabel','nRegOwner'].forEach(x=>document.getElementById(x).value='');
+  toast('Node '+id+' registered ✓');
+}
+
+function renderNodes(){
+  const el=document.getElementById('nodeList');
+  if(!S.nodes.length){el.innerHTML=empty('📡','NO NODES REGISTERED');return;}
+  el.innerHTML=S.nodes.map(n=>{
+    const dotCls=n.fill>=90?'alert':n.fill>=70?'full':'active';
+    return`<div class="node-signal">
+      <div class="node-dot ${dotCls}"></div>
+      <div class="node-info">
+        <div class="node-id">${n.id} <span style="font-size:9px;color:var(--muted);font-family:var(--mono)">${n.type}</span></div>
+        <div class="node-meta">${n.label||'—'} · ${n.owner}</div>
+      </div>
+      <div>
+        <div class="node-fill">${n.fill}%</div>
+        <div style="font-size:8px;color:var(--muted);font-family:var(--mono)">${n.status.toUpperCase()}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <button class="btn btn-ghost" style="padding:5px 9px;font-size:9px" onclick="signalPickup('${n.id}')">PING PICKUP</button>
+        <button class="btn btn-ghost" style="padding:5px 9px;font-size:9px;color:var(--muted)" onclick="updateFill('${n.id}')">SET FILL</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function signalPickup(nodeId){
+  const n=S.nodes.find(x=>x.id===nodeId);
+  if(!n){toast('Node not found',true);return;}
+  // Auto-create a pending ticket for this node signal
+  const t={
+    id:'TKT-'+Date.now().toString(36).toUpperCase(),
+    ts:new Date().toISOString(),
+    matId:'bk-card', matName:'Node Auto-Signal',
+    qty:0, unit:'lb', rate:0,
+    grossUSD:'0.00', resWTWR:'0.00', resUSD:'0.00',
+    drvWTWR:'0.00', drvUSD:'0.00',
+    wallet:n.owner, nodeId:nodeId,
+    src:'node-auto',payPref:'wtwr',
+    isMfg:false, notes:'Auto-signal from '+nodeId+' — fill: '+n.fill+'%',
+    status:'pending', spv:false, certIssued:false,
+    driverClaimed:null, driverWallet:null,
+  };
+  S.tickets.unshift(t);
+  save(); updateBadges(); renderQueue();
+  toast('Pickup signal sent for '+nodeId+' → queue');
+}
+
+function updateFill(nodeId){
+  const pct=prompt('Enter fill % for '+nodeId+' (0-100):');
+  if(pct===null)return;
+  const n=S.nodes.find(x=>x.id===nodeId);
+  if(n){
+    n.fill=Math.min(100,Math.max(0,parseInt(pct)||0));
+    if(n.fill>=90){n.status='full'; signalPickup(nodeId);}
+    save(); renderNodes(); updateBadges();
+    toast(nodeId+' fill updated to '+n.fill+'%');
   }
 }
 
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
+// ═══════════════════ DISPATCH ═══════════════════
+function renderDispatch(){
+  const open=S.tickets.filter(t=>t.status==='dispatched'&&!t.driverClaimed);
+  const transit=S.tickets.filter(t=>t.status==='dispatched'&&t.driverClaimed);
+  const dEl=document.getElementById('dispatchList');
+  const tEl=document.getElementById('transitList');
+
+  if(!open.length){dEl.innerHTML=empty('📍','NO OPEN PICKUPS');}
+  else dEl.innerHTML=open.map(t=>`
+    <div class="card">
+      <div class="card-header">
+        <span class="q-id">${t.id}</span>
+        <span class="pill pill-transit">OPEN</span>
+        <span class="q-time">${fmtT(t.ts)}</span>
+      </div>
+      <div class="card-body">
+        <div class="q-row"><span class="q-key">Material</span><span class="q-val">${t.matName}</span></div>
+        <div class="q-row"><span class="q-key">Est Qty</span><span class="q-val">${t.qty||'TBD'} ${t.unit}</span></div>
+        <div class="q-row"><span class="q-key">Driver Payout</span><span class="q-val a">${t.drvWTWR} WTWR on delivery</span></div>
+        <div class="q-row"><span class="q-key">Node</span><span class="q-val b">${t.nodeId||'—'}</span></div>
+        <div class="q-row"><span class="q-key">Src</span><span class="q-val">${t.src.toUpperCase()}</span></div>
+      </div>
+      <div class="card-footer">
+        <button class="btn-blue" onclick="claimDispatch('${t.id}')">CLAIM PICKUP →</button>
+      </div>
+    </div>`).join('');
+
+  if(!transit.length){tEl.innerHTML=empty('🚛','NO LOADS IN TRANSIT');}
+  else tEl.innerHTML=transit.map(t=>`
+    <div class="card">
+      <div class="card-header">
+        <span class="q-id">${t.id}</span>
+        <span class="pill pill-transit">IN TRANSIT</span>
+        <span class="q-time">${fmtT(t.ts)}</span>
+      </div>
+      <div class="card-body">
+        <div class="q-row"><span class="q-key">Material</span><span class="q-val">${t.matName}</span></div>
+        <div class="q-row"><span class="q-key">Driver</span><span class="q-val a">${t.driverWallet||'—'}</span></div>
+        <div class="q-row"><span class="q-key">Driver Payout</span><span class="q-val a">${t.drvWTWR} WTWR — pending delivery</span></div>
+        ${t.spv?`<div class="q-row"><span class="q-key">SPV</span><span class="q-val p">◈ ASSET RECORD ACTIVE</span></div>`:''}
+      </div>
+      <div class="card-footer">
+        <button class="btn-approve" onclick="confirmDelivery('${t.id}')">✓ CONFIRM DELIVERY + PAY DRIVER</button>
+      </div>
+    </div>`).join('');
 }
 
-init();
+function claimDispatch(id){
+  const drv=prompt('Enter driver wallet or ID:');
+  if(!drv)return;
+  const t=S.tickets.find(x=>x.id===id);
+  if(t){t.driverClaimed=new Date().toISOString();t.driverWallet=drv;}
+  save(); renderDispatch(); updateBadges();
+  toast('Load claimed by '+drv);
+}
+
+function confirmDelivery(id){
+  const actual=prompt('Enter actual weight/qty at scale:');
+  if(!actual)return;
+  const t=S.tickets.find(x=>x.id===id);
+  if(!t)return;
+  t.status='approved';
+  t.actualQty=parseFloat(actual)||t.qty;
+  t.deliveredTs=new Date().toISOString();
+  if(t.isMfg) t.spv=true;
+  save(); renderDispatch(); renderLedger(); updateBadges();
+  toast('Delivery confirmed — driver paid ✓');
+}
+
+// ═══════════════════ CASHIER ═══════════════════
+const RDM={cash:{mult:1.0,lbl:'1:1 USD'},credit:{mult:1.10,lbl:'1.10× Bonus'},fuel:{mult:1.05,lbl:'1.05× Fuel'},merch:{mult:1.15,lbl:'1.15× Merch'}};
+function calcRedeem(){
+  const amt=parseFloat(document.getElementById('rdmAmt').value)||0;
+  const type=document.getElementById('rdmType').value;
+  const r=RDM[type]||RDM.cash;
+  const usd=amt*S.wtwrPrice*r.mult;
+  document.getElementById('ccWTWR').textContent=amt.toFixed(2)+' WTWR';
+  document.getElementById('ccSpot').textContent=S.wtwrPrice>0?'$'+S.wtwrPrice.toFixed(6):'$—';
+  document.getElementById('ccMult').textContent=r.lbl;
+  document.getElementById('ccTotal').textContent='$'+usd.toFixed(2);
+}
+function processRedeem(){
+  const wallet=document.getElementById('rdmWallet').value.trim();
+  const amt=parseFloat(document.getElementById('rdmAmt').value);
+  const type=document.getElementById('rdmType').value;
+  if(!wallet){toast('Enter wallet or ID',true);return;}
+  if(!amt||amt<=0){toast('Enter WTWR amount',true);return;}
+  const r=RDM[type]||RDM.cash;
+  const usd=(amt*S.wtwrPrice*r.mult).toFixed(2);
+  const rec={id:'RDM-'+Date.now().toString(36).toUpperCase(),ts:new Date().toISOString(),wallet,amt:amt.toFixed(2),type,usd};
+  S.redemptions.unshift(rec);
+  save(); renderRdm();
+  document.getElementById('rdmWallet').value='';
+  document.getElementById('rdmAmt').value='';
+  toast('Redemption processed — $'+usd+' paid');
+}
+function renderRdm(){
+  const el=document.getElementById('rdmList');
+  if(!S.redemptions.length){el.innerHTML=empty('💰','NO REDEMPTIONS YET');return;}
+  el.innerHTML=S.redemptions.slice(0,20).map(r=>`
+    <div class="card">
+      <div class="card-header"><span class="q-id">${r.id}</span><span class="pill pill-approved">${r.type.toUpperCase()}</span><span class="q-time">${fmtT(r.ts)}</span></div>
+      <div class="card-body">
+        <div class="q-row"><span class="q-key">Wallet/ID</span><span class="q-val" style="font-size:9px;word-break:break-all">${r.wallet}</span></div>
+        <div class="q-row"><span class="q-key">WTWR Burned</span><span class="q-val a">${r.amt} WTWR</span></div>
+        <div class="q-row"><span class="q-key">Value Paid</span><span class="q-val g">$${r.usd}</span></div>
+      </div>
+    </div>`).join('');
+}
+
+// ═══════════════════ LEDGER ═══════════════════
+function renderLedger(){
+  const body=document.getElementById('ledgerBody');
+  if(!S.tickets.length){
+    body.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px;font-size:9px">NO ENTRIES</td></tr>';
+    updateStats(); updateSPV(); return;
+  }
+  body.innerHTML=S.tickets.map(t=>`<tr>
+    <td>${t.id}</td>
+    <td class="m">${fmtT(t.ts)}</td>
+    <td>${t.matName}</td>
+    <td>${t.qty||'?'} ${t.unit}</td>
+    <td class="g">${t.resWTWR}</td>
+    <td class="a">${t.drvWTWR}</td>
+    <td class="m">${t.src}</td>
+    <td><span class="pill pill-${t.status==='dispatched'?'transit':t.status}">${t.status.toUpperCase()}</span></td>
+    <td>${t.spv?'<span class="pill pill-spv">SPV</span>':t.isMfg?'<span class="pill pill-mfg">MFG</span>':''}</td>
+  </tr>`).join('');
+  updateStats(); updateSPV();
+}
+function updateStats(){
+  const approved=S.tickets.filter(t=>t.status==='approved');
+  document.getElementById('stTickets').textContent=S.tickets.length;
+  document.getElementById('stWTWR').textContent=(
+    approved.reduce((s,t)=>s+parseFloat(t.resWTWR||0)+parseFloat(t.drvWTWR||0),0)
+  ).toFixed(1);
+  document.getElementById('stQty').textContent=approved.reduce((s,t)=>s+parseFloat(t.qty||0),0).toFixed(1);
+}
+function updateSPV(){
+  const spvLoads=S.tickets.filter(t=>t.spv&&t.status==='approved');
+  const banner=document.getElementById('spvBanner');
+  if(!spvLoads.length){banner.style.display='none';return;}
+  const totalUSD=spvLoads.reduce((s,t)=>s+parseFloat(t.grossUSD||0),0);
+  banner.style.display='block';
+  banner.innerHTML=`◈ SPV ASSET LEDGER — ${spvLoads.length} manufacturing input loads · Est. value $${totalUSD.toFixed(2)} · Auditable · Borrowable against`;
+}
+function exportCSV(){
+  if(!S.tickets.length){toast('No data',true);return;}
+  const h='ID,Time,Material,Qty,Unit,Rate,GrossUSD,ResWTWR,ResUSD,DrvWTWR,DrvUSD,Source,Wallet,NodeID,PayPref,MFG,SPV,Status,Notes\n';
+  const rows=S.tickets.map(t=>[t.id,t.ts,t.matName,t.qty,t.unit,t.rate,t.grossUSD,t.resWTWR,t.resUSD,t.drvWTWR,t.drvUSD,t.src,t.wallet,t.nodeId||'',t.payPref,t.isMfg?'Y':'N',t.spv?'Y':'N',t.status,t.notes||''].join(',')).join('\n');
+  const blob=new Blob([h+rows],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='wtwr_ledger_'+Date.now()+'.csv';a.click();
+  toast('CSV exported ✓');
+}
+function clearLedger(){
+  if(!confirm('Clear all data? Cannot be undone.'))return;
+  S.tickets=[];S.redemptions=[];save();
+  renderQueue();renderDispatch();renderRdm();renderLedger();updateBadges();
+  toast('Ledger cleared');
+}
+
+// ═══════════════════ ADMIN / PIN ═══════════════════
+let pinBuf='';
+const PIN='7406';
+function openPin(){pinBuf='';upDots();document.getElementById('pinErr').textContent='';document.getElementById('pinOverlay').classList.add('open');}
+function closePin(){pinBuf='';document.getElementById('pinOverlay').classList.remove('open');}
+function pk(k){
+  if(pinBuf.length>=4)return;
+  pinBuf+=k;upDots();
+  if(pinBuf.length===4){
+    if(pinBuf===PIN){closePin();openAdmin();}
+    else{
+      document.getElementById('pinErr').textContent='INCORRECT PIN';
+      setTimeout(()=>{pinBuf='';upDots();document.getElementById('pinErr').textContent='';},800);
+    }
+  }
+}
+function pdel(){pinBuf=pinBuf.slice(0,-1);upDots();}
+function upDots(){for(let i=0;i<4;i++)document.getElementById('pd'+i).classList.toggle('on',i<pinBuf.length);}
+
+function openAdmin(){
+  document.getElementById('aSpot').textContent=S.wtwrPrice>0?'$'+S.wtwrPrice.toFixed(6):'$—';
+  document.getElementById('aDrv').value=S.drvCut;
+  document.getElementById('aMfg').value=S.mfgBonus;
+  document.getElementById('priceGrid').innerHTML=MAT.map(m=>`
+    <div class="price-item">
+      <div class="price-name">${m.name}<br><span style="color:var(--muted);font-weight:400">${m.cat}</span></div>
+      <div class="price-row">
+        <span class="price-u">$</span>
+        <input class="price-inp" type="number" id="pr_${m.id}" value="${(S.prices[m.id]||m.rate).toFixed(2)}" step="0.01" min="0">
+        <span class="price-u">/${m.unit}</span>
+      </div>
+    </div>`).join('');
+  document.getElementById('adminModal').classList.add('open');
+}
+function closeAdmin(){document.getElementById('adminModal').classList.remove('open');}
+function savePrices(){
+  MAT.forEach(m=>{const el=document.getElementById('pr_'+m.id);if(el)S.prices[m.id]=parseFloat(el.value)||m.rate;});
+  S.drvCut=parseFloat(document.getElementById('aDrv').value)||25;
+  S.mfgBonus=parseFloat(document.getElementById('aMfg').value)||40;
+  save(); renderMatGrid(); calcPayout(); closeAdmin();
+  toast('Prices + settings saved ✓');
+}
+
+// ═══════════════════ HELPERS ═══════════════════
+function goTab(name){
+  const tabs=['intake','queue','nodes','dispatch','cashier','ledger'];
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',tabs[i]===name));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='queue')renderQueue();
+  if(name==='nodes')renderNodes();
+  if(name==='dispatch')renderDispatch();
+  if(name==='cashier')renderRdm();
+  if(name==='ledger')renderLedger();
+}
+function updateBadges(){
+  const pending=S.tickets.filter(t=>t.status==='pending').length;
+  const openDisp=S.tickets.filter(t=>t.status==='dispatched'&&!t.driverClaimed).length;
+  const fullNodes=S.nodes.filter(n=>n.fill>=70).length;
+  setBadge('bQueue',pending,'badge-red');
+  setBadge('bNodes',fullNodes,'badge-amber');
+  setBadge('bDispatch',openDisp,'badge-blue');
+}
+function setBadge(id,n,cls){
+  const el=document.getElementById(id);
+  el.textContent=n; el.style.display=n?'inline-block':'none';
+  el.className='badge '+cls;
+}
+function fmtT(iso){
+  const d=new Date(iso);
+  return d.toLocaleDateString('en-US',{month:'numeric',day:'numeric'})+' '+
+         d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
+}
+function empty(ico,txt){return`<div class="empty"><div class="empty-ico">${ico}</div><div class="empty-txt">${txt}</div></div>`;}
+let toastT=null;
+function toast(msg,err=false){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.className='toast show'+(err?' err':'');
+  clearTimeout(toastT);toastT=setTimeout(()=>el.className='toast',2600);
+}
+
+// ═══════════════════ INIT ═══════════════════
+load();
+renderMatGrid();
+renderQueue();
+renderNodes();
+renderDispatch();
+renderRdm();
+renderLedger();
+updateBadges();
+fetchTicker();
+setInterval(fetchTicker,30000);
+document.getElementById('mfgFlag').addEventListener('change',calcPayout);
 </script>
 </body>
 </html>
