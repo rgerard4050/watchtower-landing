@@ -1,9 +1,11 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Watchtower Terminal v2</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700&display=swap');
 :root {
@@ -393,12 +395,9 @@ header{background:rgba(8,12,15,0.98);border-bottom:1px solid var(--border);paddi
       </div>
       <div class="form-row">
         <div class="fg"><label class="fl">WTWR AMOUNT</label><input class="fi" type="number" id="rdmAmt" placeholder="0" oninput="calcRedeem()"></div>
-        <div class="fg"><label class="fl">REDEEM AS</label>
-          <select class="fs" id="rdmType" onchange="calcRedeem()">
-            <option value="cash">Cash (1:1)</option>
-            <option value="credit">Store Credit (1.10x)</option>
-            <option value="fuel">Fuel Credit (1.05x)</option>
-            <option value="merch">Merchandise (1.15x)</option>
+        <div class="fg"><label class="fl">REDEEM AT BUSINESS</label>
+          <select class="fs" id="rdmBusiness" onchange="calcRedeem()">
+            <option>Loading businesses…</option>
           </select>
         </div>
       </div>
@@ -537,30 +536,82 @@ const MAT = [
   {id:'bk-wd',   name:'Waste Oil (Other)', grade:'Mixed / contaminated',         cat:'bulk',     unit:'gal', rate:0.18},
 ];
 
+// ═══════════════════ SUPABASE ═══════════════════
+const SUPABASE_URL = 'https://eypovuxuddiqgncjdpkq.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_ZlykauNc-3YY80w6nxzsKw_Z2lgAgU1';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 // ═══════════════════ STATE ═══════════════════
 let S = {
   prices:{}, drvCut:25, mfgBonus:40,
   tickets:[], nodes:[], redemptions:[],
-  selMat:null, wtwrPrice:0,
+  businesses:[], selMat:null, wtwrPrice:0,
 };
 
-function load(){
+async function load(){
+  // Config (prices, driver cut, node list) stays local — admin-only settings, not shared cross-device
   try{
     const d=JSON.parse(localStorage.getItem('wtwr_v3')||'{}');
     S.prices=d.prices||{};
     S.drvCut=d.drvCut??25;
     S.mfgBonus=d.mfgBonus??40;
-    S.tickets=d.tickets||[];
     S.nodes=d.nodes||[];
-    S.redemptions=d.redemptions||[];
   }catch(e){}
   MAT.forEach(m=>{ if(S.prices[m.id]===undefined) S.prices[m.id]=m.rate; });
+
+  // Tickets, redemptions, businesses come from Supabase — real shared data
+  await refreshTickets();
+  await refreshRedemptions();
+  await refreshBusinesses();
 }
 function save(){
+  // Only config is local now — tickets/redemptions write directly to Supabase as they happen
   localStorage.setItem('wtwr_v3',JSON.stringify({
-    prices:S.prices,drvCut:S.drvCut,mfgBonus:S.mfgBonus,
-    tickets:S.tickets,nodes:S.nodes,redemptions:S.redemptions
+    prices:S.prices,drvCut:S.drvCut,mfgBonus:S.mfgBonus,nodes:S.nodes
   }));
+}
+async function refreshTickets(){
+  const { data, error } = await sb.from('tickets').select('*, residents(wallet_id, name)').order('created_at',{ascending:false});
+  if(error){console.error(error);toast('Failed to load tickets — check connection',true);return;}
+  S.tickets = (data||[]).map(t=>{
+    const m=MAT.find(x=>x.id===t.material)||{name:t.material,unit:t.unit||'lb'};
+    const rate=S.prices[t.material]||0;
+    const resWTWR=t.resident_wtwr||0, drvWTWR=t.driver_wtwr||0;
+    return {
+      id:t.id, ts:t.created_at, matId:t.material, matName:m.name,
+      qty:t.qty, unit:t.unit||m.unit, rate, grossUSD:(rate*(t.qty||0)).toFixed(2),
+      resWTWR:resWTWR.toFixed(2), resUSD:(resWTWR*S.wtwrPrice).toFixed(2),
+      drvWTWR:drvWTWR.toFixed(2), drvUSD:(drvWTWR*S.wtwrPrice).toFixed(2),
+      wallet:(t.residents&&t.residents.wallet_id)||'', nodeId:'',
+      src:t.src||'resident', payPref:'wtwr',
+      isMfg:false, notes:t.notes||'', status:t.status, spv:false, certIssued:false,
+      driverClaimed:t.claimed_at, driverWallet:t.driver_id,
+      residentId:t.resident_id, actualQty:t.qty, deliveredTs:t.delivered_at,
+    };
+  });
+}
+async function refreshRedemptions(){
+  const { data, error } = await sb.from('redemptions').select('*, businesses(name), residents(wallet_id)').order('created_at',{ascending:false});
+  if(error){console.error(error);return;}
+  S.redemptions = (data||[]).map(r=>({
+    id:r.id, ts:r.created_at, wallet:(r.residents&&r.residents.wallet_id)||'', amt:r.wtwr_amount.toFixed(2),
+    type:(r.businesses&&r.businesses.name)||'business', usd:r.usd_value.toFixed(2),
+  }));
+}
+async function refreshBusinesses(){
+  const { data, error } = await sb.from('businesses').select('*').order('name');
+  if(error){console.error(error);return;}
+  S.businesses = data||[];
+  const sel = document.getElementById('rdmBusiness');
+  if(sel){
+    sel.innerHTML = S.businesses.map(b=>`<option value="${b.id}" data-mult="${b.multiplier}">${b.name} (${b.tier}, ${Number(b.multiplier).toFixed(2)}×)</option>`).join('');
+  }
+}
+async function findResidentByWallet(wallet){
+  if(!wallet) return null;
+  const { data, error } = await sb.from('residents').select('*').eq('wallet_id', wallet.trim()).maybeSingle();
+  if(error){console.error(error);return null;}
+  return data;
 }
 
 // ═══════════════════ TICKER ═══════════════════
@@ -652,12 +703,15 @@ function calcPayout(){
 }
 
 // ═══════════════════ SUBMIT TICKET ═══════════════════
-function submitTicket(){
+async function submitTicket(){
   if(!S.selMat){toast('Select a material first',true);return;}
   const qty=parseFloat(document.getElementById('qtyInput').value);
   if(!qty||qty<=0){toast('Enter quantity',true);return;}
   const wallet=document.getElementById('walletInput').value.trim();
   if(!wallet){toast('Enter wallet or seller ID',true);return;}
+  const resident = await findResidentByWallet(wallet);
+  if(!resident){toast('No resident found with that wallet ID — check spelling',true);return;}
+
   const m=MAT.find(x=>x.id===S.selMat);
   const rate=S.prices[S.selMat]||m.rate;
   const isMfg=document.getElementById('mfgFlag').value==='yes';
@@ -671,27 +725,18 @@ function submitTicket(){
   const resWTWR=S.wtwrPrice>0?resUSD/S.wtwrPrice:0;
   const drvWTWR=S.wtwrPrice>0?drvUSD/S.wtwrPrice:0;
 
-  const t={
-    id:'TKT-'+Date.now().toString(36).toUpperCase(),
-    ts:new Date().toISOString(),
-    matId:S.selMat, matName:m.name,
-    qty, unit:m.unit, rate,
-    grossUSD:grossUSD.toFixed(2),
-    resWTWR:resWTWR.toFixed(2), resUSD:resUSD.toFixed(2),
-    drvWTWR:drvWTWR.toFixed(2), drvUSD:drvUSD.toFixed(2),
-    wallet, nodeId:document.getElementById('nodeInput').value.trim(),
+  const ticketId='TKT-'+Date.now().toString(36).toUpperCase();
+  const { error } = await sb.from('tickets').insert({
+    id:ticketId, resident_id:resident.id, material:S.selMat, qty, unit:m.unit,
+    resident_wtwr:resWTWR, driver_wtwr:drvWTWR, status:'pending',
     src:document.getElementById('srcSelect').value,
-    payPref:document.getElementById('payPref').value,
-    isMfg, notes:document.getElementById('notesInput').value,
-    status:'pending', spv:false,
-    certIssued:false,
-    driverClaimed:null, driverWallet:null,
-  };
-  S.tickets.unshift(t);
-  save(); updateBadges(); renderQueue(); renderLedger(); clearIntake();
-  toast('Ticket '+t.id+' queued ✓');
+    notes:document.getElementById('notesInput').value,
+  });
+  if(error){toast('Ticket failed to save: '+error.message,true);console.error(error);return;}
 
-  // Auto-dispatch to dispatch tab
+  await refreshTickets();
+  updateBadges(); renderQueue(); renderLedger(); clearIntake();
+  toast('Ticket '+ticketId+' queued for '+resident.name+' ✓');
   renderDispatch();
 }
 
@@ -745,19 +790,18 @@ function renderQueue(){
     </div>`).join('');
 }
 
-function approveTicket(id){
-  const t=S.tickets.find(x=>x.id===id);
-  if(!t)return;
-  t.status='dispatched';
-  if(t.isMfg) t.spv=true;
-  save(); updateBadges(); renderQueue(); renderDispatch(); renderLedger();
+async function approveTicket(id){
+  const { error } = await sb.from('tickets').update({status:'dispatched'}).eq('id',id);
+  if(error){toast('Approve failed: '+error.message,true);console.error(error);return;}
+  await refreshTickets();
+  updateBadges(); renderQueue(); renderDispatch(); renderLedger();
   toast(id+' approved — live on dispatch ✓');
 }
-function rejectTicket(id){
-  const t=S.tickets.find(x=>x.id===id);
-  if(!t)return;
-  t.status='rejected';
-  save(); updateBadges(); renderQueue(); renderLedger();
+async function rejectTicket(id){
+  const { error } = await sb.from('tickets').update({status:'rejected'}).eq('id',id);
+  if(error){toast('Reject failed: '+error.message,true);console.error(error);return;}
+  await refreshTickets();
+  updateBadges(); renderQueue(); renderLedger();
   toast(id+' rejected',true);
 }
 
@@ -879,54 +923,83 @@ function renderDispatch(){
     </div>`).join('');
 }
 
-function claimDispatch(id){
+async function claimDispatch(id){
   const drv=prompt('Enter driver wallet or ID:');
   if(!drv)return;
-  const t=S.tickets.find(x=>x.id===id);
-  if(t){t.driverClaimed=new Date().toISOString();t.driverWallet=drv;}
-  save(); renderDispatch(); updateBadges();
+  const { error } = await sb.from('tickets').update({claimed_at:new Date().toISOString(), driver_id:drv}).eq('id',id);
+  if(error){toast('Claim failed: '+error.message,true);console.error(error);return;}
+  await refreshTickets();
+  renderDispatch(); updateBadges();
   toast('Load claimed by '+drv);
 }
 
-function confirmDelivery(id){
+async function confirmDelivery(id){
   const actual=prompt('Enter actual weight/qty at scale:');
   if(!actual)return;
   const t=S.tickets.find(x=>x.id===id);
   if(!t)return;
-  t.status='approved';
-  t.actualQty=parseFloat(actual)||t.qty;
-  t.deliveredTs=new Date().toISOString();
-  if(t.isMfg) t.spv=true;
-  save(); renderDispatch(); renderLedger(); updateBadges();
-  toast('Delivery confirmed — driver paid ✓');
+  const actualQty=parseFloat(actual)||t.qty;
+
+  const { error: tErr } = await sb.from('tickets').update({
+    status:'approved', qty:actualQty, delivered_at:new Date().toISOString()
+  }).eq('id',id);
+  if(tErr){toast('Delivery confirm failed: '+tErr.message,true);console.error(tErr);return;}
+
+  // Credit the resident's WTWR balance — this is the actual payout gate firing
+  if(t.residentId){
+    const { data: res, error: rErr } = await sb.from('residents').select('wtwr_balance').eq('id',t.residentId).single();
+    if(!rErr && res){
+      const newBal = (res.wtwr_balance||0) + parseFloat(t.resWTWR);
+      await sb.from('residents').update({wtwr_balance:newBal}).eq('id',t.residentId);
+    }
+  }
+
+  await refreshTickets();
+  renderDispatch(); renderLedger(); updateBadges();
+  toast('Delivery confirmed — resident credited, driver paid ✓');
 }
 
 // ═══════════════════ CASHIER ═══════════════════
-const RDM={cash:{mult:1.0,lbl:'1:1 USD'},credit:{mult:1.10,lbl:'1.10× Bonus'},fuel:{mult:1.05,lbl:'1.05× Fuel'},merch:{mult:1.15,lbl:'1.15× Merch'}};
 function calcRedeem(){
   const amt=parseFloat(document.getElementById('rdmAmt').value)||0;
-  const type=document.getElementById('rdmType').value;
-  const r=RDM[type]||RDM.cash;
-  const usd=amt*S.wtwrPrice*r.mult;
+  const sel=document.getElementById('rdmBusiness');
+  const opt=sel.options[sel.selectedIndex];
+  const mult=opt?parseFloat(opt.dataset.mult)||1:1;
+  const usd=amt*S.wtwrPrice*mult;
   document.getElementById('ccWTWR').textContent=amt.toFixed(2)+' WTWR';
   document.getElementById('ccSpot').textContent=S.wtwrPrice>0?'$'+S.wtwrPrice.toFixed(6):'$—';
-  document.getElementById('ccMult').textContent=r.lbl;
+  document.getElementById('ccMult').textContent=mult.toFixed(2)+'x';
   document.getElementById('ccTotal').textContent='$'+usd.toFixed(2);
 }
-function processRedeem(){
+async function processRedeem(){
   const wallet=document.getElementById('rdmWallet').value.trim();
   const amt=parseFloat(document.getElementById('rdmAmt').value);
-  const type=document.getElementById('rdmType').value;
+  const sel=document.getElementById('rdmBusiness');
+  const businessId=sel.value;
+  const opt=sel.options[sel.selectedIndex];
+  const mult=opt?parseFloat(opt.dataset.mult)||1:1;
   if(!wallet){toast('Enter wallet or ID',true);return;}
   if(!amt||amt<=0){toast('Enter WTWR amount',true);return;}
-  const r=RDM[type]||RDM.cash;
-  const usd=(amt*S.wtwrPrice*r.mult).toFixed(2);
-  const rec={id:'RDM-'+Date.now().toString(36).toUpperCase(),ts:new Date().toISOString(),wallet,amt:amt.toFixed(2),type,usd};
-  S.redemptions.unshift(rec);
-  save(); renderRdm();
+  if(!businessId){toast('Select a business',true);return;}
+
+  const resident = await findResidentByWallet(wallet);
+  if(!resident){toast('No resident found with that wallet ID',true);return;}
+  if((resident.wtwr_balance||0) < amt){toast('Insufficient WTWR balance — resident has '+(resident.wtwr_balance||0).toFixed(2),true);return;}
+
+  const usd=(amt*S.wtwrPrice*mult);
+  const { error: rdmErr } = await sb.from('redemptions').insert({
+    resident_id:resident.id, business_id:businessId, wtwr_amount:amt, usd_value:usd
+  });
+  if(rdmErr){toast('Redemption failed: '+rdmErr.message,true);console.error(rdmErr);return;}
+
+  const newBal = (resident.wtwr_balance||0) - amt;
+  await sb.from('residents').update({wtwr_balance:newBal}).eq('id',resident.id);
+
+  await refreshRedemptions();
+  renderRdm();
   document.getElementById('rdmWallet').value='';
   document.getElementById('rdmAmt').value='';
-  toast('Redemption processed — $'+usd+' paid');
+  toast('Redemption processed — $'+usd.toFixed(2)+' value at '+opt.textContent.split(' (')[0]);
 }
 function renderRdm(){
   const el=document.getElementById('rdmList');
@@ -1075,17 +1148,19 @@ function toast(msg,err=false){
 }
 
 // ═══════════════════ INIT ═══════════════════
-load();
-renderMatGrid();
-renderQueue();
-renderNodes();
-renderDispatch();
-renderRdm();
-renderLedger();
-updateBadges();
-fetchTicker();
-setInterval(fetchTicker,30000);
-document.getElementById('mfgFlag').addEventListener('change',calcPayout);
+(async function init(){
+  await load();
+  renderMatGrid();
+  renderQueue();
+  renderNodes();
+  renderDispatch();
+  renderRdm();
+  renderLedger();
+  updateBadges();
+  fetchTicker();
+  setInterval(fetchTicker,30000);
+  document.getElementById('mfgFlag').addEventListener('change',calcPayout);
+})();
 </script>
 </body>
 </html>

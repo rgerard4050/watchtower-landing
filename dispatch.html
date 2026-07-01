@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -653,85 +654,70 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// Bounty data
-const bounties = [
-  {
-    id: 1,
-    title: 'Aluminum Cans + Cardboard',
-    addr: '2847 SW 17th St, Ocala',
-    material: 'ALU+CARD',
-    weight: '~32 lbs',
-    dist: '0.6 mi',
-    payout: 380,
-    usd: '$3.80',
-    time: '~20 min',
-    status: 'available',
-    icon: '🥫',
-    left: '22%',
-    top: '28%'
-  },
-  {
-    id: 2,
-    title: 'Mixed Metals',
-    addr: '1105 NE 8th Ave, Ocala',
-    material: 'METALS',
-    weight: '~58 lbs',
-    dist: '1.2 mi',
-    payout: 720,
-    usd: '$7.20',
-    time: '~35 min',
-    status: 'available',
-    icon: '🔩',
-    left: '68%',
-    top: '22%'
-  },
-  {
-    id: 3,
-    title: 'Cardboard + Plastic',
-    addr: '4412 SW College Rd, Ocala',
-    material: 'CARD+PLA',
-    weight: '~44 lbs',
-    dist: '1.8 mi',
-    payout: 290,
-    usd: '$2.90',
-    time: '~30 min',
-    status: 'available',
-    icon: '📦',
-    left: '38%',
-    top: '62%'
-  },
-  {
-    id: 4,
-    title: 'Copper Wire',
-    addr: '891 NW 23rd Ave, Ocala',
-    material: 'COPPER',
-    weight: '~12 lbs',
-    dist: '2.1 mi',
-    payout: 950,
-    usd: '$9.50',
-    time: '~40 min',
-    status: 'available',
-    icon: '🔌',
-    left: '74%',
-    top: '55%'
-  },
-  {
-    id: 5,
-    title: 'Aluminum + Glass',
-    addr: '3301 E Silver Springs Blvd',
-    material: 'ALU+GLA',
-    weight: '~25 lbs',
-    dist: '3.4 mi',
-    payout: 310,
-    usd: '$3.10',
-    time: '~45 min',
-    status: 'claimed',
-    icon: '🍶',
-    left: '85%',
-    top: '38%'
-  }
+// Bounty data — now pulled live from Supabase, not hardcoded
+const SUPABASE_URL = 'https://eypovuxuddiqgncjdpkq.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_ZlykauNc-3YY80w6nxzsKw_Z2lgAgU1';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let wtwrPrice = 0.0042;
+let bounties = [];
+
+async function fetchPrice(){
+  try{
+    const r=await fetch('https://api.dexscreener.com/latest/dex/search?q=WTWR');
+    const d=await r.json();
+    const p=d.pairs&&d.pairs.find(x=>x.baseToken&&x.baseToken.symbol==='WTWR');
+    if(p){const price=parseFloat(p.priceUsd);if(price)wtwrPrice=price;}
+  }catch(e){}
+}
+
+// Fixed placeholder pin positions until real map/geocoding is built (see roadmap doc item #3)
+const PIN_SPOTS = [
+  {left:'22%',top:'28%'},{left:'68%',top:'22%'},{left:'38%',top:'62%'},
+  {left:'74%',top:'55%'},{left:'85%',top:'38%'},{left:'50%',top:'45%'},
+  {left:'30%',top:'70%'},{left:'62%',top:'68%'},
 ];
+const MAT_ICONS = {
+  'cu-bb':'🔌','cu-1':'🔌','cu-2':'🔌','cu-ins':'🔌','cu-hair':'🔌',
+  'al-can':'🥫','al-cast':'🔩','al-sheet':'🔩','al-wire':'🔌','al-rad':'🔩',
+  'br-yel':'🔩','br-red':'🔩','br-shell':'🔩','ss-304':'🔩','ss-316':'🔩',
+  'fe-lt':'🔩','fe-cast':'🔩','bat-lead':'🔋','bat-li':'🔋',
+  'tc-cell':'📱','tc-board':'💻','tc-med':'💻','tc-srv':'💻','tc-hdd':'💾',
+  'ew-desk':'💻','ew-mix':'💻','ew-mot':'⚙️','ew-ac':'❄️',
+  'pl-1':'♻️','pl-2':'♻️','pl-5':'♻️','pl-eps':'♻️',
+  'gl-cl':'🍶','gl-br':'🍶','gl-gr':'🍶',
+  'bk-card':'📦','bk-pal':'📦','bk-oil':'🛢️','bk-wd':'🛢️',
+};
+
+async function loadBounties(){
+  await fetchPrice();
+  const { data, error } = await sb.from('tickets')
+    .select('*, residents(name, address, wallet_id)')
+    .eq('status','dispatched')
+    .order('created_at',{ascending:true});
+  if(error){console.error(error);showToast('Failed to load bounties');return;}
+
+  bounties = (data||[]).map((t,i)=>{
+    const spot = PIN_SPOTS[i % PIN_SPOTS.length];
+    const isClaimed = !!t.claimed_at;
+    return {
+      id: t.id,
+      title: t.material.toUpperCase().replace(/-/g,' '),
+      addr: (t.residents && t.residents.address) || 'Address on file',
+      material: t.material.toUpperCase(),
+      weight: (t.qty||'?') + ' ' + (t.unit||'lb'),
+      dist: '—',
+      payout: Math.round((t.driver_wtwr||0)),
+      usd: '$'+((t.driver_wtwr||0)*wtwrPrice).toFixed(2),
+      time: '—',
+      status: isClaimed ? 'claimed' : 'available',
+      icon: MAT_ICONS[t.material] || '♻️',
+      left: spot.left, top: spot.top,
+      driverId: t.driver_id, residentId: t.resident_id,
+    };
+  });
+}
 
 let activeBounty = null;
 let myBounties = [];
@@ -822,43 +808,59 @@ function closeSheet() {
   activeBounty = null;
 }
 
-function claimBounty() {
+let driverId = null;
+
+async function claimBounty() {
   if (!activeBounty) return;
   const b = activeBounty;
+  if (!driverId) driverId = prompt('Enter your driver name/ID:');
+  if (!driverId) return;
 
-  // Lock it
-  b.status = 'claimed';
+  const { error } = await sb.from('tickets').update({
+    claimed_at: new Date().toISOString(), driver_id: driverId
+  }).eq('id', b.id);
+  if (error) { showToast('Claim failed — try again'); console.error(error); return; }
+
   myBounties.push(b.id);
-
-  // Update open count
-  const openCount = bounties.filter(x => x.status === 'available').length;
-  document.getElementById('openBounties').textContent = openCount;
-
   closeSheet();
+  await loadBounties();
   renderPins();
   showToast('⚡ BOUNTY LOCKED — ' + b.payout + ' WTWR');
-
-  // Reopen as mine
   setTimeout(() => openSheet(b.id), 600);
 }
 
-function deliverBounty() {
+async function deliverBounty() {
   if (!activeBounty) return;
   const b = activeBounty;
+  const actual = prompt('Enter actual weight/qty at scale (leave blank to keep original):');
+
+  const updates = { status: 'approved', delivered_at: new Date().toISOString() };
+  if (actual && parseFloat(actual) > 0) updates.qty = parseFloat(actual);
+  const { error: tErr } = await sb.from('tickets').update(updates).eq('id', b.id);
+  if (tErr) { showToast('Delivery failed — try again'); console.error(tErr); return; }
+
+  // Credit resident's WTWR balance now that delivery is confirmed —
+  // this is the actual payout gate, must happen whether delivery is
+  // confirmed here (dispatch) or via terminal.html's cashier tab
+  if (b.residentId) {
+    const { data: t } = await sb.from('tickets').select('resident_wtwr').eq('id', b.id).single();
+    const { data: res, error: rErr } = await sb.from('residents').select('wtwr_balance').eq('id', b.residentId).single();
+    if (!rErr && res && t) {
+      const newBal = (res.wtwr_balance || 0) + (t.resident_wtwr || 0);
+      await sb.from('residents').update({ wtwr_balance: newBal }).eq('id', b.residentId);
+    }
+  }
 
   todayWTWR += b.payout;
   runsCompleted += 1;
-
-  // Remove from my bounties and mark completed
   myBounties = myBounties.filter(id => id !== b.id);
-  bounties.splice(bounties.indexOf(b), 1);
 
   document.getElementById('todayEarn').textContent = todayWTWR + ' WTWR';
   document.getElementById('totalEarn').textContent = todayWTWR + ' WTWR';
   document.getElementById('runsToday').textContent = runsCompleted;
-  document.getElementById('openBounties').textContent = bounties.filter(x => x.status === 'available').length;
 
   closeSheet();
+  await loadBounties();
   renderPins();
   showToast('✅ DELIVERED — +' + b.payout + ' WTWR EARNED');
 }
@@ -877,7 +879,12 @@ function showToast(msg) {
 }
 
 // Init
-renderPins();
+(async function init(){
+  await loadBounties();
+  renderPins();
+  document.getElementById('openBounties').textContent = bounties.filter(x => x.status === 'available').length;
+  setInterval(async () => { await loadBounties(); renderPins(); }, 15000); // refresh every 15s so new tickets from terminal show up
+})();
 </script>
 </body>
 </html>

@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Watchtower Protocol — Ocala's Commodity Network</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;500;600;700;800&display=swap');
   :root {
@@ -236,6 +238,7 @@
       <div id="emailForm">
         <div class="field"><label for="fname">Full Name</label><input type="text" id="fname" placeholder="Your name" autocomplete="name"></div>
         <div class="field"><label for="femail">Email</label><input type="email" id="femail" placeholder="you@email.com" autocomplete="email"></div>
+        <div class="field"><label for="faddress">Address</label><input type="text" id="faddress" placeholder="123 Main St, Ocala FL" autocomplete="street-address"><div class="input-note">Required for driveway pickup service</div></div>
         <div class="field"><label for="fzip">Zip Code</label><input type="text" id="fzip" placeholder="34470" maxlength="5" inputmode="numeric"><div class="input-note">Used to match you to your nearest node</div></div>
         <div class="field"><label for="fpass">Password</label><input type="password" id="fpass" placeholder="Min 8 characters"></div>
         <div class="divider"><div class="divider-line"></div><div class="divider-text">OPTIONAL — ADD DRIVEWAY SERVICE</div><div class="divider-line"></div></div>
@@ -298,32 +301,56 @@
 </footer>
 
 <script>
+// ═══════════════════ SUPABASE ═══════════════════
+const SUPABASE_URL = 'https://eypovuxuddiqgncjdpkq.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_ZlykauNc-3YY80w6nxzsKw_Z2lgAgU1';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 function switchTab(tab, btn) {
   document.querySelectorAll('.wtab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
   btn.classList.add('active');
 }
-function createEmailWallet() {
+
+async function createResident(subscriber) {
   const name=document.getElementById('fname').value.trim();
   const email=document.getElementById('femail').value.trim();
+  const address=document.getElementById('faddress').value.trim();
   const zip=document.getElementById('fzip').value.trim();
   const pass=document.getElementById('fpass').value;
   if(!name||!email){alert('Please enter your name and email.');return;}
   if(pass&&pass.length<8){alert('Password must be at least 8 characters.');return;}
+  if(subscriber && !address){alert('Address is required for driveway pickup service.');return;}
+
   const walletId='WTWR-'+Math.random().toString(36).substr(2,6).toUpperCase()+'-'+(zip||'FL');
-  document.getElementById('emailSuccessAddr').textContent='Wallet ID: '+walletId;
+  const btn = subscriber ? null : document.querySelector('.secondary-btn');
+
+  const { data, error } = await sb.from('residents').insert({
+    name, email, address, zip, wallet_id: walletId, subscriber: !!subscriber
+  }).select().single();
+
+  if (error) {
+    alert('Signup failed: '+error.message+'\n\nCheck the console for details.');
+    console.error(error);
+    return;
+  }
+
+  document.getElementById('emailSuccessAddr').textContent='Wallet ID: '+walletId+(subscriber?' (Driveway subscriber — $4.99/mo)':'');
   document.getElementById('emailForm').style.display='none';
   document.getElementById('emailSuccess').classList.add('show');
 }
+
+function createEmailWallet() { createResident(false); }
+
 function subscribeStripe() {
   const name=document.getElementById('fname').value.trim();
   const email=document.getElementById('femail').value.trim();
   const card=document.getElementById('cardNum').value.replace(/\s/g,'');
   if(!name||!email){alert('Please fill in name and email first.');return;}
   if(card.length<16){alert('Please enter a valid card number.');return;}
-  alert('Subscription request received!\n\nWe\'ll confirm your $4.99/mo driveway service within 24 hours.\n\nFull Stripe integration live at launch.');
-  createEmailWallet();
+  alert('Subscription request received!\n\nWe\'ll confirm your $4.99/mo driveway service within 24 hours.\n\nFull Stripe integration live at launch — you\'re signed up as a test subscriber now.');
+  createResident(true);
 }
 async function connectMetaMask() {
   if(typeof window.ethereum==='undefined'){alert('MetaMask not detected.\n\nOn mobile, open this page inside the MetaMask browser, or use Trust Wallet / Coinbase Wallet.');return;}
