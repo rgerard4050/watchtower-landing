@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -423,6 +422,7 @@ header{background:rgba(8,12,15,0.98);border-bottom:1px solid var(--border);paddi
     <div class="stat-card"><span class="stat-val" id="stTickets">0</span><span class="stat-lbl">Tickets</span></div>
     <div class="stat-card"><span class="stat-val" id="stWTWR">0</span><span class="stat-lbl">WTWR Out</span></div>
     <div class="stat-card"><span class="stat-val" id="stQty">0</span><span class="stat-lbl">Units/Lbs</span></div>
+    <div class="stat-card" style="border-color:#00ff88"><span class="stat-val" id="stPlatformRev" style="color:#00ff88">$0.00</span><span class="stat-lbl">Watchtower Revenue</span></div>
   </div>
   <div class="spv-banner" id="spvBanner" style="display:none"></div>
   <div style="display:flex;gap:7px;margin-bottom:11px">
@@ -543,7 +543,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ═══════════════════ STATE ═══════════════════
 let S = {
-  prices:{}, drvCut:25, mfgBonus:40,
+  prices:{}, drvCut:20, platformCut:50, mfgBonus:40,
   tickets:[], nodes:[], redemptions:[],
   businesses:[], selMat:null, wtwrPrice:0,
 };
@@ -553,7 +553,8 @@ async function load(){
   try{
     const d=JSON.parse(localStorage.getItem('wtwr_v3')||'{}');
     S.prices=d.prices||{};
-    S.drvCut=d.drvCut??25;
+    S.drvCut=d.drvCut??20;
+    S.platformCut=d.platformCut??50;
     S.mfgBonus=d.mfgBonus??40;
     S.nodes=d.nodes||[];
   }catch(e){}
@@ -587,6 +588,7 @@ async function refreshTickets(){
       isMfg:false, notes:t.notes||'', status:t.status, spv:false, certIssued:false,
       driverClaimed:t.claimed_at, driverWallet:t.driver_id,
       residentId:t.resident_id, actualQty:t.qty, deliveredTs:t.delivered_at,
+      platformUSD:t.platform_revenue_usd||0,
     };
   });
 }
@@ -674,13 +676,13 @@ function calcPayout(){
   const isMfg=document.getElementById('mfgFlag').value==='yes';
   const mfgMult=isMfg?(1+S.mfgBonus/100):1;
   const grossUSD=qty*rate*mfgMult;
+  const platformFrac=(S.platformCut??50)/100;
+  const payPool=grossUSD*(1-platformFrac);
   const drvFrac=S.drvCut/100;
   const resFrac=1-drvFrac;
-  // Overhead/margin: we keep ~20% of gross, residents get resFrac of 80%, driver gets drvFrac of 80%
-  const payPool=grossUSD*0.80;
   const resUSD=payPool*resFrac;
   const drvUSD=payPool*drvFrac;
-  const marginUSD=grossUSD*0.20;
+  const marginUSD=grossUSD*platformFrac;
   const resWTWR=S.wtwrPrice>0?resUSD/S.wtwrPrice:0;
   const drvWTWR=S.wtwrPrice>0?drvUSD/S.wtwrPrice:0;
 
@@ -717,18 +719,20 @@ async function submitTicket(){
   const isMfg=document.getElementById('mfgFlag').value==='yes';
   const mfgMult=isMfg?(1+S.mfgBonus/100):1;
   const grossUSD=qty*rate*mfgMult;
-  const payPool=grossUSD*0.80;
+  const platformFrac=(S.platformCut??50)/100;
+  const payPool=grossUSD*(1-platformFrac);
   const resFrac=(100-S.drvCut)/100;
   const drvFrac=S.drvCut/100;
   const resUSD=payPool*resFrac;
   const drvUSD=payPool*drvFrac;
+  const platformUSD=grossUSD*platformFrac;
   const resWTWR=S.wtwrPrice>0?resUSD/S.wtwrPrice:0;
   const drvWTWR=S.wtwrPrice>0?drvUSD/S.wtwrPrice:0;
 
   const ticketId='TKT-'+Date.now().toString(36).toUpperCase();
   const { error } = await sb.from('tickets').insert({
     id:ticketId, resident_id:resident.id, material:S.selMat, qty, unit:m.unit,
-    resident_wtwr:resWTWR, driver_wtwr:drvWTWR, status:'pending',
+    resident_wtwr:resWTWR, driver_wtwr:drvWTWR, platform_revenue_usd:platformUSD, status:'pending',
     src:document.getElementById('srcSelect').value,
     notes:document.getElementById('notesInput').value,
   });
@@ -1042,6 +1046,11 @@ function updateStats(){
     approved.reduce((s,t)=>s+parseFloat(t.resWTWR||0)+parseFloat(t.drvWTWR||0),0)
   ).toFixed(1);
   document.getElementById('stQty').textContent=approved.reduce((s,t)=>s+parseFloat(t.qty||0),0).toFixed(1);
+  const platRevEl=document.getElementById('stPlatformRev');
+  if(platRevEl){
+    const totalRev=approved.reduce((s,t)=>s+parseFloat(t.platformUSD||0),0);
+    platRevEl.textContent='$'+totalRev.toFixed(2);
+  }
 }
 function updateSPV(){
   const spvLoads=S.tickets.filter(t=>t.spv&&t.status==='approved');
