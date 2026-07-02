@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Watchtower Protocol — App</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;500;600;700;800&display=swap');
+  :root {
+    --black:#060a0d;--dark:#0a1015;--panel:#0e1820;--panel2:#131f28;
+    --border:#1a2a38;--border2:#243545;--green:#00ff88;--green-dim:#00cc6a;
+    --green-glow:rgba(0,255,136,0.08);--amber:#ffaa00;--blue:#00aaff;
+    --text:#c8d8e8;--muted:#4a6a7a;--mono:'Share Tech Mono',monospace;--sans:'Inter',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--black);color:var(--text);font-family:var(--sans);min-height:100vh;padding:24px 20px 60px;}
+  .pulse{width:8px;height:8px;background:var(--green);border-radius:50%;display:inline-block;animation:blink 2s infinite;margin-right:8px;}
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.4;}}
+  header{text-align:center;margin-bottom:8px;}
+  .logo{font-family:var(--mono);font-size:14px;color:var(--green);letter-spacing:0.16em;display:flex;align-items:center;justify-content:center;margin-bottom:6px;}
+  .tag{font-size:12px;color:var(--muted);}
+  .grid{display:flex;flex-direction:column;gap:12px;max-width:480px;margin:32px auto 0;}
+  a.card{display:flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px 16px;text-decoration:none;color:var(--text);transition:border-color 0.15s,background 0.15s;}
+  a.card:active{border-color:var(--green);background:var(--green-glow);}
+  .ico{font-size:26px;flex-shrink:0;width:36px;text-align:center;}
+  .info{flex:1;}
+  .name{font-size:15px;font-weight:600;color:#fff;margin-bottom:2px;}
+  .desc{font-size:12px;color:var(--muted);}
+  .arrow{color:var(--muted);font-size:18px;}
+  .tier{font-family:var(--mono);font-size:8px;color:var(--amber);letter-spacing:0.1em;text-transform:uppercase;background:rgba(255,170,0,0.1);border:1px solid rgba(255,170,0,0.3);padding:2px 6px;border-radius:4px;margin-left:8px;}
+  footer{text-align:center;margin-top:40px;font-size:11px;color:var(--muted);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><span class="pulse"></span>WATCHTOWER PROTOCOL</div>
+  <div class="tag">Ocala, FL · Live on Base</div>
+</header>
+
+<div class="grid">
+  <a class="card" href="index.html">
+    <div class="ico">🏠</div>
+    <div class="info"><div class="name">Home / Sign Up</div><div class="desc">Resident wallet creation, driveway service</div></div>
+    <div class="arrow">›</div>
+  </a>
+  <a class="card" href="terminal.html">
+    <div class="ico">⚙️</div>
+    <div class="info"><div class="name">Terminal <span class="tier">STAFF ONLY</span></div><div class="desc">Intake, queue, dispatch, cashier, ledger</div></div>
+    <div class="arrow">›</div>
+  </a>
+  <a class="card" href="dispatch.html">
+    <div class="ico">📍</div>
+    <div class="info"><div class="name">Dispatch</div><div class="desc">Driver bounty map, claim and deliver</div></div>
+    <div class="arrow">›</div>
+  </a>
+  <a class="card" href="business.html">
+    <div class="ico">🏪</div>
+    <div class="info"><div class="name">Business Partners</div><div class="desc">Signal, Enforcer, Sentinel tiers</div></div>
+    <div class="arrow">›</div>
+  </a>
+  <a class="card" href="boxes.html">
+    <div class="ico">📦</div>
+    <div class="info"><div class="name">Boxes</div><div class="desc">Smart box / collection vessel info</div></div>
+    <div class="arrow">›</div>
+  </a>
+</div>
+
+<footer>
+  Ocala Asset Security · gerard@ocalaassetsecurity.com
+</footer>
+
+</body>
+</html>
