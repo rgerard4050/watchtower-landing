@@ -91,7 +91,7 @@
   .tab-panel.active{display:block;}
   .field{margin-bottom:16px;}
   label{display:block;font-family:var(--mono);font-size:9px;color:var(--green);letter-spacing:0.18em;text-transform:uppercase;margin-bottom:6px;}
-  input,select{width:100%;background:var(--dark);border:1px solid var(--border2);border-radius:8px;padding:13px 14px;color:var(--text);font-family:var(--sans);font-size:15px;outline:none;transition:border-color 0.2s;-webkit-appearance:none;}
+  input,select{width:100%;background:var(--dark);border:1px solid var(--border2);border-radius:8px;padding:13px 14px;color:var(--text);font-family:var(--sans);font-size:16px;outline:none;transition:border-color 0.2s;-webkit-appearance:none;}
   input:focus,select:focus{border-color:var(--green);}
   input::placeholder{color:var(--muted);}
   .input-note{font-size:11px;color:var(--muted);margin-top:5px;}
@@ -131,6 +131,24 @@
   footer a{color:var(--green);text-decoration:none;}
   .footer-links{display:flex;justify-content:center;gap:20px;margin:16px 0;}
   .footer-links a{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;text-decoration:none;}
+
+  /* --- mobile readability --- */
+  @media (max-width:700px){
+    label{font-size:13px !important;letter-spacing:0.06em !important;}
+    input,select{font-size:16px !important;padding:15px 14px !important;}
+    .primary-btn,.secondary-btn{font-size:15px !important;padding:17px !important;letter-spacing:0.06em !important;}
+    .wtab{font-size:13px !important;padding:15px 8px !important;}
+    .input-note,.stripe-badge,.wallet-desc,.how-desc,.fw-content p,.driveway-list li{font-size:14px !important;}
+    .section-tag,.hero-eyebrow,.divider-text,.exp-label,.stripe-label,.hstat-label,.ticker-label,.ticker-item,.edu-tag{font-size:12px !important;letter-spacing:0.08em !important;}
+    .hero-sub,p{font-size:16px !important;line-height:1.6 !important;}
+    .success-addr{font-size:13px !important;}
+    h2{font-size:24px !important;}
+  }
+  .pw-wrap{position:relative;}
+  .pw-eye{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:transparent;border:none;color:var(--green);font-family:var(--mono);font-size:12px;cursor:pointer;padding:8px;text-transform:uppercase;letter-spacing:0.08em;}
+  .login-card{margin-top:22px;padding-top:20px;border-top:1px solid var(--border2);}
+  .login-divider{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:0.12em;text-align:center;margin-bottom:16px;}
+  .link-btn{width:100%;background:transparent;border:none;color:var(--muted);font-size:14px;margin-top:12px;cursor:pointer;text-decoration:underline;}
 </style>
 </head>
 <body>
@@ -246,19 +264,21 @@
         <div class="field"><label for="femail">Email</label><input type="email" id="femail" placeholder="you@email.com" autocomplete="email"></div>
         <div class="field"><label for="faddress">Address</label><input type="text" id="faddress" placeholder="123 Main St, Ocala FL" autocomplete="street-address"><div class="input-note">Required for driveway pickup service</div></div>
         <div class="field"><label for="fzip">Zip Code</label><input type="text" id="fzip" placeholder="34470" maxlength="5" inputmode="numeric"><div class="input-note">Used to match you to your nearest node</div></div>
-        <div class="field"><label for="fpass">Password</label><input type="password" id="fpass" placeholder="Min 8 characters"></div>
+        <div class="field"><label for="fpass">Password</label><div class="pw-wrap"><input type="password" id="fpass" placeholder="Min 8 characters"><button type="button" class="pw-eye" onclick="togglePw('fpass',this)">show</button></div></div>
         <div class="divider"><div class="divider-line"></div><div class="divider-text">OPTIONAL — ADD DRIVEWAY SERVICE</div><div class="divider-line"></div></div>
         <div class="stripe-section">
-          <div class="stripe-label"><span class="stripe-lock">🔒</span> Secure Payment — Stripe</div>
-          <div class="field"><label>Card Number</label><input type="text" placeholder="1234 5678 9012 3456" maxlength="19" inputmode="numeric" id="cardNum" oninput="formatCard(this)"></div>
-          <div class="card-row">
-            <div class="field"><label>Expiry</label><input type="text" placeholder="MM/YY" maxlength="5" inputmode="numeric" id="cardExp" oninput="formatExp(this)"></div>
-            <div class="field"><label>CVV</label><input type="text" placeholder="123" maxlength="4" inputmode="numeric"></div>
-          </div>
-          <div class="stripe-badge">🔒 Secured by Stripe. We never store card details.</div>
+          <div class="stripe-label"><span class="stripe-lock">🔒</span> Driveway pickup — $4.99 / month</div>
+          <p style="font-size:14px;color:var(--muted);margin:0;line-height:1.6;">Add driveway pickup to your free account. Fill in your name, email, and address above, then tap below. We'll set up your $4.99/mo and confirm within 24 hours.</p>
         </div>
         <button class="primary-btn" style="margin-top:16px" onclick="subscribeStripe()">JOIN + SUBSCRIBE — $4.99/MO →</button>
         <button class="secondary-btn" onclick="createEmailWallet()">JUST CREATE WALLET (FREE)</button>
+        <div class="login-card">
+          <div class="login-divider">— ALREADY JOINED? LOG IN —</div>
+          <div class="field"><label for="loginEmail">Email</label><input type="email" id="loginEmail" placeholder="you@email.com"></div>
+          <div class="field"><label for="loginPass">Password</label><div class="pw-wrap"><input type="password" id="loginPass" placeholder="Your password"><button type="button" class="pw-eye" onclick="togglePw('loginPass',this)">show</button></div></div>
+          <button class="primary-btn" style="margin-top:12px" onclick="loginUser()">LOG IN →</button>
+          <button class="link-btn" onclick="forgotPassword()">Forgot password?</button>
+        </div>
       </div>
       <div class="success-wrap" id="emailSuccess">
         <div class="success-glyph">✅</div>
@@ -326,36 +346,80 @@ async function createResident(subscriber) {
   const zip=document.getElementById('fzip').value.trim();
   const pass=document.getElementById('fpass').value;
   if(!name||!email){alert('Please enter your name and email.');return;}
-  if(pass&&pass.length<8){alert('Password must be at least 8 characters.');return;}
+  if(!pass||pass.length<8){alert('Please set a password (at least 8 characters). You will use it to log in.');return;}
   if(subscriber && !address){alert('Address is required for driveway pickup service.');return;}
 
-  const walletId='WTWR-'+Math.random().toString(36).substr(2,6).toUpperCase()+'-'+(zip||'FL');
-  const btn = subscriber ? null : document.querySelector('.secondary-btn');
-
-  const { data, error } = await sb.from('residents').insert({
-    name, email, address, zip, wallet_id: walletId, subscriber: !!subscriber
-  }).select().single();
-
-  if (error) {
-    alert('Signup failed: '+error.message+'\n\nCheck the console for details.');
-    console.error(error);
+  const { data:auth, error:authErr } = await sb.auth.signUp({
+    email, password: pass,
+    options: { data:{ name, address, zip }, emailRedirectTo: 'https://app.ocalaassetsecurity.com/index.html' }
+  });
+  if (authErr) {
+    if((authErr.message||'').toLowerCase().includes('already')) alert('That email already has an account. Log in below, or tap Forgot password.');
+    else { alert('Signup failed: '+authErr.message); console.error(authErr); }
     return;
   }
 
-  document.getElementById('emailSuccessAddr').textContent='Wallet ID: '+walletId+(subscriber?' (Driveway subscriber — $4.99/mo)':'');
+  const walletId='WTWR-'+Math.random().toString(36).substr(2,6).toUpperCase()+'-'+(zip||'FL');
+  const { error } = await sb.from('residents').insert({
+    name, email, address, zip, wallet_id: walletId, subscriber: !!subscriber
+  });
+  if (error) console.error(error);
+
+  const inNow = !!auth.session;
+  document.getElementById('emailSuccessAddr').textContent =
+    'Wallet ID: '+walletId+(subscriber?' (Driveway subscriber - $4.99/mo)':'')+(inNow?'':'  -  Check your email to confirm.');
   document.getElementById('emailForm').style.display='none';
   document.getElementById('emailSuccess').classList.add('show');
+  if (subscriber && !document.getElementById('cashappPay')) {
+    const a=document.createElement('a');
+    a.id='cashappPay';
+    a.href='https://cash.app/pay/link/p76wzmdx';
+    a.target='_blank'; a.rel='noopener';
+    a.className='primary-btn';
+    a.style.cssText='display:block;margin-top:14px;text-align:center;text-decoration:none;';
+    a.textContent='PAY $4.99/MO WITH CASH APP \u2192';
+    document.getElementById('emailSuccess').appendChild(a);
+  }
 }
 
 function createEmailWallet() { createResident(false); }
+function togglePw(id,btn){const el=document.getElementById(id);if(!el)return;if(el.type==='password'){el.type='text';btn.textContent='hide';}else{el.type='password';btn.textContent='show';}}
+async function loginUser(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pass=document.getElementById('loginPass').value;
+  if(!email||!pass){alert('Enter your email and password.');return;}
+  const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
+  if(error){alert('Login failed: '+error.message);return;}
+  showLoggedIn(data.user);
+}
+async function forgotPassword(){
+  const email=(document.getElementById('loginEmail').value||document.getElementById('femail').value||'').trim();
+  if(!email){alert('Type your email in the login box first, then tap Forgot password.');return;}
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:'https://app.ocalaassetsecurity.com/index.html'});
+  if(error){alert('Could not send reset link: '+error.message);return;}
+  alert('Reset link sent to '+email+'. Check your inbox and spam folder.');
+}
+function showLoggedIn(user){
+  const addr=document.getElementById('emailSuccessAddr');
+  if(addr) addr.textContent='Logged in as '+((user&&user.email)?user.email:'your account');
+  const form=document.getElementById('emailForm'); if(form) form.style.display='none';
+  const box=document.getElementById('emailSuccess'); if(box) box.classList.add('show');
+}
+sb.auth.onAuthStateChange((event)=>{
+  if(event==='PASSWORD_RECOVERY'){
+    const np=prompt('Enter a new password (at least 8 characters):');
+    if(np&&np.length>=8){ sb.auth.updateUser({password:np}).then(({error})=>{ alert(error?('Error: '+error.message):'Password updated - you can log in now.'); }); }
+    else if(np){ alert('Password too short.'); }
+  }
+});
+sb.auth.getSession().then(({data})=>{ if(data&&data.session) showLoggedIn(data.session.user); });
 
 function subscribeStripe() {
   const name=document.getElementById('fname').value.trim();
   const email=document.getElementById('femail').value.trim();
-  const card=document.getElementById('cardNum').value.replace(/\s/g,'');
-  if(!name||!email){alert('Please fill in name and email first.');return;}
-  if(card.length<16){alert('Please enter a valid card number.');return;}
-  alert('Subscription request received!\n\nWe\'ll confirm your $4.99/mo driveway service within 24 hours.\n\nFull Stripe integration live at launch — you\'re signed up as a test subscriber now.');
+  const address=document.getElementById('faddress').value.trim();
+  if(!name||!email){alert('Please fill in your name and email first.');return;}
+  if(!address){alert('Address is required for driveway pickup.');return;}
   createResident(true);
 }
 async function connectMetaMask() {
