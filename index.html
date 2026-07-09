@@ -149,103 +149,64 @@
   .login-card{margin-top:22px;padding-top:20px;border-top:1px solid var(--border2);}
   .login-divider{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:0.12em;text-align:center;margin-bottom:16px;}
   .link-btn{width:100%;background:transparent;border:none;color:var(--muted);font-size:14px;margin-top:12px;cursor:pointer;text-decoration:underline;}
+  .joincount{font-family:var(--mono);font-size:13px;color:var(--muted);margin-top:16px;}
+  .joincount span{color:var(--green);font-weight:700;font-size:15px;}
+  .learn-link{display:inline-block;margin-top:10px;color:var(--green);font-weight:600;text-decoration:none;font-size:15px;border-bottom:1px solid rgba(0,255,136,.4);padding-bottom:2px;}
+  .hero .primary-btn{margin-top:6px;}
 </style>
 </head>
 <body>
 
 <nav>
-  <div class="nav-logo"><div class="pulse"></div>WATCHTOWER</div>
-  <button class="nav-cta" onclick="document.getElementById('wallet-section').scrollIntoView({behavior:'smooth'})">JOIN NETWORK →</button>
+  <div class="nav-logo" onclick="enterTerminal()" style="cursor:pointer" title="Operator access"><div class="pulse"></div>WATCHTOWER</div>
+  <button class="nav-cta" onclick="enterBusiness()">BUSINESS &#8594;</button>
 </nav>
 
 <div class="hero">
   <div class="hero-grid"></div>
   <div class="hero-glow"></div>
   <div class="hero-content">
-    <div class="hero-eyebrow">Ocala, FL · Live on Base</div>
-    <h1>Waste is a<br><span class="accent">commodity.</span><br>Act like it.</h1>
-    <p class="hero-sub">Ocala just cut recycling pickup. We built the system that was always missing — <strong>one that pays everyone in the chain.</strong></p>
-    <div class="hero-stats">
-      <div class="hstat"><span class="hstat-val" id="livePrice">—</span><div class="hstat-label">$WTWR Price</div></div>
-      <div class="hstat"><span class="hstat-val">Jul 6</span><div class="hstat-label">Launch Date</div></div>
-      <div class="hstat"><span class="hstat-val">100K+</span><div class="hstat-label">Ocala Residents</div></div>
-      <div class="hstat"><span class="hstat-val">3</span><div class="hstat-label">Early Holders</div></div>
-    </div>
-    <div class="ticker">
-      <div class="ticker-label">LIVE</div>
-      <div class="ticker-scroll">
-        <div class="ticker-inner">
-          <span class="ticker-item">WTWR <span>+12.4%</span></span>
-          <span class="ticker-item">ALU/LB <span>$0.42</span></span>
-          <span class="ticker-item">COPPER/LB <span>$4.18</span></span>
-          <span class="ticker-item">CARD/TON <span>$87</span></span>
-          <span class="ticker-item">STEEL/LB <span>$0.09</span></span>
-          <span class="ticker-item">PLASTIC/LB <span>$0.12</span></span>
-          <span class="ticker-item">WTWR <span>+12.4%</span></span>
-          <span class="ticker-item">ALU/LB <span>$0.42</span></span>
-          <span class="ticker-item">COPPER/LB <span>$4.18</span></span>
-          <span class="ticker-item">CARD/TON <span>$87</span></span>
-          <span class="ticker-item">STEEL/LB <span>$0.09</span></span>
-          <span class="ticker-item">PLASTIC/LB <span>$0.12</span></span>
-        </div>
-      </div>
-    </div>
+    <div class="hero-eyebrow">Ocala, FL &middot; By Ocala, for Ocala</div>
+    <h1>The city stopped<br>recycling.<br><span class="accent">We didn't.</span></h1>
+    <p class="hero-sub">We buy your scrap and reward better recycling. You get paid in <strong>WTWR</strong> &mdash; credits you redeem at local stores. No bin fee. You earn instead.</p>
+    <button class="primary-btn" onclick="document.getElementById('wallet-section').scrollIntoView({behavior:'smooth'})">JOIN NOW &mdash; IT'S FREE &#8594;</button>
+    <div class="joincount"><span id="signupCount">&mdash;</span> neighbors have already joined</div>
   </div>
 </div>
 
 <section>
-  <div class="section-tag">The Network Effect</div>
-  <h2>The more people join,<br>the more valuable it gets.</h2>
-  <p>Every resident who recycles backs the token with real commodity value. Every business that accepts it drives demand. The system feeds itself.</p>
-  <div class="exp-visual">
-    <div class="exp-label">TOKEN VALUE VS NETWORK ADOPTION</div>
-    <div class="exp-bars">
-      <div class="exp-bar" style="height:8%"><div class="exp-bar-label">10</div></div>
-      <div class="exp-bar" style="height:12%"><div class="exp-bar-label">50</div></div>
-      <div class="exp-bar" style="height:18%"><div class="exp-bar-label">100</div></div>
-      <div class="exp-bar" style="height:28%"><div class="exp-bar-label">500</div></div>
-      <div class="exp-bar" style="height:42%"><div class="exp-bar-label">1K</div></div>
-      <div class="exp-bar" style="height:62%"><div class="exp-bar-label">5K</div></div>
-      <div class="exp-bar" style="height:85%"><div class="exp-bar-label">10K</div></div>
-      <div class="exp-bar" style="height:100%"><div class="exp-bar-label">50K+</div></div>
-    </div>
-    <p class="exp-note">Network participants → exponential token value</p>
-  </div>
-  <div class="flywheel-steps">
-    <div class="fw-step"><div class="fw-num">1</div><div class="fw-line"></div><div class="fw-content"><h3>Residents recycle → earn WTWR</h3><p>Every pound of sorted material generates real commodity revenue that backs the token.</p></div></div>
-    <div class="fw-step"><div class="fw-num">2</div><div class="fw-line"></div><div class="fw-content"><h3>More holders → more demand</h3><p>WTWR is only earned through verified physical intake. Supply is controlled. Demand grows with adoption.</p></div></div>
-    <div class="fw-step"><div class="fw-num">3</div><div class="fw-line"></div><div class="fw-content"><h3>Businesses accept WTWR → more utility</h3><p>Every business that joins gives the token a new place to spend. More utility = more value.</p></div></div>
-    <div class="fw-step"><div class="fw-num">4</div><div class="fw-line"></div><div class="fw-content"><h3>More value → more residents recycle</h3><p>When the token is worth something real, people sort more, recycle more often, and bring others in.</p></div></div>
-    <div class="fw-step"><div class="fw-num">∞</div><div class="fw-content"><h3>The loop accelerates</h3><p>This is not a loyalty points program. This is a commodity-backed network economy. Early participants capture the most value.</p></div></div>
-  </div>
+  <div class="section-tag">Why this exists</div>
+  <h2>Ocala couldn't afford it.<br>So we built something better.</h2>
+  <p>The city's recycling got too expensive and the service fell apart. We're trying a different way &mdash; one where you don't <em>pay</em> to recycle, you <strong>earn</strong> for it. The carrot works better than the stick.</p>
+  <p>You sort what needs sorting, and that only helps you. When you submit a full bounty, we verify it meets the minimum &mdash; whether it's one clean category or a mixed load.</p>
+  <p>No more rigid every-day, every-week pickup. This is &agrave; la carte: you cash in once you've got enough above the minimum. Doing a remodel? Got car batteries, aluminum scrap, an old sink, a dead fridge? <strong>Rule of thumb &mdash; if it has metal, snap a photo.</strong> We'll tell you if it's worth money, how to make it worth more, and whether to hold for a bigger load or send it now.</p>
+  <a class="learn-link" href="learn.html">Want to dig deeper? Read how it all works &#8594;</a>
 </section>
 
 <section>
-  <div class="section-tag">How It Works</div>
-  <h2>Your recycling.<br>Your credits. Your choice.</h2>
-  <p>Three ways to participate. All of them earn you <strong>WTWR credits</strong> spendable at local businesses.</p>
+  <div class="section-tag">How to participate</div>
+  <h2>Your recycling.<br>Your credits. Your call.</h2>
   <div class="how-grid">
-    <div class="how-card"><span class="how-icon">🏠</span><div class="how-title">Driveway Service</div><p class="how-desc">We pick up from your home. Ping us when full.</p></div>
-    <div class="how-card"><span class="how-icon">📦</span><div class="how-title">Drop-Off Nodes</div><p class="how-desc">Bring sorted loads to a network node. Weigh in. Earn instantly.</p></div>
-    <div class="how-card"><span class="how-icon">🏪</span><div class="how-title">Spend Locally</div><p class="how-desc">Use credits at any partner business on the map.</p></div>
-    <div class="how-card"><span class="how-icon">📈</span><div class="how-title">Hold &amp; Grow</div><p class="how-desc">WTWR is deflationary. Early holders benefit most.</p></div>
+    <div class="how-card"><span class="how-icon">&#128248;</span><div class="how-title">Snap a photo</div><p class="how-desc">If it has metal, send a pic. We price it and tell you if it's ready to go.</p></div>
+    <div class="how-card"><span class="how-icon">&#127968;</span><div class="how-title">We come get it</div><p class="how-desc">Hit the minimum and a driver is dispatched. Free for valuable loads.</p></div>
+    <div class="how-card"><span class="how-icon">&#127978;</span><div class="how-title">Spend locally</div><p class="how-desc">Redeem WTWR at partner stores near you. Store list coming soon.</p></div>
   </div>
 </section>
 
 <section>
-  <div class="section-tag">Driveway Service</div>
-  <h2>We come to you.</h2>
-  <p>The city stopped. We didn't. Subscribe and we handle the rest.</p>
+  <div class="section-tag">Optional: Driveway Service</div>
+  <h2>Want weekly pickup?</h2>
+  <p>Free covers your valuable metal. For weekly plastic &amp; cardboard from your driveway, add the subscription.</p>
   <div class="driveway-card">
     <div class="driveway-price">$4.99 <span>/ month</span></div>
     <ul class="driveway-list">
       <li>We provide the collection vessel</li>
       <li>Ping us through the app when it's full</li>
-      <li>Driver dispatched within 24 hours</li>
-      <li>Earn WTWR credits on every pickup</li>
+      <li>Weekly plastic &amp; cardboard pickup</li>
+      <li>Earn WTWR on valuable loads too</li>
       <li>Cancel anytime</li>
     </ul>
-    <button class="primary-btn" onclick="document.getElementById('wallet-section').scrollIntoView({behavior:'smooth'})">GET STARTED — $4.99/MO →</button>
+    <button class="primary-btn" onclick="document.getElementById('wallet-section').scrollIntoView({behavior:'smooth'})">ADD DRIVEWAY PICKUP &#8594;</button>
   </div>
 </section>
 
@@ -442,14 +403,30 @@ function showCryptoSuccess(addr){
 }
 function formatCard(el){let v=el.value.replace(/\D/g,'').substring(0,16);el.value=v.replace(/(.{4})/g,'$1 ').trim();}
 function formatExp(el){let v=el.value.replace(/\D/g,'');if(v.length>=2)v=v.substring(0,2)+'/'+v.substring(2,4);el.value=v;}
-async function fetchPrice(){
+/* live price fetch removed — WTWR is a redeemable credit, not a traded price */
+</script>
+<script>
+(function(){
+  window.enterTerminal=function(){
+    if(localStorage.getItem('wt_op')==='1'){location.href='terminal.html';return;}
+    var p=prompt('Operator access code:'); if(p===null)return;
+    if(p==='WATCH2026'){localStorage.setItem('wt_op','1');location.href='terminal.html';}
+    else alert('Incorrect code.');
+  };
+  window.enterBusiness=function(){
+    if(localStorage.getItem('wt_biz')==='1'){location.href='business.html';return;}
+    var p=prompt('Business partner access code:'); if(p===null)return;
+    if(p==='PARTNER2026'){localStorage.setItem('wt_biz','1');location.href='business.html';}
+    else alert('Incorrect code. Ask your Watchtower contact for access.');
+  };
   try{
-    const res=await fetch('https://api.dexscreener.com/latest/dex/tokens/0x5852459884F0E9eB1B04C0de13a56b5F977f8cb07');
-    const data=await res.json();
-    if(data.pairs&&data.pairs[0]){const price=parseFloat(data.pairs[0].priceUsd);if(price)document.getElementById('livePrice').textContent='$'+price.toFixed(8);}
-  }catch(e){document.getElementById('livePrice').textContent='LIVE';}
-}
-fetchPrice();setInterval(fetchPrice,30000);
+    sb.from('residents').select('*',{count:'exact',head:true}).then(function(r){
+      var el=document.getElementById('signupCount');
+      if(!el)return;
+      el.textContent=(!r.error && typeof r.count==='number')?r.count:'0';
+    });
+  }catch(e){}
+})();
 </script>
 </body>
 </html>
