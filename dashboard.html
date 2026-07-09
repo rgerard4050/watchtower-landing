@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Watchtower | Node Dashboard</title>
     
-    <!-- Fonts & Supabase CDN -->
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -169,19 +168,20 @@
         const supabaseUrl = 'https://eypovuxuddiqgncjdpkq.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5cG92dXh1ZGRpcWduY2pkcGtxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MzU1NDgsImV4cCI6MjA5ODUxMTU0OH0.JLSmCx7bZe7yIxxdXZwCWrLeyV1zAoPTXbSP24IckBY';
         
-        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+        // FIX: Renamed variable to 'supabaseClient' to prevent browser crash
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         async function enforceAuth() {
-            // 1. Verify active session. If none, kick them back to the gate.
-            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            // 1. Verify active session
+            const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
             
             if (!session || sessionError) {
                 window.location.replace('business.html');
                 return;
             }
 
-            // 2. Fetch Business Data from the ledger using their authenticated ID
-            const { data: business, error } = await supabase
+            // 2. Fetch Business Data from the ledger table
+            const { data: business, error } = await supabaseClient
                 .from('businesses')
                 .select('*')
                 .eq('auth_id', session.user.id)
@@ -194,24 +194,23 @@
                 return;
             }
 
-            // 3. Inject ledger data into the dashboard UI
+            // 3. Inject ledger data into the UI
             if (business) {
                 document.getElementById('node-name').innerText = business.business_name.toUpperCase();
                 document.getElementById('node-tier').innerText = business.tier.toUpperCase() + " TIER";
                 
-                // Format the numbers
                 document.getElementById('wtwr-val').innerText = Number(business.wtwr_redeemed).toFixed(2);
                 document.getElementById('disposal-val').innerText = '$' + Number(business.disposal_cost_saved).toFixed(2);
             }
         }
 
-        // 4. Terminate Session Logic
+        // 4. Terminate Session Logic (Now safely connected to the button)
         document.getElementById('logout-btn').addEventListener('click', async () => {
-            await supabase.auth.signOut();
+            await supabaseClient.auth.signOut();
             window.location.replace('business.html');
         });
 
-        // Execute authorization check immediately on page load
+        // Execute auth check on load
         window.addEventListener('load', enforceAuth);
     </script>
 </body>
