@@ -2,7 +2,7 @@
 // Cold, precise instrument for intake grading. NOT the resident coach (see api/scan.js).
 // Uses the same ANTHROPIC_API_KEY env var already set in Vercel.
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
   const key = process.env.ANTHROPIC_API_KEY;
