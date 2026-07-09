@@ -282,15 +282,14 @@
   <div class="footer-links">
     <a href="/business.html">Business Partners</a>
     <a href="/dispatch.html">Driver Portal</a>
-    <a href="mailto:gate@ocalaassetsecurity.com">Contact</a>
+    <a href="mailto:watchtowerprotocol@gmail.com">Contact</a>
   </div>
   <p>Ocala Asset Security · Ocala, FL</p>
-  <p style="margin-top:6px"><a href="mailto:gate@ocalaassetsecurity.com">gate@ocalaassetsecurity.com</a></p>
-  <p style="margin-top:12px;font-size:11px">$WTWR · $G2 · Powered by Base blockchain · Not financial advice</p>
+  <p style="margin-top:6px"><a href="mailto:watchtowerprotocol@gmail.com">watchtowerprotocol@gmail.com</a></p>
+  <p style="margin-top:12px;font-size:11px">Powered by Base blockchain · Not financial advice</p>
 </footer>
 
 <script>
-// ═══════════════════ SUPABASE ═══════════════════
 const SUPABASE_URL = 'https://eypovuxuddiqgncjdpkq.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_ZlykauNc-3YY80w6nxzsKw_Z2lgAgU1';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -386,7 +385,7 @@ function subscribeStripe() {
   createResident(true);
 }
 async function connectMetaMask() {
-  if(typeof window.ethereum==='undefined'){alert('MetaMask not detected.\n\nOn mobile, open this page inside the MetaMask browser, or use Trust Wallet / Coinbase Wallet.');return;}
+  if(typeof window.ethereum==='undefined'){alert('MetaMask not detected. On mobile, open this page inside the MetaMask browser, or use Trust Wallet / Coinbase Wallet.');return;}
   try{
     const accounts=await window.ethereum.request({method:'eth_requestAccounts'});
     const addr=accounts[0];
@@ -395,7 +394,7 @@ async function connectMetaMask() {
     showCryptoSuccess(addr);
   }catch(e){alert('Connection cancelled.');}
 }
-function connectWalletConnect(){alert('Trust Wallet / Coinbase Wallet connection coming at launch.\n\nFor now use email signup or MetaMask browser.');}
+function connectWalletConnect(){alert('Trust Wallet / Coinbase Wallet connection coming at launch. For now use email signup or MetaMask browser.');}
 function showCryptoSuccess(addr){
   document.getElementById('cryptoAddr').textContent=addr;
   document.getElementById('cryptoSuccess').classList.add('show');
@@ -403,7 +402,6 @@ function showCryptoSuccess(addr){
 }
 function formatCard(el){let v=el.value.replace(/\D/g,'').substring(0,16);el.value=v.replace(/(.{4})/g,'$1 ').trim();}
 function formatExp(el){let v=el.value.replace(/\D/g,'');if(v.length>=2)v=v.substring(0,2)+'/'+v.substring(2,4);el.value=v;}
-/* live price fetch removed — WTWR is a redeemable credit, not a traded price */
 </script>
 <script>
 (function(){
@@ -413,12 +411,7 @@ function formatExp(el){let v=el.value.replace(/\D/g,'');if(v.length>=2)v=v.subst
     if(p==='WATCH2026'){localStorage.setItem('wt_op','1');location.href='terminal.html';}
     else alert('Incorrect code.');
   };
-  window.enterBusiness=function(){
-    if(localStorage.getItem('wt_biz')==='1'){location.href='business.html';return;}
-    var p=prompt('Business partner access code:'); if(p===null)return;
-    if(p==='PARTNER2026'){localStorage.setItem('wt_biz','1');location.href='business.html';}
-    else alert('Incorrect code. Ask your Watchtower contact for access.');
-  };
+  window.enterBusiness=function(){ location.href='business.html'; };
   try{
     sb.from('residents').select('*',{count:'exact',head:true}).then(function(r){
       var el=document.getElementById('signupCount');
