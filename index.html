@@ -217,8 +217,7 @@
   <div class="wallet-wrap">
     <div class="wallet-tabs">
       <button class="wtab active" onclick="switchTab('email',this)">📧 EMAIL</button>
-      <button class="wtab" onclick="switchTab('crypto',this)">🔗 CRYPTO WALLET</button>
-    </div>
+      </div>
     <div class="tab-panel active" id="tab-email">
       <div id="emailForm">
         <div class="field"><label for="fname">Full Name</label><input type="text" id="fname" placeholder="Your name" autocomplete="name"></div>
@@ -251,19 +250,7 @@
         <p style="font-size:12px;color:var(--muted);margin:0">Check your email for confirmation. Credits appear after your first pickup.</p>
       </div>
     </div>
-    <div class="tab-panel" id="tab-crypto">
-      <p style="font-size:13px;margin-bottom:20px;">Connect your existing Web3 wallet to receive WTWR directly on Base.</p>
-      <button class="wallet-connect-btn" onclick="connectMetaMask()"><span class="wallet-icon">🦊</span><div class="wallet-info"><div class="wallet-name">MetaMask</div><div class="wallet-desc">Browser &amp; mobile wallet</div></div><span class="wallet-arrow">›</span></button>
-      <button class="wallet-connect-btn" onclick="connectWalletConnect()"><span class="wallet-icon">🔵</span><div class="wallet-info"><div class="wallet-name">Trust Wallet</div><div class="wallet-desc">Mobile-first crypto wallet</div></div><span class="wallet-arrow">›</span></button>
-      <button class="wallet-connect-btn" onclick="connectWalletConnect()"><span class="wallet-icon">💙</span><div class="wallet-info"><div class="wallet-name">Coinbase Wallet</div><div class="wallet-desc">Easy onboarding for new users</div></div><span class="wallet-arrow">›</span></button>
-      <div class="success-wrap" id="cryptoSuccess">
-        <div class="success-glyph">🔗</div>
-        <div class="success-title">// WALLET CONNECTED</div>
-        <div class="success-addr" id="cryptoAddr"></div>
-        <p style="font-size:12px;color:var(--muted);margin:0">You're on Base. WTWR credits land here after each verified pickup.</p>
-      </div>
     </div>
-  </div>
 </section>
 
 <section>
@@ -362,10 +349,7 @@ async function forgotPassword(){
   alert('Reset link sent to '+email+'. Check your inbox and spam folder.');
 }
 function showLoggedIn(user){
-  const addr=document.getElementById('emailSuccessAddr');
-  if(addr) addr.textContent='Logged in as '+((user&&user.email)?user.email:'your account');
-  const form=document.getElementById('emailForm'); if(form) form.style.display='none';
-  const box=document.getElementById('emailSuccess'); if(box) box.classList.add('show');
+  location.href='resident.html';
 }
 sb.auth.onAuthStateChange((event)=>{
   if(event==='PASSWORD_RECOVERY'){
@@ -374,7 +358,7 @@ sb.auth.onAuthStateChange((event)=>{
     else if(np){ alert('Password too short.'); }
   }
 });
-sb.auth.getSession().then(({data})=>{ if(data&&data.session) showLoggedIn(data.session.user); });
+sb.auth.getSession().then(({data})=>{ if(data&&data.session){ location.href='resident.html'; } });
 
 function subscribeStripe() {
   const name=document.getElementById('fname').value.trim();
