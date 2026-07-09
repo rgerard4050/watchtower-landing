@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>
+(function(){
+  if(localStorage.getItem('wt_op')==='1')return;
+  var c=prompt('Watchtower operator code:');
+  if(c==='WATCH2026'){localStorage.setItem('wt_op','1');}
+  else{alert('Operators only.');location.replace('index.html');}
+})();
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Watchtower Operator Scanner</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+:root{--black:#080c0f;--dark:#0d1318;--panel:#111820;--panel2:#161f28;--border:#1e2d3a;--green:#00ff88;--green-dim:#00cc6a;--green-glow:rgba(0,255,136,.10);--amber:#ffaa00;--red:#ff4455;}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--black);color:#fff;font-family:'Share Tech Mono',monospace;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding-bottom:40px;}
+.hdr{width:100%;padding:14px;background:var(--dark);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;color:var(--green);letter-spacing:2px;font-size:13px;}
+.hdr a{color:#5a7a8a;text-decoration:none;font-size:11px;}
+.view{position:relative;width:90%;max-width:450px;aspect-ratio:4/3;margin:18px 0;background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden;box-shadow:inset 0 0 20px rgba(0,0,0,.8);}
+video,#capturedImg{width:100%;height:100%;object-fit:cover;display:block;}
+#capturedImg{display:none;}
+.reticle{position:absolute;top:50%;left:50%;width:70%;height:70%;border:1px dashed var(--amber);transform:translate(-50%,-50%);pointer-events:none;}
+.controls{width:90%;max-width:450px;display:flex;flex-direction:column;gap:10px;}
+.btn{background:var(--panel);border:1px solid var(--green);color:var(--green);padding:15px;font-family:'Share Tech Mono',monospace;font-size:1rem;font-weight:bold;cursor:pointer;text-transform:uppercase;letter-spacing:1px;border-radius:6px;box-shadow:0 0 5px var(--green-glow);}
+.btn:active{background:var(--green);color:var(--black);}
+.btn.sec{border-color:var(--border);color:#5a7a8a;box-shadow:none;}
+.btn[disabled]{opacity:.5;pointer-events:none;}
+.console{background:var(--dark);border:1px solid var(--border);padding:10px;min-height:36px;font-size:.85rem;color:var(--amber);border-radius:6px;}
+#result{display:none;width:90%;max-width:450px;margin-top:14px;background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.row{display:flex;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border);font-size:13px;}
+.row:last-child{border-bottom:none;}
+.row .k{color:#5a7a8a;letter-spacing:.05em;}
+.row .v{color:#fff;font-weight:bold;text-align:right;max-width:60%;}
+.actionSTRIP{color:var(--amber);}
+.actionSELL{color:var(--green);}
+.actionHOLD{color:#5a7a8a;}
+.warn{color:var(--red);}
+</style>
+</head>
+<body>
+<div class="hdr"><span>OPERATOR // INTAKE GRADE</span><a href="terminal.html">&#8592; TERMINAL</a></div>
+
+<div class="view">
+  <video id="webcam" autoplay playsinline></video>
+  <img id="capturedImg" alt="captured">
+  <div class="reticle"></div>
+</div>
+
+<div class="controls">
+  <button class="btn" id="capBtn">GRADE LOAD</button>
+  <button class="btn sec" id="retakeBtn" style="display:none">RETAKE</button>
+  <div class="console" id="console">READY.</div>
+</div>
+
+<div id="result"></div>
+<canvas id="snap" style="display:none;"></canvas>
+
+<script>
+const video=document.getElementById('webcam'),capImg=document.getElementById('capturedImg'),canvas=document.getElementById('snap');
+const capBtn=document.getElementById('capBtn'),retakeBtn=document.getElementById('retakeBtn'),cons=document.getElementById('console'),result=document.getElementById('result');
+function log(m){cons.innerHTML+='<br>&gt; '+m;cons.scrollTop=cons.scrollHeight;}
+
+async function initCam(){
+  try{const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:{exact:'environment'}},audio:false});video.srcObject=s;log('CAMERA READY.');}
+  catch(e){navigator.mediaDevices.getUserMedia({video:true,audio:false}).then(s=>video.srcObject=s).catch(()=>log('CAMERA ACCESS DENIED.'));}
+}
+
+capBtn.addEventListener('click',()=>{
+  if(video.style.display==='none')return;
+  log('CAPTURING...');
+  const ctx=canvas.getContext('2d');canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+  const dataUrl=canvas.toDataURL('image/jpeg',0.85);
+  capImg.src=dataUrl;video.style.display='none';capImg.style.display='block';
+  capBtn.textContent='GRADING...';capBtn.setAttribute('disabled','true');retakeBtn.style.display='block';
+  grade(dataUrl.split(',')[1]);
+});
+
+retakeBtn.addEventListener('click',()=>{
+  video.style.display='block';capImg.style.display='none';
+  capBtn.textContent='GRADE LOAD';capBtn.removeAttribute('disabled');retakeBtn.style.display='none';
+  result.style.display='none';cons.innerHTML='READY.';
+});
+
+async function grade(b64){
+  try{
+    const r=await fetch('/api/scan-operator',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imageBase64:b64,mediaType:'image/jpeg'})});
+    const d=await r.json();
+    if(d.error){log('ERROR: '+d.error);capBtn.textContent='GRADE LOAD';capBtn.removeAttribute('disabled');return;}
+    log('GRADE COMPLETE.');
+    showResult(d);
+  }catch(e){log('CONNECTION ERROR.');capBtn.textContent='GRADE LOAD';capBtn.removeAttribute('disabled');}
+}
+
+function showResult(d){
+  const actClass = 'action'+(d.action||'HOLD');
+  result.innerHTML =
+    row('ITEM', d.item) +
+    row('CATEGORY', d.category) +
+    row('GRADE', d.grade) +
+    row('EST WEIGHT', d.est_weight_lbs) +
+    row('CONTAMINATION', d.contamination || 'NONE NOTED', d.contamination ? 'warn' : '') +
+    row('ACTION', d.action, actClass) +
+    row('CONFIDENCE', (d.confidence_pct ?? 0)+'%') +
+    row('NOTES', d.notes || '-');
+  result.style.display='block';
+}
+function row(k,v,cls){return '<div class="row"><span class="k">'+k+'</span><span class="v '+(cls||'')+'">'+v+'</span></div>';}
+
+window.addEventListener('load', initCam);
+</script>
+</body>
+</html>
