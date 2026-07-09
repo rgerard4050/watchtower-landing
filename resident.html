@@ -68,11 +68,11 @@ nav button{background:transparent;border:1px solid var(--border);color:var(--mut
       <div class="action-arrow">&#8594;</div>
     </a>
 
-    <a class="action-card" href="mailto:contact.watchtowerer@gmail.com?subject=Pickup%20Request">
+    <div class="action-card" onclick="requestPickup()" style="cursor:pointer">
       <div class="action-icon">&#127968;</div>
-      <div><div class="action-title">Request a Pickup</div><div class="action-desc">Ready to send it in? Let us know what you've got.</div></div>
+      <div><div class="action-title">Request a Pickup</div><div class="action-desc">Ready to send it in? Tell us what you've got.</div></div>
       <div class="action-arrow">&#8594;</div>
-    </a>
+    </div>
 
     <a class="action-card" href="learn.html">
       <div class="action-icon">&#128218;</div>
@@ -103,6 +103,7 @@ async function loadAccount(){
   document.getElementById('userName').textContent = name;
 
   if(data){
+    currentResidentId = data.id;
     document.getElementById('walletId').textContent = data.wallet_id || '&mdash;';
     document.getElementById('subBadge').textContent = data.subscriber ? 'DRIVEWAY SUBSCRIBER' : 'FREE ACCOUNT';
   }
@@ -110,6 +111,23 @@ async function loadAccount(){
 
 function signOut(){
   sb.auth.signOut().then(()=>{ location.href = 'index.html'; });
+}
+
+let currentResidentId = null;
+
+async function requestPickup(){
+  const desc = prompt("What have you got? (e.g. \"2 bags of cans, some copper wire\")");
+  if(!desc || !desc.trim()) return;
+  if(!currentResidentId){ alert("Still loading your account, try again in a second."); return; }
+
+  const { error } = await sb.from('materials').insert({
+    resident_id: currentResidentId,
+    description: desc.trim(),
+    status: 'pickup_requested'
+  });
+
+  if(error){ alert("Something went wrong submitting that. Try again, or email contact.watchtowerer@gmail.com directly."); console.error(error); return; }
+  alert("Got it! Your pickup request is in. We'll be in touch to schedule it.");
 }
 
 loadAccount();
