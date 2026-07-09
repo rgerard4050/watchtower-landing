@@ -3,7 +3,7 @@
 // SETUP (one time, in Vercel): Project Settings -> Environment Variables ->
 //   add ANTHROPIC_API_KEY = your key from console.anthropic.com
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
   const key = process.env.ANTHROPIC_API_KEY;
