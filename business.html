@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Watchtower | Node Registration</title>
     
-    <!-- Fonts & Supabase CDN -->
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -136,7 +135,7 @@
 
         <div class="input-group">
             <label>Node Passkey</label>
-            <input type="password" id="password" placeholder="••••••••" required>
+            <input type="password" id="password" placeholder="Min. 6 characters" required>
         </div>
 
         <div class="input-group">
@@ -147,9 +146,9 @@
         <div class="input-group">
             <label>Requested Tier</label>
             <select id="ctier">
-                <option value="Signal">Signal - $49/mo</option>
-                <option value="Enforcer">Enforcer - $149/mo</option>
-                <option value="Sentinel">Sentinel - $299/mo</option>
+                <option value="Signal">Signal - $1,000/yr</option>
+                <option value="Enforcer">Enforcer - $2,500/yr</option>
+                <option value="Sentinel">Sentinel - $5,000/yr</option>
             </select>
         </div>
 
@@ -169,7 +168,8 @@
         const supabaseUrl = 'https://eypovuxuddiqgncjdpkq.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5cG92dXh1ZGRpcWduY2pkcGtxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MzU1NDgsImV4cCI6MjA5ODUxMTU0OH0.JLSmCx7bZe7yIxxdXZwCWrLeyV1zAoPTXbSP24IckBY';
         
-        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+        // FIX: Renamed variable to 'supabaseClient' to avoid crashing the script
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         // ==========================================
         // THE AUTH & DATABASE SUBMISSION LOGIC
@@ -185,15 +185,23 @@
             const btn = document.getElementById('submit-btn');
             const wrap = document.getElementById('formwrap');
 
+            // 1. Basic Validation
             if (!bizName || !email || !password) {
-                alert('CRITICAL: Business Name, Email, and Passkey are required to initialize.');
+                alert('CRITICAL: Business Name, Email, and Passkey are required.');
+                return;
+            }
+
+            // 2. Password Length Check (Supabase requires 6 chars)
+            if (password.length < 6) {
+                alert('CRITICAL: Node Passkey must be at least 6 characters long.');
                 return;
             }
 
             btn.innerText = "AUTHENTICATING...";
             btn.style.pointerEvents = "none";
 
-            const { data: authData, error: authError } = await supabase.auth.signUp({
+            // 3. Register User in Auth
+            const { data: authData, error: authError } = await supabaseClient.auth.signUp({
                 email: email,
                 password: password,
             });
@@ -205,10 +213,11 @@
                 return;
             }
 
+            // 4. Inject into businesses table
             if (authData.user) {
                 btn.innerText = "LINKING LEDGER...";
 
-                const { error: dbError } = await supabase.from('businesses').insert([{
+                const { error: dbError } = await supabaseClient.from('businesses').insert([{
                     auth_id: authData.user.id,
                     business_name: bizName, 
                     tier: tier
@@ -222,6 +231,7 @@
                     return;
                 }
 
+                // 5. Success Route
                 btn.innerText = "NODE SECURED. REROUTING...";
                 wrap.classList.add('submitted'); 
                 
