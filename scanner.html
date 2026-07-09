@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Watchtower Scanner Terminal</title>
+    <!-- Supabase CDN (Matches your terminal.html setup) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+        
+        :root {
+            --black: #080c0f;
+            --dark: #0d1318;
+            --panel: #111820;
+            --border: #1e2d3a;
+            --green: #00ff88;
+            --green-dim: #00cc6a;
+            --green-glow: rgba(0,255,136,0.10);
+            --amber: #ffaa00;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--black);
+            color: #fff;
+            font-family: 'Share Tech Mono', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .terminal-header {
+            width: 100%;
+            padding: 10px;
+            background: var(--dark);
+            border-bottom: 1px solid var(--border);
+            text-align: center;
+            color: var(--green);
+            text-shadow: 0 0 5px var(--green-dim);
+            letter-spacing: 2px;
+        }
+
+        .viewscreen-container {
+            position: relative;
+            width: 90%;
+            max-width: 450px;
+            aspect-ratio: 4/3;
+            margin: 20px 0;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Cyberpunk reticle overlay */
+        .reticle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 60%;
+            height: 60%;
+            border: 1px dashed var(--green-dim);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            box-shadow: 0 0 10px var(--green-glow);
+        }
+
+        .reticle::before, .reticle::after {
+            content: '';
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border: 2px solid var(--green);
+        }
+        /* Top Left Corner */
+        .reticle::before { top: -2px; left: -2px; border-right: none; border-bottom: none; }
+        /* Bottom Right Corner */
+        .reticle::after { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+
+        .controls {
+            width: 90%;
+            max-width: 450px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .btn {
+            background: var(--panel);
+            border: 1px solid var(--green);
+            color: var(--green);
+            padding: 15px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 5px var(--green-glow);
+        }
+
+        .btn:active {
+            background: var(--green);
+            color: var(--black);
+            box-shadow: 0 0 15px var(--green);
+        }
+
+        .console-output {
+            background: var(--dark);
+            border: 1px solid var(--border);
+            padding: 10px;
+            height: 80px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+            color: var(--amber);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="terminal-header">WATCHTOWER V2 // OPTICAL_SCANNER</div>
+
+    <div class="viewscreen-container">
+        <video id="webcam" autoplay playsinline></video>
+        <div class="reticle"></div>
+    </div>
+
+    <div class="controls">
+        <button class="btn" id="capture-btn">Execute Optical Scan</button>
+        <div class="console-output" id="console">SYSTEM READY. AWAITING SCAN INPUT...</div>
+    </div>
+
+    <!-- Hidden canvas to freeze & process frame data -->
+    <canvas id="snapshot" style="display:none;"></canvas>
+
+    <script>
+        const video = document.getElementById('webcam');
+        const canvas = document.getElementById('snapshot');
+        const captureBtn = document.getElementById('capture-btn');
+        const consoleLog = document.getElementById('console');
+
+        // Initialize Supabase Client (Placeholder - hooks up to your main config)
+        // const supabase = supabase.createClient('YOUR_URL', 'YOUR_KEY');
+
+        function printLog(msg) {
+            consoleLog.innerHTML += `<br>> ${msg}`;
+            consoleLog.scrollTop = consoleLog.scrollHeight;
+        }
+
+        // Access target device's back-facing environment camera
+        async function initCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { exact: "environment" } }, // Force back camera
+                    audio: false
+                });
+                video.srcObject = stream;
+                printLog("CAMERA INITIALIZED SUCCESSFULLY.");
+            } catch (err) {
+                printLog("ENV CAMERA NOT FOUND. FALLING BACK TO DEFAULT LOOKUP...");
+                // Fallback to any available camera if explicit back camera fails (like on desktop)
+                navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+                    .then(stream => { video.srcObject = stream; })
+                    .catch(e => printLog("CRITICAL ERROR: ACCESS DENIED."));
+            }
+        }
+
+        // Capture frame and convert to payload
+        captureBtn.addEventListener('click', () => {
+            printLog("CAPTURING DATA MATRIX...");
+            
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            // Draw current video frame onto hidden canvas
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Convert to base64 string or blob payload for backend processing
+            const dataUrl = canvas.toDataURL('image/jpeg');
+            printLog("SCAN COMPLETE. ANALYSIS PAYLOAD GENERATED.");
+            
+            // This is where you pass it to your analysis function
+            analyzePayload(dataUrl);
+        });
+
+        async function analyzePayload(base64Image) {
+            printLog("TRANSMITTING TO MATRIX ENGINE...");
+            
+            /* 
+               When ready, your automation call goes here:
+               1. Send base64Image to your Edge function/API to parse weight/grade
+               2. Update Supabase data ledger
+            */
+            
+            setTimeout(() => {
+                printLog("ANALYSIS RESP: METAL IDENTIFIED [ALUMINUM CAN MIX].");
+                printLog("EST. REBATE GENERATED: +0.45 WTWR");
+            }, 1200);
+        }
+
+        // Boot device stream on window load
+        window.addEventListener('load', initCamera);
+    </script>
+</body>
+</html>
