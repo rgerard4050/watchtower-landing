@@ -1,7 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
+<script>
+(function(){
+  if(localStorage.getItem('wt_op')==='1')return;
+  var c=prompt('Watchtower operator code:');
+  if(c==='WATCH2026'){localStorage.setItem('wt_op','1');}
+  else{alert('Operators only.');location.replace('index.html');}
+})();
+</script>
+  <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Watchtower Terminal v2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
