@@ -1,1 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Watchtower — My Account</title>
+<meta name="theme-color" content="#060a0d">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--black:#060a0d;--panel:#0e1820;--panel2:#131f28;--border:#1a2a38;--green:#00ff88;--green-dim:#00cc6a;--amber:#ffaa00;--text:#c8d8e8;--muted:#5a7a8a;--mono:'Share Tech Mono',monospace;--sans:'Inter',sans-serif;}
+body{background:var(--black);color:var(--text);font-family:var(--sans);min-height:100vh;}
+nav{position:sticky;top:0;background:rgba(6,10,13,.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;justify-content:space-between;align-items:center;z-index:10;}
+.nav-logo{font-family:var(--mono);font-size:13px;color:var(--green);letter-spacing:.14em;display:flex;align-items:center;gap:8px;}
+.pulse{width:7px;height:7px;background:var(--green);border-radius:50%;animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+nav button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 14px;border-radius:6px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;cursor:pointer;}
 
+.wrap{max-width:520px;margin:0 auto;padding:26px 18px 60px;}
+#loadingState{text-align:center;padding:60px 20px;color:var(--muted);font-family:var(--mono);font-size:13px;}
+
+#accountView{display:none;}
+.hello{font-size:26px;font-weight:800;color:#fff;margin-bottom:4px;}
+.hello span{color:var(--green);}
+.sub{font-size:14px;color:var(--muted);margin-bottom:24px;}
+
+.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+.stat{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;}
+.stat .v{font-family:var(--mono);font-size:20px;color:var(--green);font-weight:700;}
+.stat .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:4px;}
+
+.tier-badge{display:inline-block;background:var(--panel2);border:1px solid var(--green);border-radius:20px;padding:5px 14px;font-family:var(--mono);font-size:11px;color:var(--green);letter-spacing:.08em;margin-bottom:20px;}
+
+.action-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px;display:flex;gap:16px;align-items:center;margin-bottom:12px;cursor:pointer;text-decoration:none;}
+.action-card:active{border-color:var(--green);}
+.action-icon{font-size:28px;flex-shrink:0;}
+.action-title{font-size:16px;font-weight:700;color:#fff;margin-bottom:3px;}
+.action-desc{font-size:13px;color:var(--muted);line-height:1.4;}
+.action-arrow{margin-left:auto;color:var(--green);font-size:18px;}
+
+.info-note{background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:20px;font-size:13px;color:var(--muted);line-height:1.6;}
+.info-note strong{color:var(--text);}
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-logo"><div class="pulse"></div>WATCHTOWER</div>
+  <button onclick="signOut()">SIGN OUT</button>
+</nav>
+
+<div class="wrap">
+  <div id="loadingState">CHECKING YOUR ACCOUNT&hellip;</div>
+
+  <div id="accountView">
+    <div class="hello">Welcome back, <span id="userName">neighbor</span>.</div>
+    <p class="sub">Your Watchtower account</p>
+    <div class="tier-badge" id="subBadge">FREE ACCOUNT</div>
+
+    <div class="stat-row">
+      <div class="stat"><div class="v" id="walletId">&mdash;</div><div class="l">Wallet ID</div></div>
+      <div class="stat"><div class="v" id="wtwrBalance">0.00</div><div class="l">WTWR Balance</div></div>
+    </div>
+
+    <a class="action-card" href="scanner.html">
+      <div class="action-icon">&#128248;</div>
+      <div><div class="action-title">Snap a Photo</div><div class="action-desc">Get an honest read on what you've got &mdash; and how to earn more.</div></div>
+      <div class="action-arrow">&#8594;</div>
+    </a>
+
+    <a class="action-card" href="mailto:contact.watchtowerer@gmail.com?subject=Pickup%20Request">
+      <div class="action-icon">&#127968;</div>
+      <div><div class="action-title">Request a Pickup</div><div class="action-desc">Ready to send it in? Let us know what you've got.</div></div>
+      <div class="action-arrow">&#8594;</div>
+    </a>
+
+    <a class="action-card" href="learn.html">
+      <div class="action-icon">&#128218;</div>
+      <div><div class="action-title">Learn How It Works</div><div class="action-desc">Sorting tips, safety notes, and the Watchtower story.</div></div>
+      <div class="action-arrow">&#8594;</div>
+    </a>
+
+    <div class="info-note">
+      <strong>Credits appear after your first verified pickup.</strong> Once material is picked up and confirmed, your WTWR balance updates here automatically.
+    </div>
+  </div>
+</div>
+
+<script>
+const sb = supabase.createClient('https://eypovuxuddiqgncjdpkq.supabase.co','sb_publishable_ZlykauNc-3YY80w6nxzsKw_Z2lgAgU1');
+
+async function loadAccount(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if(!session){ location.href = 'index.html'; return; }
+
+  const email = session.user.email;
+  const { data, error } = await sb.from('residents').select('*').eq('email', email).maybeSingle();
+
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('accountView').style.display = 'block';
+
+  const name = (data && data.name) ? data.name.split(' ')[0] : (email ? email.split('@')[0] : 'neighbor');
+  document.getElementById('userName').textContent = name;
+
+  if(data){
+    document.getElementById('walletId').textContent = data.wallet_id || '&mdash;';
+    document.getElementById('subBadge').textContent = data.subscriber ? 'DRIVEWAY SUBSCRIBER' : 'FREE ACCOUNT';
+  }
+}
+
+function signOut(){
+  sb.auth.signOut().then(()=>{ location.href = 'index.html'; });
+}
+
+loadAccount();
+</script>
+</body>
+</html>
