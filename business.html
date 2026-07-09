@@ -1,253 +1,235 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Watchtower Protocol — Business Partner Program</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700&display=swap');
-  :root {
-    --black:#080c0f;--dark:#0d1318;--panel:#111820;--panel2:#161f28;
-    --border:#1e2d3a;--green:#00ff88;--green-dim:#00cc6a;--green-glow:rgba(0,255,136,0.08);
-    --amber:#ffaa00;--text:#c8d8e8;--muted:#5a7a8a;
-    --mono:'Share Tech Mono',monospace;--sans:'Inter',sans-serif;
-  }
-  *{margin:0;padding:0;box-sizing:border-box;}
-  html{scroll-behavior:smooth;}
-  body{background:var(--black);color:var(--text);font-family:var(--sans);overflow-x:hidden;min-height:100vh;}
-  body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px);pointer-events:none;z-index:100;}
-  header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:rgba(8,12,15,0.96);backdrop-filter:blur(8px);z-index:50;}
-  .logo{font-family:var(--mono);font-size:12px;color:var(--green);letter-spacing:0.14em;display:flex;align-items:center;gap:8px;}
-  .pulse{width:7px;height:7px;background:var(--green);border-radius:50%;animation:blink 2s infinite;flex-shrink:0;}
-  @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
-  .hero{padding:56px 24px 48px;position:relative;overflow:hidden;}
-  .hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,255,136,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,136,0.03) 1px,transparent 1px);background-size:40px 40px;}
-  .hero-content{position:relative;z-index:2;}
-  .eyebrow{font-family:var(--mono);font-size:10px;color:var(--green);letter-spacing:0.22em;text-transform:uppercase;margin-bottom:20px;display:flex;align-items:center;gap:10px;}
-  .eyebrow::before{content:'';width:20px;height:1px;background:var(--green);}
-  h1{font-size:clamp(30px,8vw,48px);font-weight:700;line-height:1.1;color:#fff;letter-spacing:-0.02em;margin-bottom:16px;}
-  h1 em{font-style:normal;color:var(--green);}
-  .hero-sub{font-size:15px;color:var(--muted);max-width:340px;line-height:1.7;font-weight:300;margin-bottom:32px;}
-  .hero-sub strong{color:var(--text);font-weight:500;}
-  .stat-row{display:flex;justify-content:space-around;padding:24px 20px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--panel);}
-  .stat{text-align:center;}
-  .stat-val{font-family:var(--mono);font-size:20px;color:var(--green);display:block;}
-  .stat-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-top:3px;}
-  section{padding:48px 24px;border-bottom:1px solid var(--border);}
-  .section-tag{font-family:var(--mono);font-size:9px;color:var(--green);letter-spacing:0.22em;text-transform:uppercase;margin-bottom:20px;display:flex;align-items:center;gap:8px;}
-  .section-tag::after{content:'';flex:1;height:1px;background:var(--border);}
-  h2{font-size:24px;font-weight:700;color:#fff;letter-spacing:-0.01em;line-height:1.2;margin-bottom:12px;}
-  p{font-size:15px;color:var(--muted);font-weight:300;line-height:1.7;margin-bottom:14px;}
-  p strong{color:var(--text);font-weight:500;}
-  .benefits-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:24px;}
-  .benefit{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px 14px;}
-  .benefit-icon{font-size:20px;margin-bottom:8px;display:block;}
-  .benefit-title{font-size:13px;font-weight:600;color:#fff;margin-bottom:4px;}
-  .benefit-desc{font-size:12px;color:var(--muted);line-height:1.4;margin:0;}
-  .tiers{display:flex;flex-direction:column;gap:14px;margin-top:24px;}
-  .tier{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px;position:relative;overflow:hidden;}
-  .tier.featured{border-color:var(--green);}
-  .tier.featured::before{content:'MOST POPULAR';position:absolute;top:12px;right:12px;font-family:var(--mono);font-size:9px;color:var(--green);letter-spacing:0.12em;background:rgba(0,255,136,0.1);padding:3px 8px;border-radius:3px;}
-  .tier-name{font-family:var(--mono);font-size:11px;color:var(--green);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:6px;}
-  .tier-price{font-size:28px;font-weight:700;color:#fff;line-height:1;margin-bottom:4px;}
-  .tier-price span{font-size:14px;font-weight:400;color:var(--muted);}
-  .tier-desc{font-size:13px;color:var(--muted);margin:10px 0;font-weight:300;}
-  .tier-features{list-style:none;display:flex;flex-direction:column;gap:8px;}
-  .tier-features li{font-size:13px;color:var(--text);display:flex;align-items:flex-start;gap:8px;line-height:1.4;}
-  .tier-features li::before{content:'▸';color:var(--green);flex-shrink:0;}
-  .scarcity{background:rgba(255,170,0,0.06);border:1px solid rgba(255,170,0,0.25);border-radius:10px;padding:20px;margin-top:24px;text-align:center;}
-  .scarcity-label{font-family:var(--mono);font-size:10px;color:var(--amber);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:8px;}
-  .scarcity p{font-size:14px;color:var(--text);margin:0;}
-  .scarcity strong{color:var(--amber);}
-  .steps{display:flex;flex-direction:column;gap:0;margin-top:24px;}
-  .step{display:flex;gap:16px;padding:20px 0;border-bottom:1px solid var(--border);}
-  .step:last-child{border-bottom:none;}
-  .step-num{font-family:var(--mono);font-size:11px;color:var(--green);width:24px;flex-shrink:0;padding-top:2px;}
-  .step-content h3{font-size:15px;font-weight:600;color:#fff;margin-bottom:4px;}
-  .step-content p{font-size:13px;margin:0;line-height:1.5;}
-  .form-wrap{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:28px 20px;margin-top:24px;}
-  .form-title{font-size:18px;font-weight:700;color:#fff;margin-bottom:6px;}
-  .form-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
-  .field{margin-bottom:16px;}
-  label{display:block;font-family:var(--mono);font-size:9px;color:var(--green);letter-spacing:0.18em;text-transform:uppercase;margin-bottom:6px;}
-  input,select,textarea{width:100%;background:var(--black);border:1px solid var(--border);border-radius:6px;padding:12px 14px;color:var(--text);font-family:var(--sans);font-size:15px;outline:none;transition:border-color 0.2s;-webkit-appearance:none;appearance:none}
-  input:focus,select:focus,textarea:focus{border-color:var(--green);}
-  input::placeholder,textarea::placeholder{color:var(--muted);}
-  select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235a7a8a' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;}
-  select option{background:var(--dark);color:var(--text);}
-  textarea{resize:vertical;min-height:80px;font-size:14px;}
-  .submit-btn{width:100%;background:var(--green);color:#000;border:none;border-radius:8px;padding:16px;font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;margin-top:8px;transition:background 0.2s,transform 0.1s;}
-  .submit-btn:active{transform:scale(0.98);background:var(--green-dim);}
-  .form-note{font-size:12px;color:var(--muted);text-align:center;margin-top:12px;}
-  .success-state{display:none;text-align:center;padding:32px 20px;}
-  .form-wrap.submitted .form-fields{display:none;}
-  .form-wrap.submitted .success-state{display:block;}
-  .success-icon{font-size:40px;margin-bottom:16px;}
-  .success-title{font-family:var(--mono);font-size:14px;color:var(--green);letter-spacing:0.1em;margin-bottom:8px;}
-  .success-msg{font-size:14px;color:var(--muted);margin:0;}
-  footer{padding:32px 24px;text-align:center;border-top:1px solid var(--border);}
-  .footer-logo{font-family:var(--mono);font-size:12px;color:var(--green);letter-spacing:0.15em;margin-bottom:8px;}
-  footer p{font-size:12px;color:var(--muted);margin:0;}
-  footer a{color:var(--green);text-decoration:none;}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watchtower | Node Registration</title>
+    
+    <!-- Fonts & Supabase CDN -->
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        :root {
+            --black: #080c0f;
+            --dark: #0d1318;
+            --panel: #111820;
+            --border: #1e2d3a;
+            --green: #00ff88;
+            --green-glow: rgba(0,255,136,0.10);
+            --amber: #ffaa00;
+        }
+
+        body {
+            background-color: var(--black);
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h2 {
+            font-family: 'Share Tech Mono', monospace;
+            color: var(--green);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 0;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+        }
+
+        #formwrap {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            padding: 2rem;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+        }
+
+        #formwrap.submitted {
+            border-color: var(--green);
+            box-shadow: 0 0 20px var(--green-glow);
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-family: 'Share Tech Mono', monospace;
+            color: var(--amber);
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            background: var(--dark);
+            border: 1px solid var(--border);
+            color: var(--green);
+            font-family: 'Share Tech Mono', monospace;
+            box-sizing: border-box;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--green);
+            box-shadow: 0 0 10px var(--green-glow);
+        }
+
+        button {
+            width: 100%;
+            background: var(--black);
+            border: 1px solid var(--green);
+            color: var(--green);
+            padding: 15px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 10px;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background: var(--green);
+            color: var(--black);
+        }
+
+        .auth-notice {
+            margin-top: 15px;
+            font-size: 0.8rem;
+            color: #888;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
 
-<header>
-  <div class="logo"><div class="pulse"></div>WTWR // BUSINESS PROGRAM</div>
-  <div style="font-family:var(--mono);font-size:11px;color:var(--muted);">OCALA, FL</div>
-</header>
+    <div id="formwrap">
+        <h2>Initialize Node</h2>
+        
+        <div class="input-group">
+            <label>Business Name</label>
+            <input type="text" id="biz" placeholder="Ocala Asset Security" required>
+        </div>
 
-<div class="hero">
-  <div class="hero-grid"></div>
-  <div class="hero-content">
-    <div class="eyebrow">Business Partner Program</div>
-    <h1>Your waste is a<br><em>commodity.</em><br>We built the system.</h1>
-    <p class="hero-sub">Watchtower Protocol turns Ocala's recycling stream into a closed-loop economy — and <strong>your business is on the map.</strong></p>
-  </div>
-</div>
+        <div class="input-group">
+            <label>Contact Name</label>
+            <input type="text" id="name" placeholder="Primary Operator" required>
+        </div>
 
-<div class="stat-row">
-  <div class="stat"><span class="stat-val">Jul 6</span><div class="stat-label">Launch Date</div></div>
-  <div class="stat"><span class="stat-val">~100K</span><div class="stat-label">Ocala Residents</div></div>
-  <div class="stat"><span class="stat-val">$0</span><div class="stat-label">City Pickup After</div></div>
-</div>
+        <div class="input-group">
+            <label>Node Email (Login ID)</label>
+            <input type="email" id="email" placeholder="admin@ocala-business.com" required>
+        </div>
 
-<section>
-  <div class="section-tag">The Situation</div>
-  <h2>Ocala just dropped recycling pickup. We're filling the gap.</h2>
-  <p>On July 6th, the city discontinues brown bin recycling for residents. That material doesn't disappear — it becomes landfill, or it becomes <strong>our commodity network.</strong></p>
-  <p>We collect, sort, and route material directly to processors. Residents earn credits. Businesses get the foot traffic from people spending those credits.</p>
-</section>
+        <div class="input-group">
+            <label>Node Passkey</label>
+            <input type="password" id="password" placeholder="••••••••" required>
+        </div>
 
-<section>
-  <div class="section-tag">Your Benefits</div>
-  <h2>You get more than a listing.</h2>
-  <p>Every resident earning WTWR credits needs somewhere to spend them. That's your register.</p>
-  <div class="benefits-grid">
-    <div class="benefit"><span class="benefit-icon">📍</span><div class="benefit-title">Map Placement</div><p class="benefit-desc">Featured on the network map residents actively use to spend credits</p></div>
-    <div class="benefit"><span class="benefit-icon">🔒</span><div class="benefit-title">Radius Lock</div><p class="benefit-desc">Exclusive zone — competitors in your area locked out once you're in</p></div>
-    <div class="benefit"><span class="benefit-icon">♻️</span><div class="benefit-title">Waste Pickup</div><p class="benefit-desc">We handle your commercial recyclables. Free up your backroom.</p></div>
-    <div class="benefit"><span class="benefit-icon">📊</span><div class="benefit-title">ESG Reporting</div><p class="benefit-desc">Documented sustainability impact to share with customers</p></div>
-    <div class="benefit"><span class="benefit-icon">💳</span><div class="benefit-title">Credit Redemption</div><p class="benefit-desc">Residents spend WTWR at your location — new foot traffic, zero ad spend</p></div>
-    <div class="benefit"><span class="benefit-icon">📣</span><div class="benefit-title">Ad Placement</div><p class="benefit-desc">Promoted placement in app and on nodes throughout your zone</p></div>
-  </div>
-</section>
+        <div class="input-group">
+            <label>Contact Phone</label>
+            <input type="text" id="phone" placeholder="(352) 555-0199">
+        </div>
 
-<section>
-  <div class="section-tag">Partnership Tiers</div>
-  <h2>Pick your level of presence.</h2>
-  <p>All tiers include waste pickup, map listing, and credit redemption. Annual membership — advertising on top.</p>
-  <div class="tiers">
-    <div class="tier">
-      <div class="tier-name">Signal</div>
-      <div class="tier-price">$1,000 <span>/ year</span></div>
-      <p class="tier-desc">Get on the map before your neighbor does.</p>
-      <ul class="tier-features">
-        <li>Network map listing</li>
-        <li>Exclusive radius lock (1 mi)</li>
-        <li>Commercial waste pickup included</li>
-        <li>Credit redemption at your location</li>
-        <li>Annual ESG impact report</li>
-      </ul>
+        <div class="input-group">
+            <label>Requested Tier</label>
+            <select id="ctier">
+                <option value="Signal">Signal - $49/mo</option>
+                <option value="Enforcer">Enforcer - $149/mo</option>
+                <option value="Sentinel">Sentinel - $299/mo</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label>Operational Notes</label>
+            <textarea id="cnotes" rows="3" placeholder="Additional logistics details..."></textarea>
+        </div>
+
+        <button id="submit-btn" onclick="handleSubmit()">Provision Node</button>
+        <div class="auth-notice">Registered nodes will be routed to the secure dashboard.</div>
     </div>
-    <div class="tier featured">
-      <div class="tier-name">Enforcer</div>
-      <div class="tier-price">$2,500 <span>/ year</span></div>
-      <p class="tier-desc">Active presence where residents are spending.</p>
-      <ul class="tier-features">
-        <li>Everything in Signal</li>
-        <li>Promoted map placement</li>
-        <li>Node advertising in your zone</li>
-        <li>Quarterly impact reports</li>
-        <li>Priority pickup scheduling</li>
-        <li>Featured in resident app feed</li>
-      </ul>
-    </div>
-    <div class="tier">
-      <div class="tier-name">Sentinel</div>
-      <div class="tier-price">$5,000 <span>/ year</span></div>
-      <p class="tier-desc">The name every Ocala resident sees.</p>
-      <ul class="tier-features">
-        <li>Everything in Enforcer</li>
-        <li>Multi-location support</li>
-        <li>Network-wide ad placement</li>
-        <li>Custom credit bonus campaigns</li>
-        <li>Co-branded node signage</li>
-        <li>Monthly reports + dedicated rep</li>
-      </ul>
-    </div>
-  </div>
-  <div class="scarcity">
-    <div class="scarcity-label">⚠ Limited Availability</div>
-    <p>Only <strong>one business per category per radius</strong> can hold an exclusive zone. First to reserve locks it in.</p>
-  </div>
-</section>
 
-<section>
-  <div class="section-tag">How It Works</div>
-  <h2>Simple to join. Runs itself.</h2>
-  <div class="steps">
-    <div class="step"><div class="step-num">01</div><div class="step-content"><h3>Reserve Your Spot</h3><p>Sign up below. We confirm your zone exclusivity and onboard you before July 6th launch.</p></div></div>
-    <div class="step"><div class="step-num">02</div><div class="step-content"><h3>We Handle Pickups</h3><p>Our drivers service your commercial recyclables on schedule. Your backroom stays clear.</p></div></div>
-    <div class="step"><div class="step-num">03</div><div class="step-content"><h3>Residents Find You</h3><p>Every resident earning WTWR credits sees your business on the map as a redemption point.</p></div></div>
-    <div class="step"><div class="step-num">04</div><div class="step-content"><h3>Track Your Impact</h3><p>Reports show exactly what your business kept out of the landfill — and how many residents visited.</p></div></div>
-  </div>
-</section>
+    <script>
+        // ==========================================
+        // SYSTEM PRE-LOADED WITH YOUR CREDENTIALS
+        // ==========================================
+        const supabaseUrl = 'https://eypovuxuddiqgncjdpkq.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5cG92dXh1ZGRpcWduY2pkcGtxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MzU1NDgsImV4cCI6MjA5ODUxMTU0OH0.JLSmCx7bZe7yIxxdXZwCWrLeyV1zAoPTXbSP24IckBY';
+        
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-<section>
-  <div class="section-tag">Reserve Your Zone</div>
-  <div class="form-wrap" id="formWrap">
-    <div class="form-fields">
-      <div class="form-title">Claim Your Spot</div>
-      <p class="form-sub">We'll reach out within 24 hours to confirm your zone and get you onboarded before July 6th. No payment now.</p>
-      <div class="field"><label for="biz">Business Name</label><input type="text" id="biz" placeholder="Ace Hardware Ocala" autocomplete="organization"></div>
-      <div class="field"><label for="cname">Your Name</label><input type="text" id="cname" placeholder="First and last" autocomplete="name"></div>
-      <div class="field"><label for="cemail">Email</label><input type="email" id="cemail" placeholder="you@yourbusiness.com" autocomplete="email"></div>
-      <div class="field"><label for="cphone">Phone</label><input type="tel" id="cphone" placeholder="(352) 000-0000" autocomplete="tel"></div>
-      <div class="field"><label for="ctier">Interested Tier</label>
-        <select id="ctier">
-          <option value="">Select a tier...</option>
-          <option value="signal">Signal — $1,000/yr</option>
-          <option value="enforcer">Enforcer — $2,500/yr</option>
-          <option value="sentinel">Sentinel — $5,000/yr</option>
-          <option value="unsure">Not sure yet — let's talk</option>
-        </select>
-      </div>
-      <div class="field"><label for="cnotes">Anything else?</label><textarea id="cnotes" placeholder="Type of business, location, questions..."></textarea></div>
-      <button class="submit-btn" onclick="handleSubmit()">RESERVE MY ZONE →</button>
-      <p class="form-note">No payment now. We confirm availability first.</p>
-    </div>
-    <div class="success-state">
-      <div class="success-icon">✅</div>
-      <div class="success-title">// ZONE REQUEST RECEIVED</div>
-      <p class="success-msg">We'll be in touch within 24 hours to confirm your exclusivity zone and walk you through onboarding.<br><br>Welcome to the network.</p>
-    </div>
-  </div>
-</section>
+        // ==========================================
+        // THE AUTH & DATABASE SUBMISSION LOGIC
+        // ==========================================
+        async function handleSubmit() {
+            const bizName = document.getElementById('biz').value.trim();
+            const contactName = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const phone = document.getElementById('phone').value.trim();
+            const tier = document.getElementById('ctier').value;
+            const notes = document.getElementById('cnotes').value.trim();
+            const btn = document.getElementById('submit-btn');
+            const wrap = document.getElementById('formwrap');
 
-<footer>
-  <div class="footer-logo">WATCHTOWER PROTOCOL</div>
-  <p>Ocala Asset Security · Ocala, FL</p>
-  <p style="margin-top:6px"><a href="mailto:gerard@ocalaassetsecurity.com">gerard@ocalaassetsecurity.com</a></p>
-  <p style="margin-top:10px"><a href="/">← Back to main site</a></p>
-</footer>
+            if (!bizName || !email || !password) {
+                alert('CRITICAL: Business Name, Email, and Passkey are required to initialize.');
+                return;
+            }
 
-<script>
-function handleSubmit(){
-  const biz=document.getElementById('biz').value.trim();
-  const name=document.getElementById('cname').value.trim();
-  const email=document.getElementById('cemail').value.trim();
-  const phone=document.getElementById('cphone').value.trim();
-  const tier=document.getElementById('ctier').value;
-  const notes=document.getElementById('cnotes').value.trim();
-  if(!biz||!name||!email){alert('Please fill in business name, your name, and email.');return;}
-  const tierLabels={signal:'Signal — $1,000/yr',enforcer:'Enforcer — $2,500/yr',sentinel:'Sentinel — $5,000/yr',unsure:'Not sure yet'};
-  const subject=encodeURIComponent('[WTWR] Zone Request — '+biz);
-  const body=encodeURIComponent('Business: '+biz+'\nContact: '+name+'\nEmail: '+email+'\nPhone: '+(phone||'N/A')+'\nTier: '+(tierLabels[tier]||'Not selected')+'\n\nNotes: '+(notes||'None'));
-  window.location.href='mailto:gerard@ocalaassetsecurity.com?subject='+subject+'&body='+body;
-  document.getElementById('formWrap').classList.add('submitted');
-}
-</script>
+            btn.innerText = "AUTHENTICATING...";
+            btn.style.pointerEvents = "none";
+
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email: email,
+                password: password,
+            });
+
+            if (authError) {
+                alert(`AUTH ERROR: ${authError.message}`);
+                btn.innerText = "Provision Node";
+                btn.style.pointerEvents = "auto";
+                return;
+            }
+
+            if (authData.user) {
+                btn.innerText = "LINKING LEDGER...";
+
+                const { error: dbError } = await supabase.from('businesses').insert([{
+                    auth_id: authData.user.id,
+                    business_name: bizName, 
+                    tier: tier
+                }]);
+
+                if (dbError) {
+                    console.error("Ledger Error:", dbError);
+                    alert("Auth successful, but failed to write ledger data. Check console.");
+                    btn.innerText = "Provision Node";
+                    btn.style.pointerEvents = "auto";
+                    return;
+                }
+
+                btn.innerText = "NODE SECURED. REROUTING...";
+                wrap.classList.add('submitted'); 
+                
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1500);
+            }
+        }
+    </script>
 </body>
 </html>
