@@ -1,33 +1,34 @@
 // Watchtower — Resident Scanner API
-// Lives at:  /api/scan   (Vercel auto-creates this endpoint from the /api folder)
+// Lives at:  /api/scan   (Vercel builds this endpoint from the /api folder)
 //
-// Your API key NEVER touches the browser. It stays here on the server,
-// pulled from a Vercel Environment Variable named ANTHROPIC_API_KEY.
+// This version is matched to YOUR scanner.html:
+//  - it reads the photo from "imageBase64"
+//  - it returns summary / value / coaching_tip / items_seen / safety_warning
 //
-// The browser sends a photo -> this function asks Claude what it is
-// -> Claude answers in strict JSON -> we hand that JSON back to the page.
+// Your API key never touches the browser. It stays here, read from a
+// Vercel Environment Variable named ANTHROPIC_API_KEY.
 
 const MODEL = "claude-haiku-4-5-20251001"; // cheapest vision model. Swap this ONE line for more accuracy.
 
-const SYSTEM = `You are the Watchtower resident recycling scanner.
-You are a friendly, encouraging coach for everyday residents — NOT a dealer.
+const SYSTEM = `You are the Watchtower resident recycling scanner — a friendly, honest coach for everyday residents, not a dealer.
+You look at a photo of a pile of materials and help the person understand what they have.
+
 Rules:
-- Be honest. Never overstate value. If something is basically worthless, say so kindly and set wtwr_estimate to 0.
-- Teach one small, useful prep or separation tip.
-- Safety first: if you see a lithium battery, aerosol can, or any chemical/hazard, warn clearly in "safety".
+- Be honest and encouraging. Never overstate value. If it's basically worthless, say so kindly and use low numbers or 0.
+- Value estimates are in US dollars for the whole pile in the photo, as a rough range — not a promise.
+- Teach ONE small prep or separation tip that would earn them more.
+- Safety first: if you see a lithium battery, aerosol can, sharp metal, or any chemical/hazard, warn clearly in safety_warning. Otherwise leave it empty.
 - Never use the words trash, garbage, waste, or refuse. Use recyclables, materials, resources, or scrap.
-- wtwr_estimate is a rough WTWR reward guess for a typical single item, not a promise.
-- If you are not confident, set verify_needed to true.
+- items_seen is a short list of the materials you can identify in plain words.
 
 Respond with ONLY a JSON object, no markdown, no backticks, no extra words:
 {
-  "material": "short plain name of the item",
-  "detail": "honest grade or specifics",
-  "confidence": "high | medium | low",
-  "wtwr_estimate": number,
-  "tip": "one friendly prep or separation tip",
-  "safety": "hazard warning, or empty string if none",
-  "verify_needed": true or false
+  "summary": "friendly plain-English sentence about what's in the photo",
+  "estimated_value_low": number,
+  "estimated_value_high": number,
+  "coaching_tip": "one prep or separation tip to earn more",
+  "items_seen": ["material one", "material two"],
+  "safety_warning": "hazard warning, or empty string if none"
 }`;
 
 export default async function handler(req, res) {
@@ -42,10 +43,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { image, mediaType } = req.body; // image = base64 string (no data: prefix)
+    const { imageBase64, mediaType } = req.body;
 
-    if (!image) {
-      return res.status(400).json({ error: "No image sent." });
+    if (!imageBase64) {
+      return res.status(400).json({ error: "No image received." });
     }
 
     const apiResponse = await fetch("https://api.anthropic.com/v1/messages", {
@@ -68,10 +69,10 @@ export default async function handler(req, res) {
                 source: {
                   type: "base64",
                   media_type: mediaType || "image/jpeg",
-                  data: image,
+                  data: imageBase64,
                 },
               },
-              { type: "text", text: "What is this material? Reply with the JSON only." },
+              { type: "text", text: "What materials are in this photo? Reply with the JSON only." },
             ],
           },
         ],
@@ -85,7 +86,7 @@ export default async function handler(req, res) {
       return res.status(502).json({ error: data.error.message || "API error" });
     }
 
-    // Pull the text block out, strip any stray code fences, then parse the JSON.
+    // Pull the text out, strip any stray code fences, then parse the JSON.
     const textBlock = (data.content || []).find((b) => b.type === "text");
     const raw = textBlock ? textBlock.text : "";
     const clean = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
@@ -94,8 +95,7 @@ export default async function handler(req, res) {
     try {
       parsed = JSON.parse(clean);
     } catch {
-      // If Claude ever replies with non-JSON, don't crash — send the raw text back.
-      return res.status(200).json({ parse_error: true, raw });
+      return res.status(200).json({ error: "Couldn't read a clean result. Try the photo again." });
     }
 
     return res.status(200).json(parsed);
