@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Watchtower Operator</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600;700&display=swap');
+  :root{
+    --black:#080c0f; --dark:#0d1318; --panel:#111820; --panel2:#161f28; --border:#1e2d3a;
+    --amber:#ffaa00; --amber-dim:#cc8800; --amber-glow:rgba(255,170,0,.10);
+    --green:#00ff88; --red:#ff4455; --muted:#5a7a8a; --text:#c8d8e8; --sans:'Inter',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--black);color:#fff;font-family:'Share Tech Mono',monospace;
+    display:flex;flex-direction:column;align-items:center;min-height:100vh;padding-bottom:40px;}
+
+  /* passcode gate */
+  #gate{position:fixed;inset:0;background:var(--black);z-index:50;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:16px;padding:24px;}
+  #gate .lock{color:var(--amber);letter-spacing:3px;font-size:14px;text-shadow:0 0 6px var(--amber-dim);}
+  #gate input{width:90%;max-width:320px;background:var(--dark);border:1px solid var(--amber);color:var(--amber);
+    padding:16px;font-family:'Share Tech Mono',monospace;font-size:1rem;text-align:center;letter-spacing:4px;border-radius:6px;}
+  #gate .err{color:var(--red);font-size:12px;font-family:var(--sans);min-height:14px;}
+
+  .header{width:100%;padding:14px;background:var(--dark);border-bottom:1px solid var(--border);
+    display:flex;align-items:center;justify-content:space-between;color:var(--amber);
+    text-shadow:0 0 5px var(--amber-dim);letter-spacing:2px;font-size:13px;}
+  .header a{color:var(--muted);text-decoration:none;font-size:11px;}
+
+  .view{position:relative;width:90%;max-width:450px;aspect-ratio:4/3;margin:16px 0;background:var(--panel);
+    border:1px solid var(--border);border-radius:8px;overflow:hidden;box-shadow:inset 0 0 20px rgba(0,0,0,.8);}
+  video,#shot{width:100%;height:100%;object-fit:cover;display:block;}
+  #shot{display:none;}
+  .reticle{position:absolute;top:50%;left:50%;width:60%;height:60%;border:1px dashed var(--amber-dim);
+    transform:translate(-50%,-50%);pointer-events:none;box-shadow:0 0 10px var(--amber-glow);}
+  .reticle::before,.reticle::after{content:'';position:absolute;width:10px;height:10px;border:2px solid var(--amber);}
+  .reticle::before{top:-2px;left:-2px;border-right:none;border-bottom:none;}
+  .reticle::after{bottom:-2px;right:-2px;border-left:none;border-top:none;}
+
+  .controls{width:90%;max-width:450px;display:flex;flex-direction:column;gap:12px;}
+  .btn{background:var(--panel);border:1px solid var(--amber);color:var(--amber);padding:16px;
+    font-family:'Share Tech Mono',monospace;font-size:1rem;font-weight:bold;cursor:pointer;
+    text-transform:uppercase;letter-spacing:1px;border-radius:6px;box-shadow:0 0 5px var(--amber-glow);}
+  .btn:active{background:var(--amber);color:var(--black);}
+  .btn.secondary{border-color:var(--border);color:var(--muted);box-shadow:none;}
+  .btn[disabled]{opacity:.4;pointer-events:none;}
+  .console{background:var(--dark);border:1px solid var(--border);padding:10px;min-height:36px;
+    font-size:.8rem;color:var(--amber);border-radius:6px;overflow-y:auto;}
+
+  #panel{display:none;width:90%;max-width:450px;font-family:var(--sans);margin-top:4px;}
+  .grade{background:var(--panel);border:1px solid var(--amber);border-radius:10px;padding:16px;margin-bottom:12px;}
+  .grade .mat{font-family:'Share Tech Mono',monospace;font-size:20px;color:var(--amber);font-weight:700;}
+  .grade .g{font-size:15px;color:var(--text);margin-top:2px;}
+  .rowline{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);padding:6px 0;border-bottom:1px dotted var(--border);}
+  .rowline span:last-child{color:var(--text);text-align:right;}
+  .contam{color:var(--red);font-size:12px;margin-top:8px;}
+
+  .calc{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;}
+  .calc label{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin:10px 0 4px;}
+  .calc input{width:100%;background:var(--dark);border:1px solid var(--border);color:var(--amber);
+    padding:12px;font-family:'Share Tech Mono',monospace;font-size:1.1rem;border-radius:6px;}
+  .totals{display:flex;gap:10px;margin-top:14px;}
+  .tbox{flex:1;text-align:center;border:1px solid var(--border);border-radius:8px;padding:12px;}
+  .tbox .amt{font-family:'Share Tech Mono',monospace;font-size:20px;font-weight:700;}
+  .tbox.gross .amt{color:var(--text);}
+  .tbox.wtwr{border-color:var(--green);}
+  .tbox.wtwr .amt{color:var(--green);}
+  .tbox .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;margin-top:4px;}
+  .split{font-size:11px;color:var(--muted);text-align:center;margin-top:8px;}
+  #recordConfirm{text-align:center;font-family:var(--sans);font-size:13px;margin:10px 0;}
+</style>
+</head>
+<body>
+
+  <!-- PASSCODE GATE -->
+  <div id="gate">
+    <div class="lock">&#128274; OPERATOR ACCESS</div>
+    <input id="code" type="password" inputmode="numeric" placeholder="CODE" autocomplete="off">
+    <button class="btn" id="enter" style="width:90%;max-width:320px;">Enter</button>
+    <div class="err" id="gateErr"></div>
+  </div>
+
+  <div class="header"><span>WATCHTOWER // OPERATOR</span><a href="index.html">&#8592; HOME</a></div>
+
+  <div class="view">
+    <video id="cam" autoplay playsinline></video>
+    <img id="shot" alt="captured">
+    <div class="reticle"></div>
+  </div>
+
+  <div class="controls">
+    <button class="btn" id="grabBtn">Grade Material</button>
+    <button class="btn secondary" id="retakeBtn" style="display:none">Re-shoot</button>
+    <div class="console" id="console">STANDBY.</div>
+  </div>
+
+  <div id="panel">
+    <div class="grade">
+      <div class="mat" id="mat">—</div>
+      <div class="g" id="grd">—</div>
+      <div class="rowline"><span>confidence</span><span id="conf">—</span></div>
+      <div class="rowline"><span>est. $/lb</span><span id="estrange">—</span></div>
+      <div class="contam" id="contam" style="display:none"></div>
+      <div class="rowline" id="notesRow" style="display:none"><span>note</span><span id="notes"></span></div>
+    </div>
+
+    <div class="calc">
+      <label>Weight (lb)</label>
+      <input id="weight" type="number" inputmode="decimal" placeholder="0" min="0" step="0.1">
+      <label>Price $/lb  (AI estimate — set the real number)</label>
+      <input id="price" type="number" inputmode="decimal" placeholder="0.00" min="0" step="0.01">
+      <div class="totals">
+        <div class="tbox gross"><div class="amt" id="gross">$0.00</div><div class="lbl">Gross value</div></div>
+        <div class="tbox wtwr"><div class="amt" id="wtwr">0</div><div class="lbl">Resident WTWR</div></div>
+      </div>
+      <div class="split" id="splitLine">resident 40% &middot; platform 50% &middot; driver 10%</div>
+    </div>
+
+    <div id="recordConfirm" style="display:none"></div>
+    <button class="btn" id="recordBtn">Record Intake</button>
+  </div>
+
+  <canvas id="canvas" style="display:none"></canvas>
+
+<script>
+  // ===== SETTINGS YOU CONTROL =====
+  const OP_CODE = "WATCH2026";          // operator passcode — change anytime
+  const WTWR_PER_DOLLAR = 100;          // your peg. 100 = $1 of value -> 100 WTWR. SET THIS to your real rate.
+  const RESIDENT_SHARE = 0.40;          // resident gets 40% of gross (locked split)
+  // ================================
+
+  const SUPABASE_URL  = "https://eypovuxuddiqgncjdpkq.supabase.co";
+  const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5cG92dXh1ZGRpcWduY2pkcGtxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MzU1NDgsImV4cCI6MjA5ODUxMTU0OH0.JLSmCx7bZe7yIxxdXZwCWrLeyV1zAoPTXbSP24IckBY";
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  let opId = localStorage.getItem('wt_operator');
+  if(!opId){ opId = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())); localStorage.setItem('wt_operator', opId); }
+
+  let lastGrade = null;
+
+  const $ = id => document.getElementById(id);
+  const cam=$('cam'), shot=$('shot'), canvas=$('canvas'), consoleEl=$('console'), panel=$('panel');
+
+  function log(m){ consoleEl.innerHTML += `<br>&gt; ${m}`; consoleEl.scrollTop = consoleEl.scrollHeight; }
+
+  // ---- gate ----
+  function tryEnter(){
+    if($('code').value.trim() === OP_CODE){
+      $('gate').style.display='none';
+      initCam();
+    } else {
+      $('gateErr').textContent = 'Denied.';
+    }
+  }
+  $('enter').addEventListener('click', tryEnter);
+  $('code').addEventListener('keydown', e=>{ if(e.key==='Enter') tryEnter(); });
+
+  async function initCam(){
+    try{
+      const s = await navigator.mediaDevices.getUserMedia({video:{facingMode:{exact:"environment"}},audio:false});
+      cam.srcObject = s; log('CAMERA ONLINE.');
+    }catch(e){
+      navigator.mediaDevices.getUserMedia({video:true,audio:false})
+        .then(s=>{cam.srcObject=s;log('CAMERA ONLINE (default).');})
+        .catch(()=>log('CAMERA DENIED. CHECK PERMISSIONS.'));
+    }
+  }
+
+  $('grabBtn').addEventListener('click', ()=>{
+    if(cam.style.display==='none') return;
+    const ctx = canvas.getContext('2d');
+    canvas.width = cam.videoWidth; canvas.height = cam.videoHeight;
+    ctx.drawImage(cam,0,0,canvas.width,canvas.height);
+    const dataUrl = canvas.toDataURL('image/jpeg',0.85);
+    shot.src = dataUrl; cam.style.display='none'; shot.style.display='block';
+    $('grabBtn').textContent='Grading...'; $('grabBtn').setAttribute('disabled','true');
+    $('retakeBtn').style.display='block';
+    log('CAPTURED. GRADING...');
+    grade(dataUrl.split(',')[1]);
+  });
+
+  $('retakeBtn').addEventListener('click', ()=>{
+    cam.style.display='block'; shot.style.display='none';
+    $('grabBtn').textContent='Grade Material'; $('grabBtn').removeAttribute('disabled');
+    $('retakeBtn').style.display='none'; panel.style.display='none';
+    consoleEl.innerHTML='STANDBY.'; lastGrade=null;
+  });
+
+  async function grade(b64){
+    try{
+      const r = await fetch('/api/grade',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({imageBase64:b64,mediaType:'image/jpeg'})});
+      const d = await r.json();
+      if(d.error){ log('ERROR: '+d.error); $('grabBtn').textContent='Grade Material'; $('grabBtn').removeAttribute('disabled'); return; }
+      log('GRADED.'); showGrade(d);
+    }catch(e){ log('CONNECTION ERROR.'); $('grabBtn').textContent='Grade Material'; $('grabBtn').removeAttribute('disabled'); }
+  }
+
+  function showGrade(d){
+    lastGrade = d;
+    $('mat').textContent = d.material || 'UNKNOWN';
+    $('grd').textContent = d.grade || '—';
+    $('conf').textContent = d.confidence || '—';
+    const lo = Number(d.price_per_lb_low)||0, hi = Number(d.price_per_lb_high)||0;
+    $('estrange').textContent = '$'+lo.toFixed(2)+' – $'+hi.toFixed(2);
+
+    if(d.contamination && d.contamination.toLowerCase() !== 'none'){
+      $('contam').textContent = '\u26A0 '+d.contamination; $('contam').style.display='block';
+    } else { $('contam').style.display='none'; }
+
+    if(d.notes){ $('notes').textContent = d.notes; $('notesRow').style.display='flex'; }
+    else { $('notesRow').style.display='none'; }
+
+    // prefill price with the AI midpoint; operator edits to the real number
+    $('price').value = ((lo+hi)/2).toFixed(2);
+    $('weight').value = '';
+    compute();
+
+    // reset record button
+    $('recordBtn').style.display='block'; $('recordBtn').removeAttribute('disabled'); $('recordBtn').textContent='Record Intake';
+    $('recordConfirm').style.display='none';
+    panel.style.display='block';
+  }
+
+  function compute(){
+    const w = parseFloat($('weight').value)||0;
+    const p = parseFloat($('price').value)||0;
+    const gross = w*p;
+    const wtwr = Math.round(gross*RESIDENT_SHARE*WTWR_PER_DOLLAR);
+    $('gross').textContent = '$'+gross.toFixed(2);
+    $('wtwr').textContent = wtwr.toLocaleString();
+  }
+  $('weight').addEventListener('input', compute);
+  $('price').addEventListener('input', compute);
+
+  $('recordBtn').addEventListener('click', async ()=>{
+    if(!lastGrade) return;
+    const w = parseFloat($('weight').value)||0;
+    const p = parseFloat($('price').value)||0;
+    if(w<=0 || p<=0){ $('recordConfirm').style.color='var(--red)'; $('recordConfirm').textContent='Enter weight and price first.'; $('recordConfirm').style.display='block'; return; }
+    const gross = w*p;
+    const wtwr = Math.round(gross*RESIDENT_SHARE*WTWR_PER_DOLLAR);
+
+    $('recordBtn').setAttribute('disabled','true'); $('recordBtn').textContent='Recording...';
+
+    const { error } = await db.from('intakes').insert({
+      operator: opId,
+      material: lastGrade.material || null,
+      grade: lastGrade.grade || null,
+      confidence: lastGrade.confidence || null,
+      contamination: lastGrade.contamination || null,
+      notes: lastGrade.notes || null,
+      weight_lb: w,
+      price_per_lb: p,
+      gross_value: gross,
+      resident_wtwr: wtwr
+    });
+
+    if(error){
+      $('recordBtn').removeAttribute('disabled'); $('recordBtn').textContent='Record Intake';
+      $('recordConfirm').style.color='var(--red)'; $('recordConfirm').textContent='Failed to record. Try again.';
+      $('recordConfirm').style.display='block'; log('RECORD FAILED: '+error.message); return;
+    }
+
+    $('recordBtn').style.display='none';
+    $('recordConfirm').style.color='var(--green)';
+    $('recordConfirm').textContent = '\u2713 Intake recorded — '+wtwr.toLocaleString()+' WTWR logged.';
+    $('recordConfirm').style.display='block';
+    log('INTAKE RECORDED.');
+  });
+</script>
+</body>
+</html>
