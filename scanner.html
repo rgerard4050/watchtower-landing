@@ -111,6 +111,8 @@
 
         .verify-note { margin-top: 6px; text-align:center; font-size:12px; color:var(--muted); font-family: var(--sans); }
         .verify-note button { background:none; border:none; color: var(--green); text-decoration: underline; font-size: 12px; cursor:pointer; font-family: var(--sans); }
+
+        #logConfirm { text-align:center; font-family: var(--sans); font-size: 13px; margin-bottom: 12px; }
     </style>
 </head>
 <body>
@@ -149,12 +151,28 @@
             <p id="tipText"></p>
         </div>
         <div id="itemsBlock" class="items"></div>
+
+        <!-- NEW: log the haul to Supabase -->
+        <button class="btn" id="log-btn" style="margin-bottom:12px;">&#43; LOG THIS HAUL</button>
+        <div id="logConfirm" style="display:none;"></div>
+
         <div class="verify-note">Think we got it wrong? <button onclick="alert('Coming soon: a direct line to a real person who will re-check this.')">Tell us what it really is</button></div>
     </div>
 
     <canvas id="snapshot" style="display:none;"></canvas>
 
     <script>
+        // ---- Supabase (public anon key — safe to expose; scans are write-only) ----
+        const SUPABASE_URL  = "https://eypovuxuddiqgncjdpkq.supabase.co";
+        const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5cG92dXh1ZGRpcWduY2pkcGtxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MzU1NDgsImV4cCI6MjA5ODUxMTU0OH0.JLSmCx7bZe7yIxxdXZwCWrLeyV1zAoPTXbSP24IckBY";
+        const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+        // A loose per-device id so you can group one person's scans later (no login needed).
+        let sessionId = localStorage.getItem('wt_session');
+        if (!sessionId) { sessionId = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())); localStorage.setItem('wt_session', sessionId); }
+
+        let lastScan = null; // holds the most recent read so the LOG button can save it
+
         const video = document.getElementById('webcam');
         const capturedImg = document.getElementById('capturedImg');
         const canvas = document.getElementById('snapshot');
@@ -162,6 +180,8 @@
         const retakeBtn = document.getElementById('retake-btn');
         const consoleLog = document.getElementById('console');
         const resultPanel = document.getElementById('resultPanel');
+        const logBtn = document.getElementById('log-btn');
+        const logConfirm = document.getElementById('logConfirm');
 
         function printLog(msg) {
             consoleLog.innerHTML += `<br>&gt; ${msg}`;
@@ -211,6 +231,7 @@
             retakeBtn.style.display = 'none';
             resultPanel.style.display = 'none';
             consoleLog.innerHTML = 'SYSTEM READY. AWAITING SCAN INPUT...';
+            lastScan = null;
         });
 
         async function analyzePayload(base64Image) {
@@ -239,6 +260,8 @@
         }
 
         function showResult(data) {
+            lastScan = data; // remember it for the LOG button
+
             if (data.safety_warning) {
                 document.getElementById('safetyText').textContent = data.safety_warning;
                 document.getElementById('safetyBlock').style.display = 'block';
@@ -264,8 +287,47 @@
                 itemsBlock.appendChild(s);
             });
 
+            // reset the LOG button for this fresh result
+            logBtn.style.display = 'block';
+            logBtn.removeAttribute('disabled');
+            logBtn.textContent = '+ LOG THIS HAUL';
+            logConfirm.style.display = 'none';
+
             resultPanel.style.display = 'block';
         }
+
+        // ---- LOG THIS HAUL -> save the scan to Supabase ----
+        logBtn.addEventListener('click', async () => {
+            if (!lastScan) return;
+            logBtn.setAttribute('disabled', 'true');
+            logBtn.textContent = 'Logging...';
+
+            const { error } = await db.from('scans').insert({
+                session_id: sessionId,
+                summary: lastScan.summary || null,
+                items_seen: lastScan.items_seen || [],
+                est_low: lastScan.estimated_value_low ?? null,
+                est_high: lastScan.estimated_value_high ?? null,
+                coaching_tip: lastScan.coaching_tip || null,
+                safety_warning: lastScan.safety_warning || null
+            });
+
+            if (error) {
+                logBtn.textContent = '+ LOG THIS HAUL';
+                logBtn.removeAttribute('disabled');
+                logConfirm.style.color = 'var(--red)';
+                logConfirm.textContent = 'Could not log. Try again.';
+                logConfirm.style.display = 'block';
+                printLog("LOG FAILED: " + error.message);
+                return;
+            }
+
+            logBtn.style.display = 'none';
+            logConfirm.style.color = 'var(--green)';
+            logConfirm.textContent = '\u2713 Haul logged. Bring it to a drop point to claim your WTWR.';
+            logConfirm.style.display = 'block';
+            printLog("HAUL LOGGED.");
+        });
 
         window.addEventListener('load', initCamera);
     </script>
