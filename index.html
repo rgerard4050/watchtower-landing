@@ -170,7 +170,13 @@
 
 <nav>
   <div class="nav-logo" onclick="enterTerminal()" style="cursor:pointer" title="Operator access"><div class="pulse"></div>WATCHTOWER</div>
-  <button class="nav-cta" onclick="enterBusiness()">BUSINESS &#8594;</button>
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
+    <a href="resident.html" style="color:var(--text);text-decoration:none;font-family:var(--mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">Residents</a>
+    <a href="business.html" style="color:var(--text);text-decoration:none;font-family:var(--mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">Businesses</a>
+    <a href="terminal.html" style="color:var(--text);text-decoration:none;font-family:var(--mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">Operators</a>
+    <a href="learn.html" style="color:var(--text);text-decoration:none;font-family:var(--mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">Learn</a>
+    <button class="nav-cta" onclick="enterBusiness()">BUSINESS &#8594;</button>
+  </div>
 </nav>
 
 <!-- Operator access modal — big tap targets, replaces the native prompt() popup -->
@@ -191,6 +197,10 @@
     <div class="hero-eyebrow">Ocala, FL &middot; By Ocala, for Ocala</div>
     <h1>The city stopped<br>recycling.<br><span class="accent">We didn't.</span></h1>
     <p class="hero-sub">We buy your scrap and reward better recycling. You get paid in <strong>WTWR</strong> &mdash; credits you redeem at local stores. No bin fee. You earn instead.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px;">
+      <a class="primary-btn" href="resident.html" style="display:inline-block;text-align:center;text-decoration:none;width:auto;padding:14px 18px;">RESIDENTS START HERE &#8594;</a>
+      <a class="secondary-btn" href="business.html" style="display:inline-block;text-align:center;text-decoration:none;width:auto;padding:14px 18px;border:1px solid var(--border2);color:var(--text);">BUSINESSES JOIN THE NETWORK</a>
+    </div>
     <button class="primary-btn" onclick="document.getElementById('wallet-section').scrollIntoView({behavior:'smooth'})">JOIN NOW &mdash; IT'S FREE &#8594;</button>
     <div class="joincount"><span id="signupCount">&mdash;</span> neighbors have already joined</div>
   </div>
@@ -289,8 +299,10 @@
 <footer>
   <div class="footer-logo">WATCHTOWER PROTOCOL</div>
   <div class="footer-links">
-    <a href="/business.html">Business Partners</a>
-    <a href="/dispatch.html">Driver Portal</a>
+    <a href="resident.html">Residents</a>
+    <a href="business.html">Businesses</a>
+    <a href="terminal.html">Operators</a>
+    <a href="dispatch.html">Dispatch</a>
     <a href="mailto:contact.watchtowerer@gmail.com">Contact</a>
   </div>
   <p>Ocala Asset Security · Ocala, FL</p>

@@ -46,7 +46,12 @@ nav button{background:transparent;border:1px solid var(--border);color:var(--mut
 <body>
 <nav>
   <div class="nav-logo"><div class="pulse"></div>WATCHTOWER</div>
-  <button onclick="signOut()">SIGN OUT</button>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+    <a href="index.html" style="color:var(--muted);text-decoration:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;">Home</a>
+    <a href="business.html" style="color:var(--muted);text-decoration:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;">Businesses</a>
+    <a href="terminal.html" style="color:var(--muted);text-decoration:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;">Operators</a>
+    <button onclick="signOut()">SIGN OUT</button>
+  </div>
 </nav>
 
 <div class="wrap">

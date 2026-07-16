@@ -1,50 +1,25 @@
-WATCHTOWER
-Building the missing infrastructure between residents, recyclers, businesses, and communities.
-Watchtower is an open platform designed to make recycling and resource recovery easier, more transparent, and more rewarding.
-Instead of treating scrap and reusable materials as waste, Watchtower helps identify value, connect people with buyers, coordinate pickups, and return value back to the people creating it.
-Current Features
-📷 AI-powered material scanner (in development)
-🏠 Resident portal
-🏢 Business portal
-🚚 Dispatch system
-📊 Operations dashboard
-🎓 Education center
-🖥️ Operator terminal
-📱 Progressive Web App support
-Vision
-The current recycling system is fragmented.
-Residents often don't know what materials are worth. Businesses struggle to source recyclable material efficiently. Communities lose valuable resources that end up in landfills.
-Watchtower aims to solve those problems with a single platform that:
-Identifies materials
-Estimates value
-Educates users
-Schedules pickups
-Connects buyers and sellers
-Rewards participation
-Project Status
-Watchtower is an active work in progress.
-The frontend and application flow are largely functional.
-The current focus is integrating AI vision to identify recyclable materials from camera images and provide accurate guidance to users.
-Technology
-HTML5
-CSS3
-JavaScript
-Progressive Web App (PWA)
-GitHub Pages
-AI Vision integration (planned)
-Supabase (planned)
-Why
-Every year valuable material is thrown away because people don't know what they have or where it belongs.
-Watchtower is intended to lower that barrier by making resource recovery as simple as opening an app and pointing a camera.
-Roadmap
-AI material identification
-Live pricing
-Pickup scheduling
-Business marketplace
-Operator tools
-Resident rewards
-Analytics
-Community partnerships
-Contributing
-Feedback, ideas, bug reports, and contributions are welcome.
-The goal is to build practical tools that create value for residents, businesses, and communities alike.
+# WATCHTOWER
+
+Watchtower is a public-facing recycling network that connects residents, businesses, operators, and dispatch into one simple experience.
+
+## What changed
+- Made the landing page the main public entry point.
+- Added clear navigation paths for Residents, Businesses, Operators, and Learn.
+- Kept the existing scanner, resident, business, dispatch, and operator flows intact.
+- Prepared the site structure for Vercel-style deployment with a routing config file and deployment-safe API handlers.
+
+## Project structure
+- index.html — public landing page
+- resident.html — resident portal
+- business.html — business onboarding
+- terminal.html — operator console
+- dispatch.html — dispatch view
+- scanner.html — resident scanning experience
+- learn.html — educational content
+- api/scan.js — resident AI scan endpoint
+- api/grade.js — operator grading endpoint
+
+## Deployment notes
+- Add your Anthropic API key as a Vercel environment variable named ANTHROPIC_API_KEY.
+- Deploy the repository to Vercel with the root folder as the project root.
+- The included vercel.json file enables clean URLs and preserves the /api routes.

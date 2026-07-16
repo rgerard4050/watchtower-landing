@@ -1,14 +1,7 @@
 // Watchtower — Resident Scanner API
-// Lives at:  /api/scan   (Vercel builds this endpoint from the /api folder)
-//
-// This version is matched to YOUR scanner.html:
-//  - it reads the photo from "imageBase64"
-//  - it returns summary / value / coaching_tip / items_seen / safety_warning
-//
-// Your API key never touches the browser. It stays here, read from a
-// Vercel Environment Variable named ANTHROPIC_API_KEY.
+// Compatible with Vercel serverless routes in the /api folder.
 
-const MODEL = "claude-haiku-4-5-20251001"; // cheapest vision model. Swap this ONE line for more accuracy.
+const MODEL = "claude-haiku-4-5-20251001";
 
 const SYSTEM = `You are the Watchtower resident recycling scanner — a friendly, honest coach for everyday residents, not a dealer.
 You look at a photo of a pile of materials and help the person understand what they have.
@@ -31,7 +24,7 @@ Respond with ONLY a JSON object, no markdown, no backticks, no extra words:
   "safety_warning": "hazard warning, or empty string if none"
 }`;
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Use POST" });
   }
@@ -43,7 +36,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { imageBase64, mediaType } = req.body;
+    const { imageBase64, mediaType } = req.body || {};
 
     if (!imageBase64) {
       return res.status(400).json({ error: "No image received." });
@@ -81,12 +74,10 @@ export default async function handler(req, res) {
 
     const data = await apiResponse.json();
 
-    // Surface Anthropic errors (bad key, wrong model, out of credit, etc.)
     if (data.error) {
       return res.status(502).json({ error: data.error.message || "API error" });
     }
 
-    // Pull the text out, strip any stray code fences, then parse the JSON.
     const textBlock = (data.content || []).find((b) => b.type === "text");
     const raw = textBlock ? textBlock.text : "";
     const clean = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
@@ -102,4 +93,4 @@ export default async function handler(req, res) {
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
-}
+};

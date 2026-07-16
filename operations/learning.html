@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Watchtower Operations — Historical Learning</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  </head>
+  <body class="min-h-screen bg-slate-950 text-slate-100">
+    <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <header class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p class="text-xs uppercase tracking-[0.3em] text-fuchsia-400">Operations</p>
+            <h1 class="mt-2 text-2xl font-semibold">Historical Learning</h1>
+            <p class="mt-2 text-sm text-slate-400">Surface the most successful and most problematic sources from prior manifests.</p>
+          </div>
+          <div class="flex gap-3">
+            <a href="./manifest.html" class="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-emerald-400 hover:text-emerald-300">Manifest Intake</a>
+            <a href="./reconcile.html" class="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-emerald-400 hover:text-emerald-300">Reconciliation</a>
+          </div>
+        </div>
+      </header>
+
+      <main class="mt-8 rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold">Prior Batch Patterns</h2>
+          <button id="refreshLearning" class="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:border-fuchsia-400 hover:text-fuchsia-300">Refresh</button>
+        </div>
+        <div id="learningList" class="mt-6 space-y-3"></div>
+      </main>
+    </div>
+
+    <script src="./ops.js"></script>
+  </body>
+</html>

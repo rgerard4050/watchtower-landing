@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Watchtower Operations — Control Queue</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  </head>
+  <body class="min-h-screen bg-slate-950 text-slate-100">
+    <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <header class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p class="text-xs uppercase tracking-[0.3em] text-amber-400">Operations</p>
+            <h1 class="mt-2 text-2xl font-semibold">Control Queue</h1>
+            <p class="mt-2 text-sm text-slate-400">Review only lots that are currently in the reviewing state.</p>
+          </div>
+          <div class="flex gap-3">
+            <a href="./manifest.html" class="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-emerald-400 hover:text-emerald-300">Manifest Intake</a>
+            <a href="./passport.html" class="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-emerald-400 hover:text-emerald-300">Passports</a>
+          </div>
+        </div>
+      </header>
+
+      <section class="mt-8 rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold">Reviewing Lots</h2>
+          <button id="refreshQueue" class="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:border-emerald-400 hover:text-emerald-300">Refresh</button>
+        </div>
+        <div id="queueList" class="mt-6 space-y-4"></div>
+      </section>
+    </div>
+
+    <div id="passModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/85 px-4">
+      <div class="w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl shadow-black/40">
+        <h3 class="text-lg font-semibold">Pass Manifest</h3>
+        <p class="mt-2 text-sm text-slate-400">A structured reason code and operator notes are required before saving a pass decision.</p>
+        <div class="mt-5 space-y-4">
+          <label class="block text-sm text-slate-300">
+            <span class="mb-2 block font-medium">Reason Code</span>
+            <select id="reasonCode" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-400">
+              <option value="">Choose a reason</option>
+              <option value="quality">Quality concerns</option>
+              <option value="safety">Safety concerns</option>
+              <option value="pricing">Pricing mismatch</option>
+              <option value="source">Source mismatch</option>
+              <option value="logistics">Logistics issue</option>
+            </select>
+          </label>
+          <label class="block text-sm text-slate-300">
+            <span class="mb-2 block font-medium">Operator Notes</span>
+            <textarea id="passNotes" rows="4" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-400"></textarea>
+          </label>
+        </div>
+        <div class="mt-6 flex justify-end gap-3">
+          <button id="cancelPass" class="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300">Cancel</button>
+          <button id="submitPass" class="rounded-lg bg-amber-500 px-3 py-2 text-sm font-semibold text-slate-950">Save Pass</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="./ops.js"></script>
+  </body>
+</html>

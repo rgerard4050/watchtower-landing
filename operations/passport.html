@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Watchtower Operations — Passport</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  </head>
+  <body class="min-h-screen bg-slate-950 text-slate-100">
+    <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <header class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p class="text-xs uppercase tracking-[0.3em] text-cyan-400">Operations</p>
+            <h1 class="mt-2 text-2xl font-semibold">Passport Batch</h1>
+            <p class="mt-2 text-sm text-slate-400">Track passports, recovered materials, and sales without attaching transactions to passports themselves.</p>
+          </div>
+          <div class="flex gap-3">
+            <a href="./manifest.html" class="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-emerald-400 hover:text-emerald-300">Manifest Intake</a>
+            <a href="./control.html" class="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-emerald-400 hover:text-emerald-300">Control Queue</a>
+          </div>
+        </div>
+      </header>
+
+      <main class="mt-8 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+        <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20">
+          <h2 class="text-lg font-semibold">Create Passport</h2>
+          <form id="passportForm" class="mt-5 space-y-4">
+            <div class="grid gap-4 md:grid-cols-2">
+              <label class="block text-sm text-slate-300">
+                <span class="mb-2 block font-medium">Manufacturer</span>
+                <input id="manufacturer" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400" />
+              </label>
+              <label class="block text-sm text-slate-300">
+                <span class="mb-2 block font-medium">Model</span>
+                <input id="model" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400" />
+              </label>
+              <label class="block text-sm text-slate-300">
+                <span class="mb-2 block font-medium">Serial</span>
+                <input id="serial" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400" />
+              </label>
+              <label class="block text-sm text-slate-300">
+                <span class="mb-2 block font-medium">Asset Tag</span>
+                <input id="asset_tag" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400" />
+              </label>
+              <label class="block text-sm text-slate-300">
+                <span class="mb-2 block font-medium">Incoming Weight</span>
+                <input id="incoming_weight" type="number" step="0.01" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400" />
+              </label>
+              <label class="block text-sm text-slate-300">
+                <span class="mb-2 block font-medium">Photo URL</span>
+                <input id="photo_url" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400" />
+              </label>
+            </div>
+            <label class="block text-sm text-slate-300">
+              <span class="mb-2 block font-medium">Disposition</span>
+              <select id="disposition" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400">
+                <option value="REUSE">REUSE</option>
+                <option value="PARTS HARVEST">PARTS HARVEST</option>
+                <option value="COMMODITY RECOVERY">COMMODITY RECOVERY</option>
+              </select>
+            </label>
+            <div id="reuseWarning" class="hidden rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-300">Re-use selection prevents teardown logging.</div>
+            <div class="flex items-center gap-3">
+              <button type="submit" class="rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400">Create Passport</button>
+              <span id="passportStatus" class="text-sm text-slate-400">Pending passport entry.</span>
+            </div>
+          </form>
+        </section>
+
+        <section class="space-y-8">
+          <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20">
+            <h2 class="text-lg font-semibold">Recovered Materials</h2>
+            <form id="materialForm" class="mt-5 space-y-4">
+              <label class="block text-sm text-slate-300">
+                <span class="mb-2 block font-medium">Passport</span>
+                <select id="materialPassportId" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400"></select>
+              </label>
+              <div class="grid gap-4 md:grid-cols-2">
+                <label class="block text-sm text-slate-300">
+                  <span class="mb-2 block font-medium">Material</span>
+                  <input id="materialName" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400" placeholder="Copper" />
+                </label>
+                <label class="block text-sm text-slate-300">
+                  <span class="mb-2 block font-medium">Quantity</span>
+                  <input id="materialQuantity" type="number" step="0.01" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400" />
+                </label>
+                <label class="block text-sm text-slate-300">
+                  <span class="mb-2 block font-medium">Unit</span>
+                  <input id="materialUnit" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400" placeholder="lb" />
+                </label>
+                <label class="block text-sm text-slate-300">
+                  <span class="mb-2 block font-medium">Estimated Value</span>
+                  <input id="materialValue" type="number" step="0.01" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400" />
+                </label>
+              </div>
+              <button type="submit" class="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400">Save Material</button>
+            </form>
+          </div>
+
+          <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20">
+            <h2 class="text-lg font-semibold">Attach Sale Transaction</h2>
+            <form id="transactionForm" class="mt-5 space-y-4">
+              <label class="block text-sm text-slate-300">
+                <span class="mb-2 block font-medium">Recovered Material</span>
+                <select id="transactionMaterialId" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400"></select>
+              </label>
+              <div class="grid gap-4 md:grid-cols-2">
+                <label class="block text-sm text-slate-300">
+                  <span class="mb-2 block font-medium">Buyer</span>
+                  <input id="transactionBuyer" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400" />
+                </label>
+                <label class="block text-sm text-slate-300">
+                  <span class="mb-2 block font-medium">Sale Price</span>
+                  <input id="transactionPrice" type="number" step="0.01" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400" />
+                </label>
+              </div>
+              <label class="block text-sm text-slate-300">
+                <span class="mb-2 block font-medium">Date Sold</span>
+                <input id="transactionDate" type="date" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400" />
+              </label>
+              <button type="submit" class="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-amber-400">Save Transaction</button>
+            </form>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./ops.js"></script>
+  </body>
+</html>

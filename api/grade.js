@@ -1,12 +1,7 @@
 // Watchtower — OPERATOR intake scanner API
-// Lives at:  /api/grade
-//
-// This is the COLD instrument. No coaching, no encouragement. It grades
-// material for payout. Kept completely separate from /api/scan (the resident coach).
-//
-// Key stays server-side, from the ANTHROPIC_API_KEY env var. Same as scan.js.
+// Compatible with Vercel serverless routes in /api.
 
-const MODEL = "claude-haiku-4-5-20251001"; // swap to "claude-sonnet-5" for tougher grading if $ allows.
+const MODEL = "claude-haiku-4-5-20251001";
 
 const SYSTEM = `You are the Watchtower OPERATOR intake scanner — a cold, precise grading instrument for a scrap and e-waste operator at intake. No encouragement, no coaching, no fluff. Identify and grade the material accurately for payout.
 
@@ -34,7 +29,7 @@ Respond with ONLY a JSON object, no markdown, no backticks, no extra words:
   "notes": "short technical note, e.g. verify with magnet / strip insulation"
 }`;
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Use POST" });
   }
@@ -46,7 +41,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { imageBase64, mediaType } = req.body;
+    const { imageBase64, mediaType } = req.body || {};
     if (!imageBase64) {
       return res.status(400).json({ error: "No image received." });
     }
@@ -97,4 +92,4 @@ export default async function handler(req, res) {
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
-}
+};

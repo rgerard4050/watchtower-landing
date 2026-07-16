@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Watchtower Operations — Manifest Intake</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  </head>
+  <body class="min-h-screen bg-slate-950 text-slate-100">
+    <div class="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
+      <header class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p class="text-xs uppercase tracking-[0.3em] text-emerald-400">Operations</p>
+            <h1 class="mt-2 text-2xl font-semibold">Manifest Intake</h1>
+            <p class="mt-2 max-w-2xl text-sm text-slate-400">Create a new review lot for operators, dispatch, and downstream recovery.</p>
+          </div>
+          <div class="flex gap-3">
+            <a href="./control.html" class="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-emerald-400 hover:text-emerald-300">Review Queue</a>
+            <a href="./passport.html" class="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-emerald-400 hover:text-emerald-300">Passports</a>
+          </div>
+        </div>
+      </header>
+
+      <main class="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+        <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20">
+          <form id="manifestForm" class="space-y-5">
+            <div class="grid gap-5 md:grid-cols-2">
+              <label class="block text-sm text-slate-300">
+                <span class="mb-2 block font-medium">Source</span>
+                <input id="source" name="source" required class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none ring-0 focus:border-emerald-400" />
+              </label>
+              <label class="block text-sm text-slate-300">
+                <span class="mb-2 block font-medium">Description</span>
+                <input id="description" name="description" required class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none ring-0 focus:border-emerald-400" />
+              </label>
+              <label class="block text-sm text-slate-300">
+                <span class="mb-2 block font-medium">Estimated Units</span>
+                <input id="estimated_units" name="estimated_units" type="number" step="0.01" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none ring-0 focus:border-emerald-400" />
+              </label>
+              <label class="block text-sm text-slate-300">
+                <span class="mb-2 block font-medium">Estimated Weight (lb)</span>
+                <input id="estimated_weight" name="estimated_weight" type="number" step="0.01" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none ring-0 focus:border-emerald-400" />
+              </label>
+              <label class="block text-sm text-slate-300">
+                <span class="mb-2 block font-medium">Estimated Recovery Value</span>
+                <input id="estimated_recovery_value" name="estimated_recovery_value" type="number" step="0.01" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none ring-0 focus:border-emerald-400" />
+              </label>
+              <label class="block text-sm text-slate-300">
+                <span class="mb-2 block font-medium">Pickup Cost</span>
+                <input id="pickup_cost" name="pickup_cost" type="number" step="0.01" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none ring-0 focus:border-emerald-400" />
+              </label>
+              <label class="block text-sm text-slate-300">
+                <span class="mb-2 block font-medium">Labor Cost</span>
+                <input id="labor_cost" name="labor_cost" type="number" step="0.01" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none ring-0 focus:border-emerald-400" />
+              </label>
+              <label class="block text-sm text-slate-300">
+                <span class="mb-2 block font-medium">AI Confidence</span>
+                <input id="ai_confidence" name="ai_confidence" type="number" step="0.01" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none ring-0 focus:border-emerald-400" />
+              </label>
+              <label class="block text-sm text-slate-300">
+                <span class="mb-2 block font-medium">Opportunity Score</span>
+                <input id="opportunity_score" name="opportunity_score" type="number" step="0.01" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none ring-0 focus:border-emerald-400" />
+              </label>
+            </div>
+            <label class="block text-sm text-slate-300">
+              <span class="mb-2 block font-medium">Risk Flags</span>
+              <input id="risk_flags" name="risk_flags" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none ring-0 focus:border-emerald-400" placeholder="e.g. moisture, mixed metals" />
+            </label>
+            <div class="flex items-center gap-3">
+              <button type="submit" class="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400">Create Manifest</button>
+              <span id="manifestStatus" class="text-sm text-slate-400">Ready to record a new lot.</span>
+            </div>
+          </form>
+        </section>
+
+        <aside class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20">
+          <h2 class="text-lg font-semibold">Intake Notes</h2>
+          <ul class="mt-4 space-y-3 text-sm text-slate-400">
+            <li>• This form creates a review lot without changing the public website.</li>
+            <li>• Manifest status defaults to reviewing so it can be approved or passed later.</li>
+            <li>• Later steps can attach passport, recovery, and sales data to the batch.</li>
+          </ul>
+        </aside>
+      </main>
+    </div>
+
+    <script src="./ops.js"></script>
+  </body>
+</html>
