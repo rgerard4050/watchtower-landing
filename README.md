@@ -21,5 +21,8 @@ Watchtower is a public-facing recycling network that connects residents, busines
 
 ## Deployment notes
 - Add your Anthropic API key as a Vercel environment variable named ANTHROPIC_API_KEY.
+- Add your Stripe secret key as STRIPE_SECRET_KEY.
+- Add your Stripe price ID as STRIPE_PRICE_ID.
+- Optional: override the default success and cancel URLs with STRIPE_SUCCESS_URL and STRIPE_CANCEL_URL.
 - Deploy the repository to Vercel with the root folder as the project root.
 - The included vercel.json file enables clean URLs and preserves the /api routes.

@@ -353,15 +353,12 @@ async function createResident(subscriber) {
     'Wallet ID: '+walletId+(subscriber?' (Driveway subscriber - $4.99/mo)':'')+(inNow?'':'  -  Check your email to confirm.');
   document.getElementById('emailForm').style.display='none';
   document.getElementById('emailSuccess').classList.add('show');
-  if (subscriber && !document.getElementById('cashappPay')) {
-    const a=document.createElement('a');
-    a.id='cashappPay';
-    a.href='https://cash.app/pay/link/p76wzmdx';
-    a.target='_blank'; a.rel='noopener';
-    a.className='primary-btn';
-    a.style.cssText='display:block;margin-top:14px;text-align:center;text-decoration:none;';
-    a.textContent='PAY $4.99/MO WITH CASH APP \u2192';
-    document.getElementById('emailSuccess').appendChild(a);
+  if (subscriber && !document.getElementById('stripeNote')) {
+    const note=document.createElement('p');
+    note.id='stripeNote';
+    note.style.cssText='font-size:13px;color:var(--muted);margin-top:12px;line-height:1.5;';
+    note.textContent='Your subscription is handled through secure Stripe checkout when you tap the subscription button above.';
+    document.getElementById('emailSuccess').appendChild(note);
   }
 }
 
@@ -394,13 +391,24 @@ sb.auth.onAuthStateChange((event)=>{
 });
 sb.auth.getSession().then(({data})=>{ if(data&&data.session){ location.href='resident.html'; } });
 
-function subscribeStripe() {
+async function subscribeStripe(event) {
   const name=document.getElementById('fname').value.trim();
   const email=document.getElementById('femail').value.trim();
   const address=document.getElementById('faddress').value.trim();
   if(!name||!email){alert('Please fill in your name and email first.');return;}
   if(!address){alert('Address is required for driveway pickup.');return;}
-  createResident(true);
+  const button=event?.currentTarget || document.querySelector('#wallet-section .primary-btn');
+  const original=button?.textContent || 'GET WEEKLY PICKUP — $4.99/MO →';
+  if(button){button.disabled=true; button.textContent='OPENING SECURE CHECKOUT…';}
+  try{
+    const response=await fetch('/api/create-checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email,address,zip:document.getElementById('fzip').value.trim()})});
+    const data=await response.json();
+    if(!response.ok||!data.url)throw new Error(data.error||'Unable to start checkout.');
+    window.location.href=data.url;
+  }catch(error){
+    alert(error.message||'Unable to start checkout. Please try again.');
+    if(button){button.disabled=false; button.textContent=original;}
+  }
 }
 async function connectMetaMask() {
   if(typeof window.ethereum==='undefined'){alert('MetaMask not detected. On mobile, open this page inside the MetaMask browser, or use Trust Wallet / Coinbase Wallet.');return;}
