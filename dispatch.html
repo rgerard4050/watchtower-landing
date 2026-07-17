@@ -656,12 +656,13 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// Bounty data — now pulled live from Supabase, not hardcoded
+// Dispatch map data pulled from the current operations workflow
 const SUPABASE_URL = 'https://eypovuxuddiqgncjdpkq.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_ZlykauNc-3YY80w6nxzsKw_Z2lgAgU1';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let wtwrPrice = 0.0042;
-let bounties = [];
+let dispatchStops = [];
+let activeStop = null;
 
 async function fetchPrice(){
   try{
@@ -672,131 +673,144 @@ async function fetchPrice(){
   }catch(e){}
 }
 
-// Fixed placeholder pin positions until real map/geocoding is built (see roadmap doc item #3)
 const PIN_SPOTS = [
   {left:'22%',top:'28%'},{left:'68%',top:'22%'},{left:'38%',top:'62%'},
   {left:'74%',top:'55%'},{left:'85%',top:'38%'},{left:'50%',top:'45%'},
   {left:'30%',top:'70%'},{left:'62%',top:'68%'},
 ];
-const MAT_ICONS = {
-  'cu-bb':'🔌','cu-1':'🔌','cu-2':'🔌','cu-ins':'🔌','cu-hair':'🔌',
-  'al-can':'🥫','al-cast':'🔩','al-sheet':'🔩','al-wire':'🔌','al-rad':'🔩',
-  'br-yel':'🔩','br-red':'🔩','br-shell':'🔩','ss-304':'🔩','ss-316':'🔩',
-  'fe-lt':'🔩','fe-cast':'🔩','bat-lead':'🔋','bat-li':'🔋',
-  'tc-cell':'📱','tc-board':'💻','tc-med':'💻','tc-srv':'💻','tc-hdd':'💾',
-  'ew-desk':'💻','ew-mix':'💻','ew-mot':'⚙️','ew-ac':'❄️',
-  'pl-1':'♻️','pl-2':'♻️','pl-5':'♻️','pl-eps':'♻️',
-  'gl-cl':'🍶','gl-br':'🍶','gl-gr':'🍶',
-  'bk-card':'📦','bk-pal':'📦','bk-oil':'🛢️','bk-wd':'🛢️',
-};
 
-async function loadBounties(){
-  await fetchPrice();
-  const { data, error } = await sb.from('tickets')
-    .select('*, residents(name, address, wallet_id)')
-    .eq('status','dispatched')
-    .order('created_at',{ascending:true});
-  if(error){console.error(error);showToast('Failed to load bounties');return;}
-
-  bounties = (data||[]).map((t,i)=>{
-    const spot = PIN_SPOTS[i % PIN_SPOTS.length];
-    const isClaimed = !!t.claimed_at;
-    return {
-      id: t.id,
-      title: t.material.toUpperCase().replace(/-/g,' '),
-      addr: (t.residents && t.residents.address) || 'Address on file',
-      material: t.material.toUpperCase(),
-      weight: (t.qty||'?') + ' ' + (t.unit||'lb'),
-      dist: '—',
-      payout: Math.round((t.driver_wtwr||0)),
-      usd: '$'+((t.driver_wtwr||0)*wtwrPrice).toFixed(2),
-      time: '—',
-      status: isClaimed ? 'claimed' : 'available',
-      icon: MAT_ICONS[t.material] || '♻️',
-      left: spot.left, top: spot.top,
-      driverId: t.driver_id, residentId: t.resident_id,
-    };
-  });
+function getPinSpot(index){
+  return PIN_SPOTS[index % PIN_SPOTS.length];
 }
 
-let activeBounty = null;
-let myBounties = [];
-let todayWTWR = 0;
-let runsCompleted = 0;
+async function loadDispatchStops(){
+  await fetchPrice();
+
+  const { data: runs, error: runsError } = await sb
+    .from('dispatch_runs')
+    .select('id,status')
+    .in('status', ['QUEUED','ASSIGNED','ACTIVE'])
+    .order('scheduled_at', { ascending: true });
+
+  if (runsError) {
+    console.error(runsError);
+    showToast('Failed to load dispatch stops');
+    return;
+  }
+
+  const runIds = (runs || []).map((run) => run.id);
+  let stopRows = [];
+  let stopError = null;
+
+  if (runIds.length) {
+    const result = await sb.from('dispatch_stops').select('*').in('run_id', runIds).order('stop_order', { ascending: true });
+    stopRows = result.data || [];
+    stopError = result.error;
+  } else {
+    const result = await sb.from('dispatch_stops').select('*').order('stop_order', { ascending: true });
+    stopRows = result.data || [];
+    stopError = result.error;
+  }
+
+  if (stopError) {
+    console.error(stopError);
+    showToast('Failed to load dispatch stops');
+    return;
+  }
+
+  const manifestIds = [...new Set((stopRows || []).map((stop) => stop.manifest_id).filter(Boolean))];
+  let manifests = [];
+  if (manifestIds.length) {
+    const { data, error } = await sb
+      .from('manifests')
+      .select('manifest_id,description,source,estimated_weight,pickup_address,pickup_latitude,pickup_longitude')
+      .in('manifest_id', manifestIds);
+    if (!error) manifests = data || [];
+  }
+
+  const manifestMap = new Map((manifests || []).map((manifest) => [manifest.manifest_id, manifest]));
+  const runMap = new Map((runs || []).map((run) => [run.id, run]));
+
+  dispatchStops = (stopRows || []).map((stop, index) => {
+    const manifest = manifestMap.get(stop.manifest_id);
+    const run = runMap.get(stop.run_id);
+    const spot = getPinSpot(index);
+    const hasCoordinates = Number.isFinite(Number(manifest?.pickup_latitude)) && Number.isFinite(Number(manifest?.pickup_longitude));
+
+    return {
+      id: stop.id,
+      stopId: stop.id,
+      manifestId: stop.manifest_id,
+      title: `Manifest ${stop.manifest_id || '—'}`,
+      material: manifest?.description || manifest?.source || 'Pickup',
+      address: manifest?.pickup_address || 'Location pending',
+      runStatus: run?.status || 'QUEUED',
+      stopStatus: stop.status || 'WAITING',
+      weight: manifest?.estimated_weight ? `${manifest.estimated_weight} lbs` : '—',
+      left: spot.left,
+      top: spot.top,
+      hasCoordinates,
+      lat: manifest?.pickup_latitude ?? null,
+      lng: manifest?.pickup_longitude ?? null,
+    };
+  });
+
+  renderPins();
+  document.getElementById('openBounties').textContent = dispatchStops.length;
+}
 
 function renderPins() {
   const container = document.getElementById('pins');
   container.innerHTML = '';
-  bounties.forEach(b => {
+
+  dispatchStops.forEach((stop) => {
     const pin = document.createElement('div');
     pin.className = 'pin';
-    pin.style.left = b.left;
-    pin.style.top = b.top;
+    pin.style.left = stop.left;
+    pin.style.top = stop.top;
 
-    const isMine = myBounties.includes(b.id);
-    const statusClass = isMine ? 'mine' : b.status;
-    const tagClass = isMine ? 'mine-tag' : (b.status === 'claimed' ? 'claimed-tag' : '');
+    const statusClass = stop.stopStatus === 'WAITING' ? 'available' : (stop.stopStatus === 'COMPLETED' ? 'claimed' : 'mine');
+    const tagClass = stop.stopStatus === 'COMPLETED' ? 'claimed-tag' : '';
 
     pin.innerHTML = `
       <div class="pin-ring ${statusClass}">
-        <span class="pin-icon">${b.icon}</span>
-        <div class="pin-payout ${tagClass}">${b.payout} W</div>
+        <span class="pin-icon">${stop.hasCoordinates ? '📍' : '📦'}</span>
+        <div class="pin-payout ${tagClass}">${stop.manifestId || '—'}</div>
       </div>
     `;
-    pin.onclick = () => openSheet(b.id);
+    pin.onclick = () => openSheet(stop.id);
     container.appendChild(pin);
   });
 }
 
 function openSheet(id) {
-  const b = bounties.find(x => x.id === id);
-  if (!b) return;
-  activeBounty = b;
+  const stop = dispatchStops.find((item) => item.id === id);
+  if (!stop) return;
+  activeStop = stop;
 
-  const isMine = myBounties.includes(b.id);
   const statusEl = document.getElementById('sheetStatus');
   const claimBtn = document.getElementById('claimBtn');
   const navBtn = document.getElementById('navBtn');
   const payoutBox = document.getElementById('payoutBox');
   const payoutAmt = document.getElementById('sheetPayout');
 
-  document.getElementById('sheetTitle').textContent = b.title;
-  document.getElementById('sheetAddr').textContent = '📍 ' + b.addr;
-  document.getElementById('sheetMaterial').textContent = b.material;
-  document.getElementById('sheetWeight').textContent = b.weight;
-  document.getElementById('sheetDist').textContent = b.dist;
-  document.getElementById('sheetPayout').textContent = b.payout + ' WTWR';
-  document.getElementById('sheetUsd').textContent = '≈ ' + b.usd;
-  document.getElementById('sheetTime').textContent = b.time;
+  document.getElementById('sheetTitle').textContent = stop.title;
+  document.getElementById('sheetAddr').textContent = '📍 ' + (stop.address || 'Location pending');
+  document.getElementById('sheetMaterial').textContent = stop.material;
+  document.getElementById('sheetWeight').textContent = stop.weight;
+  document.getElementById('sheetDist').textContent = stop.hasCoordinates ? 'Coords ready' : 'Pending';
+  document.getElementById('sheetPayout').textContent = stop.runStatus;
+  document.getElementById('sheetUsd').textContent = 'Stop: ' + stop.stopStatus;
+  document.getElementById('sheetTime').textContent = stop.hasCoordinates ? 'Mapped pickup' : 'No coordinates yet';
 
-  if (isMine) {
-    statusEl.textContent = '// YOUR BOUNTY — IN PROGRESS';
-    statusEl.className = 'sheet-status mine';
-    payoutBox.className = 'payout-box';
-    payoutAmt.className = 'payout-amount';
-    claimBtn.textContent = '✅ MARK AS DELIVERED';
-    claimBtn.className = 'claim-btn';
-    claimBtn.onclick = deliverBounty;
-    navBtn.style.display = 'block';
-  } else if (b.status === 'claimed') {
-    statusEl.textContent = '// CLAIMED BY ANOTHER DRIVER';
-    statusEl.className = 'sheet-status claimed';
-    payoutBox.className = 'payout-box claimed-box';
-    payoutAmt.className = 'payout-amount claimed';
-    claimBtn.textContent = 'UNAVAILABLE';
-    claimBtn.className = 'claim-btn disabled';
-    claimBtn.onclick = null;
-    navBtn.style.display = 'none';
-  } else {
-    statusEl.textContent = '// AVAILABLE';
-    statusEl.className = 'sheet-status available';
-    payoutBox.className = 'payout-box';
-    payoutAmt.className = 'payout-amount';
-    claimBtn.textContent = '⚡ CLAIM THIS BOUNTY';
-    claimBtn.className = 'claim-btn';
-    claimBtn.onclick = claimBounty;
-    navBtn.style.display = 'none';
-  }
+  statusEl.textContent = '// ' + stop.runStatus + ' / ' + stop.stopStatus;
+  statusEl.className = 'sheet-status available';
+  payoutBox.className = 'payout-box';
+  payoutAmt.className = 'payout-amount';
+  claimBtn.textContent = '📍 VIEW STOP DETAILS';
+  claimBtn.className = 'claim-btn';
+  claimBtn.onclick = closeSheet;
+  navBtn.style.display = 'none';
 
   document.getElementById('backdrop').classList.add('open');
   document.getElementById('bountySheet').classList.add('open');
@@ -805,69 +819,22 @@ function openSheet(id) {
 function closeSheet() {
   document.getElementById('backdrop').classList.remove('open');
   document.getElementById('bountySheet').classList.remove('open');
-  activeBounty = null;
+  activeStop = null;
 }
 
-let driverId = null;
-
 async function claimBounty() {
-  if (!activeBounty) return;
-  const b = activeBounty;
-  if (!driverId) driverId = prompt('Enter your driver name/ID:');
-  if (!driverId) return;
-
-  const { error } = await sb.from('tickets').update({
-    claimed_at: new Date().toISOString(), driver_id: driverId
-  }).eq('id', b.id);
-  if (error) { showToast('Claim failed — try again'); console.error(error); return; }
-
-  myBounties.push(b.id);
-  closeSheet();
-  await loadBounties();
-  renderPins();
-  showToast('⚡ BOUNTY LOCKED — ' + b.payout + ' WTWR');
-  setTimeout(() => openSheet(b.id), 600);
+  if (!activeStop) return;
+  showToast('Dispatch stop view only');
 }
 
 async function deliverBounty() {
-  if (!activeBounty) return;
-  const b = activeBounty;
-  const actual = prompt('Enter actual weight/qty at scale (leave blank to keep original):');
-
-  const updates = { status: 'approved', delivered_at: new Date().toISOString() };
-  if (actual && parseFloat(actual) > 0) updates.qty = parseFloat(actual);
-  const { error: tErr } = await sb.from('tickets').update(updates).eq('id', b.id);
-  if (tErr) { showToast('Delivery failed — try again'); console.error(tErr); return; }
-
-  // Credit resident's WTWR balance now that delivery is confirmed —
-  // this is the actual payout gate, must happen whether delivery is
-  // confirmed here (dispatch) or via terminal.html's cashier tab
-  if (b.residentId) {
-    const { data: t } = await sb.from('tickets').select('resident_wtwr').eq('id', b.id).single();
-    const { data: res, error: rErr } = await sb.from('residents').select('wtwr_balance').eq('id', b.residentId).single();
-    if (!rErr && res && t) {
-      const newBal = (res.wtwr_balance || 0) + (t.resident_wtwr || 0);
-      await sb.from('residents').update({ wtwr_balance: newBal }).eq('id', b.residentId);
-    }
-  }
-
-  todayWTWR += b.payout;
-  runsCompleted += 1;
-  myBounties = myBounties.filter(id => id !== b.id);
-
-  document.getElementById('todayEarn').textContent = todayWTWR + ' WTWR';
-  document.getElementById('totalEarn').textContent = todayWTWR + ' WTWR';
-  document.getElementById('runsToday').textContent = runsCompleted;
-
-  closeSheet();
-  await loadBounties();
-  renderPins();
-  showToast('✅ DELIVERED — +' + b.payout + ' WTWR EARNED');
+  if (!activeStop) return;
+  showToast('Dispatch stop view only');
 }
 
 function navigate() {
-  if (!activeBounty) return;
-  const addr = encodeURIComponent(activeBounty.addr);
+  if (!activeStop) return;
+  const addr = encodeURIComponent(activeStop.address || 'pickup location');
   window.open('https://maps.google.com/?q=' + addr, '_blank');
 }
 
@@ -878,12 +845,9 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-// Init
 (async function init(){
-  await loadBounties();
-  renderPins();
-  document.getElementById('openBounties').textContent = bounties.filter(x => x.status === 'available').length;
-  setInterval(async () => { await loadBounties(); renderPins(); }, 15000); // refresh every 15s so new tickets from terminal show up
+  await loadDispatchStops();
+  setInterval(async () => { await loadDispatchStops(); }, 15000);
 })();
 </script>
 </body>
