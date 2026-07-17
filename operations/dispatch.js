@@ -2,8 +2,15 @@ const SUPABASE_URL = 'https://eypovuxuddiqgncjdpkq.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_ZlykauNc-3YY80w6nxzsKw_Z2lgAgU1';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
+const STATUS_APPROVED = 'APPROVED';
+const STATUS_QUEUED = 'QUEUED';
+const STATUS_ASSIGNED = 'ASSIGNED';
+const STATUS_ACTIVE = 'ACTIVE';
+const STATUS_COMPLETED = 'COMPLETED';
+const STATUS_CANCELLED = 'CANCELLED';
+
 function normalizeStatus(value) {
-  if (!value) return 'QUEUED';
+  if (!value) return STATUS_QUEUED;
   return String(value).toUpperCase();
 }
 
@@ -26,7 +33,7 @@ async function loadDispatchQueue() {
   const { data, error } = await sb
     .from('manifests')
     .select('*')
-    .eq('status', 'approved')
+    .eq('status', STATUS_APPROVED)
     .order('updated_at', { ascending: false });
 
   if (error) {
@@ -47,10 +54,10 @@ async function loadDispatchQueue() {
         <article class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
           <div class="flex items-start justify-between gap-3">
             <div>
-              <p class="text-xs uppercase tracking-[0.2em] text-emerald-400">Manifest ${manifest.id}</p>
+              <p class="text-xs uppercase tracking-[0.2em] text-emerald-400">Manifest ${manifest.manifest_id || manifest.id}</p>
               <h3 class="mt-2 text-base font-semibold">${manifest.description || 'Untitled batch'}</h3>
             </div>
-            <span class="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs uppercase tracking-[0.2em] text-emerald-300">Approved</span>
+            <span class="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs uppercase tracking-[0.2em] text-emerald-300">${STATUS_APPROVED}</span>
           </div>
           <div class="mt-4 grid gap-3 text-sm text-slate-400 sm:grid-cols-2">
             <div>Source: <span class="font-medium text-slate-100">${manifest.source || '—'}</span></div>
@@ -59,7 +66,7 @@ async function loadDispatchQueue() {
             <div>Risk flags: <span class="font-medium text-slate-100">${(manifest.risk_flags || []).join(', ') || 'None'}</span></div>
           </div>
           <div class="mt-4 flex flex-wrap gap-2">
-            <button class="add-route-btn rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm font-medium text-amber-300" data-manifest-id="${manifest.id}">Add to route</button>
+            <button class="add-route-btn rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm font-medium text-amber-300" data-manifest-id="${manifest.manifest_id || manifest.id}">Add to route</button>
           </div>
         </article>
       `;
@@ -121,7 +128,7 @@ async function loadActiveRuns() {
     .join('');
 
   document.querySelectorAll('.start-run-btn').forEach((button) => {
-    button.addEventListener('click', () => updateRunStatus(button.dataset.runId, 'ASSIGNED'));
+    button.addEventListener('click', () => updateRunStatus(button.dataset.runId, STATUS_ASSIGNED));
   });
   document.querySelectorAll('.complete-run-btn').forEach((button) => {
     button.addEventListener('click', () => completeDispatchRun(button.dataset.runId));
@@ -146,9 +153,11 @@ async function completeDispatchRun(runId) {
     return;
   }
 
-  const manifestIds = Array.isArray(runData.manifest_ids) ? runData.manifest_ids : [];
+  const manifestIds = Array.isArray(runData.manifest_ids)
+    ? runData.manifest_ids
+    : String(runData.manifest_ids || '').split(',').map((item) => item.trim()).filter(Boolean);
   const { error: runError } = await sb.from('dispatch_runs').update({
-    status: 'COMPLETED',
+    status: STATUS_COMPLETED,
     completed_at: new Date().toISOString(),
     completed_by: 'dispatcher',
   }).eq('id', runId);
@@ -159,7 +168,7 @@ async function completeDispatchRun(runId) {
   }
 
   if (manifestIds.length) {
-    const { error: manifestError } = await sb.from('manifests').update({ status: 'completed' }).in('id', manifestIds);
+    const { error: manifestError } = await sb.from('manifests').update({ status: STATUS_COMPLETED }).in('manifest_id', manifestIds);
     if (manifestError) {
       alert(manifestError.message);
       return;
@@ -205,7 +214,7 @@ async function createDispatchRun(event) {
     vehicle_name: vehicleName,
     scheduled_at: scheduledAt,
     manifest_ids: manifestIds,
-    status: 'QUEUED',
+    status: STATUS_QUEUED,
   });
 
   if (error) {

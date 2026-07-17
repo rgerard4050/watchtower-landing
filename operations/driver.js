@@ -2,6 +2,10 @@ const SUPABASE_URL = 'https://eypovuxuddiqgncjdpkq.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_ZlykauNc-3YY80w6nxzsKw_Z2lgAgU1';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
+const STATUS_ASSIGNED = 'ASSIGNED';
+const STATUS_ACTIVE = 'ACTIVE';
+const STATUS_COMPLETED = 'COMPLETED';
+
 function formatDateTime(value) {
   if (!value) return '—';
   const date = new Date(value);
@@ -16,7 +20,7 @@ async function loadDriverView() {
   const { data: runs, error } = await sb
     .from('dispatch_runs')
     .select('*')
-    .in('status', ['ASSIGNED', 'ACTIVE'])
+    .in('status', [STATUS_ASSIGNED, STATUS_ACTIVE])
     .order('scheduled_at', { ascending: true })
     .limit(1);
 
@@ -36,7 +40,7 @@ async function loadDriverView() {
   const { data: manifests, error: manifestError } = await sb
     .from('manifests')
     .select('*')
-    .in('id', manifestIds)
+    .in('manifest_id', manifestIds)
     .order('id', { ascending: true });
 
   if (manifestError) {
@@ -70,7 +74,7 @@ async function loadDriverView() {
       <article class="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 shadow-lg shadow-black/20">
         <div class="flex items-center justify-between gap-3">
           <div>
-            <p class="text-xs uppercase tracking-[0.2em] text-amber-400">Manifest ${manifest.id}</p>
+            <p class="text-xs uppercase tracking-[0.2em] text-amber-400">Manifest ${manifest.manifest_id || manifest.id}</p>
             <h3 class="mt-2 text-lg font-semibold">${manifest.description || 'Untitled batch'}</h3>
           </div>
           <span class="rounded-full border border-slate-700 px-3 py-1 text-xs uppercase tracking-[0.2em] text-slate-400">${manifest.status || 'reviewing'}</span>
@@ -82,7 +86,7 @@ async function loadDriverView() {
           <div>Pickup requirements: <span class="font-medium text-slate-100">${manifest.risk_flags && manifest.risk_flags.length ? manifest.risk_flags.join(', ') : 'Standard pickup'}</span></div>
         </div>
         <div class="mt-4">
-          <button class="complete-pickup-btn rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950" data-run-id="${run.id}" data-manifest-id="${manifest.id}">Confirm Pickup</button>
+          <button class="complete-pickup-btn rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950" data-run-id="${run.id}" data-manifest-id="${manifest.manifest_id || manifest.id}">Confirm Pickup</button>
         </div>
       </article>
     `)
@@ -95,7 +99,7 @@ async function loadDriverView() {
 
 async function completePickup(runId, manifestId) {
   const { error: runError } = await sb.from('dispatch_runs').update({
-    status: 'COMPLETED',
+    status: STATUS_COMPLETED,
     completed_at: new Date().toISOString(),
     completed_by: 'driver',
   }).eq('id', runId);
@@ -105,7 +109,7 @@ async function completePickup(runId, manifestId) {
     return;
   }
 
-  const { error: manifestError } = await sb.from('manifests').update({ status: 'completed' }).eq('id', manifestId);
+  const { error: manifestError } = await sb.from('manifests').update({ status: STATUS_COMPLETED }).eq('manifest_id', manifestId);
   if (manifestError) {
     alert(manifestError.message);
     return;
