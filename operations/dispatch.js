@@ -186,14 +186,33 @@ async function loadActiveRuns() {
 }
 
 async function updateRunStatus(runId, status) {
-  const { error } = await sb.from('dispatch_runs').update({ status }).eq('id', runId);
-  if (error) {
-    alert(error.message);
+  const normalizedRunId = Number(runId);
+  if (!Number.isFinite(normalizedRunId)) {
+    alert('The selected run ID is invalid.');
     return;
   }
 
+  const { error: runError } = await sb
+    .from('dispatch_runs')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', normalizedRunId);
+
+  if (runError) {
+    alert(runError.message);
+    return;
+  }
+
+  const { error: stopError } = await sb
+    .from('dispatch_stops')
+    .update({ status: STOP_WAITING })
+    .eq('run_id', normalizedRunId);
+
+  if (stopError) {
+    console.warn('Unable to update stop rows for run start:', stopError.message);
+  }
+
   await loadActiveRuns();
-  setStatus(`Run ${runId} marked ${status}.`, 'success');
+  setStatus(`Run ${normalizedRunId} marked ${status}.`, 'success');
 }
 
 async function completeDispatchRun(runId) {
