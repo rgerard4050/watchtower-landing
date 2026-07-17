@@ -8,6 +8,11 @@ const STATUS_ASSIGNED = 'ASSIGNED';
 const STATUS_ACTIVE = 'ACTIVE';
 const STATUS_COMPLETED = 'COMPLETED';
 const STATUS_CANCELLED = 'CANCELLED';
+const STOP_WAITING = 'WAITING';
+const STOP_ARRIVED = 'ARRIVED';
+const STOP_LOADED = 'LOADED';
+const STOP_COMPLETED = 'COMPLETED';
+const STOP_CANCELLED = 'CANCELLED';
 
 function normalizeStatus(value) {
   if (!value) return STATUS_QUEUED;
@@ -101,31 +106,30 @@ async function loadActiveRuns() {
     return;
   }
 
-  list.innerHTML = data
-    .map((run) => {
-      const manifests = Array.isArray(run.manifest_ids) ? run.manifest_ids.join(', ') : run.manifest_ids || '—';
-      const status = normalizeStatus(run.status || 'QUEUED');
-      return `
-        <article class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
-          <div class="flex items-center justify-between gap-3">
-            <div>
-              <p class="text-xs uppercase tracking-[0.2em] text-amber-400">Run ${run.id}</p>
-              <h3 class="mt-1 text-base font-semibold">${run.driver_name} · ${run.vehicle_name}</h3>
-            </div>
-            <span class="rounded-full border border-slate-700 px-3 py-1 text-xs uppercase tracking-[0.2em] text-slate-400">${status}</span>
+  list.innerHTML = await Promise.all(data.map(async (run) => {
+    const { data: stops } = await sb.from('dispatch_stops').select('*').eq('run_id', run.id).order('stop_order', { ascending: true });
+    const stopSummary = (stops || []).map((stop) => `${stop.stop_order || '?'}:${stop.manifest_id || '—'}`).join(' • ');
+    const status = normalizeStatus(run.status || STATUS_QUEUED);
+    return `
+      <article class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <p class="text-xs uppercase tracking-[0.2em] text-amber-400">Run ${run.id}</p>
+            <h3 class="mt-1 text-base font-semibold">${run.driver_name} · ${run.vehicle_name}</h3>
           </div>
-          <div class="mt-4 grid gap-2 text-sm text-slate-400">
-            <div>Scheduled: <span class="font-medium text-slate-100">${run.scheduled_at || '—'}</span></div>
-            <div>Stops: <span class="font-medium text-slate-100">${manifests}</span></div>
-          </div>
-          <div class="mt-4 flex flex-wrap gap-2">
-            <button class="start-run-btn rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-300" data-run-id="${run.id}">Start run</button>
-            <button class="complete-run-btn rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300" data-run-id="${run.id}">Complete run</button>
-          </div>
-        </article>
-      `;
-    })
-    .join('');
+          <span class="rounded-full border border-slate-700 px-3 py-1 text-xs uppercase tracking-[0.2em] text-slate-400">${status}</span>
+        </div>
+        <div class="mt-4 grid gap-2 text-sm text-slate-400">
+          <div>Scheduled: <span class="font-medium text-slate-100">${run.scheduled_at || '—'}</span></div>
+          <div>Stops: <span class="font-medium text-slate-100">${stopSummary || '—'}</span></div>
+        </div>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <button class="start-run-btn rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-300" data-run-id="${run.id}">Start run</button>
+          <button class="complete-run-btn rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300" data-run-id="${run.id}">Complete run</button>
+        </div>
+      </article>
+    `;
+  })).then((items) => items.join(''));
 
   document.querySelectorAll('.start-run-btn').forEach((button) => {
     button.addEventListener('click', () => updateRunStatus(button.dataset.runId, STATUS_ASSIGNED));
@@ -153,9 +157,13 @@ async function completeDispatchRun(runId) {
     return;
   }
 
-  const manifestIds = Array.isArray(runData.manifest_ids)
-    ? runData.manifest_ids
-    : String(runData.manifest_ids || '').split(',').map((item) => item.trim()).filter(Boolean);
+  const { data: stops, error: stopLookupError } = await sb.from('dispatch_stops').select('*').eq('run_id', runId);
+  if (stopLookupError) {
+    alert(stopLookupError.message);
+    return;
+  }
+
+  const manifestIds = (stops || []).map((stop) => stop.manifest_id).filter(Boolean);
   const { error: runError } = await sb.from('dispatch_runs').update({
     status: STATUS_COMPLETED,
     completed_at: new Date().toISOString(),
@@ -209,23 +217,36 @@ async function createDispatchRun(event) {
   }
 
   const scheduledAt = `${scheduledDate}T${scheduledTime}:00`;
-  const { error } = await sb.from('dispatch_runs').insert({
+  const { data: runData, error: runError } = await sb.from('dispatch_runs').insert({
     driver_name: driverName,
     vehicle_name: vehicleName,
     scheduled_at: scheduledAt,
     manifest_ids: manifestIds,
     status: STATUS_QUEUED,
-  });
+  }).select().single();
 
-  if (error) {
-    setStatus(error.message, 'error');
+  if (runError || !runData) {
+    setStatus(runError?.message || 'Route creation failed.', 'error');
+    return;
+  }
+
+  const stopRows = manifestIds.map((manifestId, index) => ({
+    run_id: runData.id,
+    manifest_id: manifestId,
+    stop_order: index + 1,
+    status: STOP_WAITING,
+  }));
+
+  const { error: stopError } = await sb.from('dispatch_stops').insert(stopRows);
+  if (stopError) {
+    setStatus(stopError.message, 'error');
     return;
   }
 
   form.reset();
   await loadDispatchQueue();
   await loadActiveRuns();
-  setStatus('Route created and queued for pickup.', 'success');
+  setStatus('Route created and stops queued for pickup.', 'success');
 }
 
 function attachEvents() {
