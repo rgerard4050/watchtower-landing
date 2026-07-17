@@ -91,6 +91,52 @@ function addManifestToRoute(manifestId) {
   setStatus(`Added manifest ${manifestId} to the route draft.`, 'success');
 }
 
+async function ensureStopsForRun(run) {
+  const { data: existingStops, error: stopLookupError } = await sb
+    .from('dispatch_stops')
+    .select('*')
+    .eq('run_id', run.id)
+    .order('stop_order', { ascending: true });
+
+  if (stopLookupError) {
+    return [];
+  }
+
+  if (existingStops && existingStops.length) {
+    return existingStops;
+  }
+
+  let manifestIds = [];
+  if (Array.isArray(run.manifest_ids)) {
+    manifestIds = run.manifest_ids;
+  } else if (typeof run.manifest_ids === 'string') {
+    try {
+      manifestIds = JSON.parse(run.manifest_ids);
+    } catch (error) {
+      manifestIds = [];
+    }
+  }
+
+  if (!manifestIds.length) {
+    return [];
+  }
+
+  const stopRows = manifestIds.map((manifestId, index) => ({
+    run_id: run.id,
+    manifest_id: manifestId,
+    stop_order: index + 1,
+    status: STOP_WAITING,
+    arrival_window: null,
+  }));
+
+  const { error: insertError } = await sb.from('dispatch_stops').insert(stopRows);
+  if (insertError) {
+    return [];
+  }
+
+  return stopRows;
+}
+
 async function loadActiveRuns() {
   const list = document.getElementById('runsList');
   if (!list) return;
@@ -107,8 +153,8 @@ async function loadActiveRuns() {
   }
 
   list.innerHTML = await Promise.all(data.map(async (run) => {
-    const { data: stops } = await sb.from('dispatch_stops').select('*').eq('run_id', run.id).order('stop_order', { ascending: true });
-    const stopSummary = (stops || []).map((stop) => `${stop.stop_order || '?'}:${stop.manifest_id || '—'}`).join(' • ');
+    const stops = await ensureStopsForRun(run);
+    const stopCount = (stops || []).length;
     const status = normalizeStatus(run.status || STATUS_QUEUED);
     return `
       <article class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
@@ -121,7 +167,7 @@ async function loadActiveRuns() {
         </div>
         <div class="mt-4 grid gap-2 text-sm text-slate-400">
           <div>Scheduled: <span class="font-medium text-slate-100">${run.scheduled_at || '—'}</span></div>
-          <div>Stops: <span class="font-medium text-slate-100">${stopSummary || '—'}</span></div>
+          <div>Stops: <span class="font-medium text-slate-100">${stopCount}</span></div>
         </div>
         <div class="mt-4 flex flex-wrap gap-2">
           <button class="start-run-btn rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-300" data-run-id="${run.id}">Start run</button>
@@ -230,11 +276,13 @@ async function createDispatchRun(event) {
     return;
   }
 
+  // TODO: if a future map view needs pickup pins, wire latitude/longitude here from existing manifest location fields when available.
   const stopRows = manifestIds.map((manifestId, index) => ({
     run_id: runData.id,
     manifest_id: manifestId,
     stop_order: index + 1,
     status: STOP_WAITING,
+    arrival_window: null,
   }));
 
   const { error: stopError } = await sb.from('dispatch_stops').insert(stopRows);
