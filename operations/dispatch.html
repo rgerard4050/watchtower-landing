@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Watchtower Operations — Dispatch</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  </head>
+  <body class="min-h-screen bg-slate-950 text-slate-100">
+    <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <header class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p class="text-xs uppercase tracking-[0.3em] text-amber-400">Dispatch</p>
+            <h1 class="mt-2 text-2xl font-semibold">Dispatch Command</h1>
+            <p class="mt-2 text-sm text-slate-400">Create routes from approved manifests and assign pickups to drivers and vehicles.</p>
+          </div>
+          <div class="flex gap-3">
+            <a href="./manifest.html" class="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-emerald-400 hover:text-emerald-300">Manifest Intake</a>
+            <a href="./control.html" class="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-emerald-400 hover:text-emerald-300">Control Queue</a>
+          </div>
+        </div>
+      </header>
+
+      <main class="mt-8 grid gap-8 lg:grid-cols-[0.95fr_1.05fr]">
+        <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-semibold">Dispatch Queue</h2>
+            <button id="refreshDispatch" class="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:border-amber-400 hover:text-amber-300">Refresh</button>
+          </div>
+          <div id="queueList" class="mt-6 space-y-4"></div>
+        </section>
+
+        <section class="space-y-8">
+          <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20">
+            <h2 class="text-lg font-semibold">Create Route</h2>
+            <form id="dispatchForm" class="mt-5 space-y-4">
+              <div class="grid gap-4 md:grid-cols-2">
+                <label class="block text-sm text-slate-300">
+                  <span class="mb-2 block font-medium">Driver</span>
+                  <input id="driverName" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-amber-400" required />
+                </label>
+                <label class="block text-sm text-slate-300">
+                  <span class="mb-2 block font-medium">Vehicle</span>
+                  <input id="vehicleName" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-amber-400" required />
+                </label>
+                <label class="block text-sm text-slate-300">
+                  <span class="mb-2 block font-medium">Scheduled Date</span>
+                  <input id="scheduledDate" type="date" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-amber-400" required />
+                </label>
+                <label class="block text-sm text-slate-300">
+                  <span class="mb-2 block font-medium">Scheduled Time</span>
+                  <input id="scheduledTime" type="time" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-amber-400" required />
+                </label>
+              </div>
+              <label class="block text-sm text-slate-300">
+                <span class="mb-2 block font-medium">Manifest IDs</span>
+                <textarea id="manifestIds" rows="3" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-amber-400" placeholder="1,2,3"></textarea>
+              </label>
+              <button type="submit" class="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-amber-400">Create Route</button>
+            </form>
+          </div>
+
+          <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20">
+            <h2 class="text-lg font-semibold">Live Runs</h2>
+            <div id="runsList" class="mt-5 space-y-3"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./dispatch.js"></script>
+  </body>
+</html>

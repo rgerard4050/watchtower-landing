@@ -1,0 +1,3 @@
+ALTER TABLE dispatch_runs
+  ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS completed_by TEXT;
