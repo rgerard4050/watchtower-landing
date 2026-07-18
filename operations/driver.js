@@ -74,7 +74,7 @@ async function loadDriverView() {
   }
 
   const stopCards = await Promise.all(stops.map(async (stop) => {
-    const { data: manifest } = await sb.from('manifests').select('*').eq('manifest_id', stop.manifest_id).maybeSingle();
+    const { data: manifest } = await sb.from('manifests').select('*').eq('id', stop.manifest_id).maybeSingle();
     const title = manifest ? (manifest.description || 'Untitled batch') : 'Manifest unavailable';
     const source = manifest ? (manifest.source || '—') : '—';
     const weight = manifest && manifest.estimated_weight ? `${manifest.estimated_weight} lbs` : '—';
@@ -92,7 +92,7 @@ async function loadDriverView() {
           <div>Source: <span class="font-medium text-slate-100">${source}</span></div>
           <div>Weight: <span class="font-medium text-slate-100">${weight}</span></div>
           <div>Requirements: <span class="font-medium text-slate-100">${requirements}</span></div>
-          <div>Manifest: <span class="font-medium text-slate-100">${stop.manifest_id || '—'}</span></div>
+          <div>Manifest: <span class="font-medium text-slate-100">${manifest ? manifest.manifest_id : '—'}</span></div>
         </div>
         <div class="mt-4 flex flex-wrap gap-2">
           <button class="arrived-btn rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm font-medium text-amber-300" data-stop-id="${stop.id}" data-run-id="${run.id}">ARRIVED</button>
@@ -148,7 +148,7 @@ async function completeStop(stopId, runId) {
     const manifestIds = (stopRows || []).map((stop) => stop.manifest_id).filter(Boolean);
     await sb.from('dispatch_runs').update({ status: STATUS_COMPLETED, completed_at: new Date().toISOString(), completed_by: 'driver' }).eq('id', runId);
     if (manifestIds.length) {
-      await sb.from('manifests').update({ status: STATUS_COMPLETED }).in('manifest_id', manifestIds);
+      await sb.from('manifests').update({ status: STATUS_COMPLETED }).in('id', manifestIds);
       const eventPayloads = manifestIds.map((manifestId) => ({
         manifest_id: manifestId,
         event_type: 'pickup_completed',

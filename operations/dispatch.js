@@ -59,7 +59,7 @@ async function loadDispatchQueue() {
         <article class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
           <div class="flex items-start justify-between gap-3">
             <div>
-              <p class="text-xs uppercase tracking-[0.2em] text-emerald-400">Manifest ${manifest.manifest_id || manifest.id}</p>
+              <p class="text-xs uppercase tracking-[0.2em] text-emerald-400">Manifest ${manifest.manifest_id}</p>
               <h3 class="mt-2 text-base font-semibold">${manifest.description || 'Untitled batch'}</h3>
             </div>
             <span class="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs uppercase tracking-[0.2em] text-emerald-300">${STATUS_APPROVED}</span>
@@ -71,7 +71,7 @@ async function loadDispatchQueue() {
             <div>Risk flags: <span class="font-medium text-slate-100">${(manifest.risk_flags || []).join(', ') || 'None'}</span></div>
           </div>
           <div class="mt-4 flex flex-wrap gap-2">
-            <button class="add-route-btn rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm font-medium text-amber-300" data-manifest-id="${manifest.manifest_id || manifest.id}">Add to route</button>
+            <button class="add-route-btn rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm font-medium text-amber-300" data-manifest-id="${manifest.id}">Add to route</button>
           </div>
         </article>
       `;
@@ -123,7 +123,7 @@ async function ensureStopsForRun(run) {
 
   const stopRows = manifestIds.map((manifestId, index) => ({
     run_id: run.id,
-    manifest_id: manifestId,
+    manifest_id: Number(manifestId),
     stop_order: index + 1,
     status: STOP_WAITING,
     arrival_window: null,
@@ -241,7 +241,7 @@ async function completeDispatchRun(runId) {
   }
 
   if (manifestIds.length) {
-    const { error: manifestError } = await sb.from('manifests').update({ status: STATUS_COMPLETED }).in('manifest_id', manifestIds);
+    const { error: manifestError } = await sb.from('manifests').update({ status: STATUS_COMPLETED }).in('id', manifestIds);
     if (manifestError) {
       alert(manifestError.message);
       return;
@@ -298,7 +298,7 @@ async function createDispatchRun(event) {
   // TODO: if a future map view needs pickup pins, wire latitude/longitude here from existing manifest location fields when available.
   const stopRows = manifestIds.map((manifestId, index) => ({
     run_id: runData.id,
-    manifest_id: manifestId,
+    manifest_id: Number(manifestId),
     stop_order: index + 1,
     status: STOP_WAITING,
     arrival_window: null,
