@@ -36,7 +36,7 @@ async function createManifest(event) {
     ai_confidence: document.getElementById('ai_confidence').value ? Number(document.getElementById('ai_confidence').value) : null,
     opportunity_score: document.getElementById('opportunity_score').value ? Number(document.getElementById('opportunity_score').value) : null,
     risk_flags: parseRiskFlags(document.getElementById('risk_flags').value),
-    status: 'reviewing',
+    status: 'REVIEWING',
   };
 
   if (!payload.source || !payload.description) {
@@ -61,7 +61,7 @@ async function loadReviewQueue() {
   const { data, error } = await sb
     .from('manifests')
     .select('*')
-    .eq('status', 'reviewing')
+    .eq('status', 'REVIEWING')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -152,7 +152,7 @@ async function approveManifest(manifestId) {
     return;
   }
 
-  const { error: updateError } = await sb.from('manifests').update({ status: 'approved' }).eq('id', manifestId);
+  const { error: updateError } = await sb.from('manifests').update({ status: 'APPROVED' }).eq('id', manifestId);
   if (updateError) {
     alert(updateError.message);
     return;
@@ -205,7 +205,7 @@ async function savePassDecision() {
     return;
   }
 
-  const { error: updateError } = await sb.from('manifests').update({ status: 'passed' }).eq('id', activePassManifestId);
+  const { error: updateError } = await sb.from('manifests').update({ status: 'PASSED' }).eq('id', activePassManifestId);
   if (updateError) {
     alert(updateError.message);
     return;
@@ -259,9 +259,9 @@ async function loadReconcileData() {
     return;
   }
 
-  const approved = data.filter((item) => item.status === 'approved').length;
-  const passed = data.filter((item) => item.status === 'passed').length;
-  const reviewing = data.filter((item) => item.status === 'reviewing').length;
+  const approved = data.filter((item) => item.status === 'APPROVED').length;
+  const passed = data.filter((item) => item.status === 'PASSED').length;
+  const reviewing = data.filter((item) => item.status === 'REVIEWING').length;
   const totalValue = data.reduce((sum, item) => sum + Number(item.estimated_recovery_value || 0), 0);
   const totalCosts = data.reduce((sum, item) => sum + Number(item.pickup_cost || 0) + Number(item.labor_cost || 0), 0);
   const totalMargin = totalValue - totalCosts;
@@ -337,7 +337,7 @@ async function loadLearningInsights() {
       acc[source] = { count: 0, approved: 0, totalValue: 0, totalMargin: 0 };
     }
     acc[source].count += 1;
-    acc[source].approved += manifest.status === 'approved' ? 1 : 0;
+    acc[source].approved += manifest.status === 'APPROVED' ? 1 : 0;
     acc[source].totalValue += Number(manifest.estimated_recovery_value || 0);
     acc[source].totalMargin += Number(manifest.estimated_recovery_value || 0) - (Number(manifest.pickup_cost || 0) + Number(manifest.labor_cost || 0));
     return acc;

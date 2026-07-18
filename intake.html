@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Watchtower Terminal — Intake</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --black: #080c0f;
+    --dark: #0d1318;
+    --panel: #111820;
+    --panel2: #161f28;
+    --border: #1e2d3a;
+    --green: #00ff88;
+    --green-dim: #00cc6a;
+    --amber: #ffaa00;
+    --red: #ff4455;
+    --text: #c8d8e8;
+    --muted: #5a7a8a;
+    --mono: 'Share Tech Mono', monospace;
+    --sans: 'Inter', sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--black);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding-bottom: 60px;
+  }
+
+  header {
+    padding: 14px 16px;
+    background: var(--dark);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: var(--mono);
+    letter-spacing: 2px;
+    font-size: 13px;
+    color: var(--green);
+    text-shadow: 0 0 5px rgba(0,255,136,0.3);
+  }
+
+  header a { color: var(--muted); text-decoration: none; font-size: 11px; }
+
+  main {
+    max-width: 560px;
+    margin: 24px auto;
+    padding: 0 16px;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  .panel h2 {
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin: 0 0 16px;
+  }
+
+  label {
+    display: block;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 14px 0 4px;
+  }
+
+  label:first-of-type { margin-top: 0; }
+
+  input, textarea {
+    width: 100%;
+    background: var(--dark);
+    border: 1px solid var(--border);
+    color: var(--green);
+    padding: 12px;
+    font-family: var(--mono);
+    font-size: 0.95rem;
+    border-radius: 6px;
+    resize: vertical;
+  }
+
+  input:focus, textarea:focus {
+    outline: none;
+    border-color: var(--green);
+  }
+
+  textarea { min-height: 64px; }
+
+  .submit-btn {
+    width: 100%;
+    margin-top: 18px;
+    background: var(--green);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .submit-btn:active { background: var(--green-dim); }
+  .submit-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+  .form-status {
+    margin-top: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    min-height: 16px;
+  }
+
+  .form-status.success { color: var(--green); }
+  .form-status.error { color: var(--red); }
+  .form-status.neutral { color: var(--muted); }
+
+  .recent-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  .recent-table th, .recent-table td {
+    text-align: left;
+    padding: 8px 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .recent-table th {
+    font-family: var(--mono);
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 10px;
+  }
+
+  .recent-table td { color: var(--text); }
+  .recent-table td.wtwr { color: var(--green); font-family: var(--mono); }
+
+  .empty-state, .error-state {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    padding: 8px 0;
+  }
+
+  .error-state { color: var(--red); }
+
+  .refresh-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    text-transform: uppercase;
+  }
+
+  .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .panel-head h2 { margin: 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <span>WTWR // INTAKE</span>
+  <a href="index.html">&#8592; HOME</a>
+</header>
+
+<main>
+  <div class="panel">
+    <h2>New Intake Record</h2>
+    <form id="intakeForm">
+      <label for="material">Material Type</label>
+      <input id="material" type="text" placeholder="e.g. Aluminum, Copper wire, Cardboard" required>
+
+      <label for="description">Description</label>
+      <textarea id="description" placeholder="What was collected, condition, etc."></textarea>
+
+      <label for="weight">Estimated Weight (lb)</label>
+      <input id="weight" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0">
+
+      <label for="wtwrValue">WTWR Payout / Value</label>
+      <input id="wtwrValue" type="number" inputmode="decimal" min="0" step="1" placeholder="0">
+
+      <label for="notes">Notes</label>
+      <textarea id="notes" placeholder="Optional operator notes"></textarea>
+
+      <button type="submit" class="submit-btn" id="submitBtn">Create Intake Record</button>
+      <div class="form-status neutral" id="formStatus"></div>
+    </form>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Recent Intake Records</h2>
+      <button class="refresh-btn" id="refreshBtn">Refresh</button>
+    </div>
+    <div id="recentContainer">
+      <div class="empty-state">Loading…</div>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = "https://eypovuxuddiqgncjdpkq.supabase.co";
+  const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5cG92dXh1ZGRpcWduY2pkcGtxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MzU1NDgsImV4cCI6MjA5ODUxMTU0OH0.JLSmCx7bZe7yIxxdXZwCWrLeyV1zAoPTXbSP24IckBY";
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  let opId = localStorage.getItem('wt_operator');
+  if (!opId) {
+    opId = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
+    localStorage.setItem('wt_operator', opId);
+  }
+
+  const $ = (id) => document.getElementById(id);
+
+  function setFormStatus(message, tone) {
+    const el = $('formStatus');
+    el.textContent = message;
+    el.className = 'form-status ' + (tone || 'neutral');
+  }
+
+  function buildNotes(description, notes) {
+    const parts = [];
+    if (description && description.trim()) parts.push('Description: ' + description.trim());
+    if (notes && notes.trim()) parts.push('Notes: ' + notes.trim());
+    return parts.join('\n');
+  }
+
+  function resetForm() {
+    $('intakeForm').reset();
+  }
+
+  async function submitIntake(event) {
+    event.preventDefault();
+
+    const material = $('material').value.trim();
+    const description = $('description').value;
+    const weight = $('weight').value ? Number($('weight').value) : null;
+    const wtwrValue = $('wtwrValue').value ? Number($('wtwrValue').value) : null;
+    const notes = $('notes').value;
+
+    if (!material) {
+      setFormStatus('Material type is required.', 'error');
+      return;
+    }
+
+    $('submitBtn').disabled = true;
+    $('submitBtn').textContent = 'Saving…';
+    setFormStatus('Writing intake record…', 'neutral');
+
+    const payload = {
+      operator: opId,
+      material: material,
+      weight_lb: weight,
+      resident_wtwr: wtwrValue,
+      notes: buildNotes(description, notes) || null,
+    };
+
+    const { error } = await db.from('intakes').insert(payload);
+
+    $('submitBtn').disabled = false;
+    $('submitBtn').textContent = 'Create Intake Record';
+
+    if (error) {
+      setFormStatus('Failed to save: ' + error.message, 'error');
+      return;
+    }
+
+    setFormStatus('Intake record created.', 'success');
+    resetForm();
+    loadRecent();
+  }
+
+  async function loadRecent() {
+    const container = $('recentContainer');
+    container.innerHTML = '<div class="empty-state">Loading…</div>';
+
+    const { data, error } = await db
+      .from('intakes')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (error) {
+      container.innerHTML = '<div class="error-state">Failed to load recent records: ' + error.message + '</div>';
+      return;
+    }
+
+    if (!data || !data.length) {
+      container.innerHTML = '<div class="empty-state">No intake records yet.</div>';
+      return;
+    }
+
+    const rows = data.map((row) => {
+      const when = row.created_at ? new Date(row.created_at).toLocaleString() : '—';
+      const weight = row.weight_lb != null ? row.weight_lb + ' lb' : '—';
+      const wtwr = row.resident_wtwr != null ? row.resident_wtwr : '—';
+      const notes = row.notes ? row.notes : '—';
+      return `
+        <tr>
+          <td>${when}</td>
+          <td>${row.material || '—'}</td>
+          <td>${weight}</td>
+          <td class="wtwr">${wtwr}</td>
+          <td>${notes}</td>
+        </tr>
+      `;
+    }).join('');
+
+    container.innerHTML = `
+      <table class="recent-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Material</th>
+            <th>Weight</th>
+            <th>WTWR</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    $('intakeForm').addEventListener('submit', submitIntake);
+    $('refreshBtn').addEventListener('click', loadRecent);
+    loadRecent();
+  });
+</script>
+</body>
+</html>

@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS manifests (
   ai_confidence NUMERIC,
   opportunity_score NUMERIC,
   risk_flags TEXT[] DEFAULT '{}',
-  status TEXT NOT NULL DEFAULT 'reviewing',
+  status TEXT NOT NULL DEFAULT 'REVIEWING',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
