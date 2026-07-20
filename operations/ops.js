@@ -396,6 +396,8 @@ async function loadLearningInsights() {
 
 async function createPassport(event) {
   event.preventDefault();
+  const form = event.currentTarget;
+  const submitBtn = form.querySelector('button[type="submit"]');
   const payload = {
     manufacturer: document.getElementById('manufacturer').value.trim(),
     model: document.getElementById('model').value.trim(),
@@ -407,6 +409,7 @@ async function createPassport(event) {
     status: 'received',
   };
 
+  const intakeLinked = !!passportIntakeProvenance;
   if (passportIntakeProvenance) {
     payload.intake_id = passportIntakeProvenance.intake_id;
     payload.intake_number = passportIntakeProvenance.intake_number || null;
@@ -417,9 +420,13 @@ async function createPassport(event) {
     payload.intake_grade = passportIntakeProvenance.grade || null;
   }
 
+  submitBtn.disabled = true;
+  setStatus('passportStatus', 'Creating passport…', 'neutral');
+
   const { data, error } = await sb.from('passports').insert(payload).select().single();
   if (error) {
     setStatus('passportStatus', error.message, 'error');
+    submitBtn.disabled = false;
     return;
   }
 
@@ -427,9 +434,19 @@ async function createPassport(event) {
     logIntakeEvent(payload.intake_id, 'PASSPORT_CREATED');
   }
 
-  event.currentTarget.reset();
+  form.reset();
   loadPassportOptions();
-  setStatus('passportStatus', `Passport ${data.id} created.`, 'success');
+  setStatus('passportStatus', `✓ Passport ${data.id} created.`, 'success');
+
+  if (intakeLinked) {
+    // This intake has now produced its passport -- leave the button locked
+    // rather than re-enable it, so a confused re-click can't silently
+    // create a second passport off the same intake context.
+    submitBtn.textContent = 'PASSPORT CREATED';
+    passportIntakeProvenance = null;
+  } else {
+    submitBtn.disabled = false;
+  }
 }
 
 async function createMaterial(event) {
@@ -497,6 +514,15 @@ function prefillPassportFromIntake() {
   const incomingWeight = document.getElementById('incoming_weight');
   if (incomingWeight && !incomingWeight.value && params.get('weight')) {
     incomingWeight.value = params.get('weight');
+  }
+
+  // photo_url holds the private intake-evidence storage path (not a public
+  // URL) when sourced from an intake. Never render this directly as an
+  // <img src>; resolve it through a signed URL the same way any other
+  // intake-evidence read does.
+  const photoUrl = document.getElementById('photo_url');
+  if (photoUrl && !photoUrl.value && params.get('photo_path')) {
+    photoUrl.value = params.get('photo_path');
   }
 
   passportIntakeProvenance = {

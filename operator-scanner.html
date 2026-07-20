@@ -223,8 +223,10 @@ async function uploadEvidence(data){
     const objectPath = data.intake_number+'/'+Date.now()+'.jpg';
     const { error: upErr } = await sb.storage.from('intake-evidence').upload(objectPath, blob, {contentType:'image/jpeg'});
     if(upErr) throw upErr;
-    const { error: updErr } = await sb.from('intakes').update({ photo_path:'intake-evidence/'+objectPath }).eq('id', data.id);
+    const fullPath = 'intake-evidence/'+objectPath;
+    const { error: updErr } = await sb.from('intakes').update({ photo_path:fullPath }).eq('id', data.id);
     if(updErr) throw updErr;
+    data.photo_path = fullPath;
     return true;
   }catch(e){
     log('PHOTO UPLOAD FAILED: '+(e && e.message ? e.message : e));
@@ -248,7 +250,8 @@ function finishSuccess(data, w, gross){
     intake_confidence:data.confidence||'',
     material:data.material||'',
     grade:data.grade||'',
-    weight:w
+    weight:w,
+    photo_path:data.photo_path||''
   };
   passportUrl='operations/passport.html?'+new URLSearchParams(custodyFields).toString();
   manifestUrl='operations/manifest.html?'+new URLSearchParams(custodyFields).toString();
