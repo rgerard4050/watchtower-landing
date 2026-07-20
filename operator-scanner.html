@@ -1,14 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>
-(function(){
-  if(localStorage.getItem('wt_op')==='1')return;
-  var c=prompt('Watchtower operator code:');
-  if(c==='WATCH2026'){localStorage.setItem('wt_op','1');}
-  else{alert('Operators only.');location.replace('index.html');}
-})();
-</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="operator-auth.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Watchtower Operator Scanner</title>
@@ -38,6 +32,17 @@ video,#capturedImg{width:100%;height:100%;object-fit:cover;display:block;}
 .actionSELL{color:var(--green);}
 .actionHOLD{color:#5a7a8a;}
 .warn{color:var(--red);}
+#decision{display:none;width:90%;max-width:450px;margin-top:14px;background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+#result .section-label{display:block;padding:12px 14px 8px;color:var(--amber);font-size:11px;letter-spacing:.12em;}
+#decision .section-label{display:block;padding:12px 14px 8px;color:var(--green);font-size:11px;letter-spacing:.12em;}
+#decision input,#decision textarea{background:var(--dark);border:1px solid var(--border);color:#fff;font-family:'Share Tech Mono',monospace;font-size:13px;padding:7px 8px;border-radius:4px;width:100%;text-align:right;}
+#decision textarea{min-height:58px;resize:vertical;text-align:left;}
+#decision .field-row{display:block;}
+#decision .field-row .k{display:block;margin-bottom:7px;}
+#decisionControls{display:none;width:90%;max-width:450px;margin-top:10px;flex-direction:column;gap:10px;}
+#success{display:none;width:90%;max-width:450px;margin-top:14px;background:var(--panel);border:1px solid var(--green);border-radius:8px;padding:18px;text-align:center;}
+#success h3{color:var(--green);margin:0 0 10px;letter-spacing:2px;}
+#success .btn{margin-top:8px;}
 </style>
 </head>
 <body>
@@ -56,11 +61,41 @@ video,#capturedImg{width:100%;height:100%;object-fit:cover;display:block;}
 </div>
 
 <div id="result"></div>
+
+<div id="decision">
+  <span class="section-label">OPERATOR CORRECTION</span>
+  <div class="row field-row"><span class="k">MATERIAL</span><input id="materialIn" type="text" autocomplete="off"></div>
+  <div class="row field-row"><span class="k">GRADE</span><input id="gradeIn" type="text" autocomplete="off"></div>
+  <div class="row field-row"><span class="k">WEIGHT (LB)</span><input id="weightIn" type="number" step="0.1" min="0" inputmode="decimal" placeholder="0.0"></div>
+  <div class="row field-row"><span class="k">PRICE/LB ($)</span><input id="priceIn" type="number" step="0.01" min="0" inputmode="decimal"></div>
+  <div class="row field-row"><span class="k">NOTES</span><textarea id="notesIn" autocomplete="off"></textarea></div>
+  <div class="row"><span class="k">GROSS VALUE</span><span class="v" id="grossOut">$0.00</span></div>
+</div>
+<div class="controls" id="decisionControls">
+  <button class="btn" id="acceptBtn">ACCEPT GRADE</button>
+</div>
+
+<div id="success">
+  <h3>INTAKE CREATED</h3>
+  <div class="row"><span class="k">INTAKE ID</span><span class="v" id="successId"></span></div>
+  <div class="row"><span class="k">MATERIAL</span><span class="v" id="successMaterial"></span></div>
+  <div class="row"><span class="k">WEIGHT</span><span class="v" id="successWeight"></span></div>
+  <div class="row"><span class="k">EST VALUE</span><span class="v" id="successValue"></span></div>
+  <button class="btn" type="button" onclick="window.location.href='operations/passport.html'">GENERATE PASSPORT</button>
+  <button class="btn sec" type="button" onclick="window.location.href='operations/manifest.html'">ADD TO REVIEW MANIFEST</button>
+</div>
+
 <canvas id="snap" style="display:none;"></canvas>
 
 <script>
+const sb=window.watchtowerAuth || null;
+
 const video=document.getElementById('webcam'),capImg=document.getElementById('capturedImg'),canvas=document.getElementById('snap');
 const capBtn=document.getElementById('capBtn'),retakeBtn=document.getElementById('retakeBtn'),cons=document.getElementById('console'),result=document.getElementById('result');
+const decision=document.getElementById('decision'),decisionControls=document.getElementById('decisionControls'),acceptBtn=document.getElementById('acceptBtn');
+const materialIn=document.getElementById('materialIn'),gradeIn=document.getElementById('gradeIn'),weightIn=document.getElementById('weightIn'),priceIn=document.getElementById('priceIn'),notesIn=document.getElementById('notesIn'),grossOut=document.getElementById('grossOut');
+const success=document.getElementById('success');
+let lastGrade=null;
 function log(m){cons.innerHTML+='<br>&gt; '+m;cons.scrollTop=cons.scrollHeight;}
 
 async function initCam(){
@@ -83,6 +118,8 @@ retakeBtn.addEventListener('click',()=>{
   video.style.display='block';capImg.style.display='none';
   capBtn.textContent='GRADE LOAD';capBtn.removeAttribute('disabled');retakeBtn.style.display='none';
   result.style.display='none';cons.innerHTML='READY.';
+  decision.style.display='none';decisionControls.style.display='none';success.style.display='none';
+  lastGrade=null;
 });
 
 async function grade(b64){
@@ -96,10 +133,11 @@ async function grade(b64){
 }
 
 function showResult(d){
+  lastGrade=d;
   const lo=Number(d.price_per_lb_usd && d.price_per_lb_usd.low)||0, hi=Number(d.price_per_lb_usd && d.price_per_lb_usd.high)||0;
   const contamList=Array.isArray(d.contamination)?d.contamination.filter(Boolean):[];
   const contaminated=contamList.length>0;
-  result.innerHTML =
+  result.innerHTML = '<span class="section-label">AI SUGGESTION</span>' +
     row('MATERIAL', d.material || 'UNKNOWN') +
     row('GRADE', d.grade || '-') +
     row('CONFIDENCE', d.confidence || '-') +
@@ -107,10 +145,77 @@ function showResult(d){
     row('CONTAMINATION', contaminated ? contamList.join(', ') : 'NONE NOTED', contaminated ? 'warn' : '') +
     row('NOTES', d.operator_notes || '-');
   result.style.display='block';
+
+  materialIn.value=d.material || '';
+  gradeIn.value=d.grade || '';
+  weightIn.value='';
+  priceIn.value=((lo+hi)/2).toFixed(2);
+  notesIn.value=d.operator_notes || '';
+  computeGross();
+  decision.style.display='block';
+  decisionControls.style.display='flex';
+  acceptBtn.removeAttribute('disabled');acceptBtn.textContent='ACCEPT GRADE';
+  success.style.display='none';
 }
 function row(k,v,cls){return '<div class="row"><span class="k">'+k+'</span><span class="v '+(cls||'')+'">'+v+'</span></div>';}
 
-window.addEventListener('load', initCam);
+function computeGross(){
+  const w=parseFloat(weightIn.value)||0, p=parseFloat(priceIn.value)||0;
+  grossOut.textContent='$'+(w*p).toFixed(2);
+}
+weightIn.addEventListener('input',computeGross);
+priceIn.addEventListener('input',computeGross);
+
+acceptBtn.addEventListener('click',async()=>{
+  if(!lastGrade)return;
+  const w=parseFloat(weightIn.value)||0, p=parseFloat(priceIn.value)||0;
+  if(w<=0||p<=0){log('ENTER WEIGHT AND PRICE FIRST.');return;}
+  if(!sb){log('SAVE ERROR: Supabase client unavailable.');return;}
+
+  acceptBtn.setAttribute('disabled','true');acceptBtn.textContent='SAVING...';
+
+  const { data:sessionData } = await sb.auth.getSession();
+  const operatorId = sessionData && sessionData.session && sessionData.session.user ? sessionData.session.user.id : null;
+  if(!operatorId){
+    log('SAVE ERROR: No operator session.');
+    acceptBtn.removeAttribute('disabled');acceptBtn.textContent='ACCEPT GRADE';
+    return;
+  }
+
+  const contamList=Array.isArray(lastGrade.contamination)?lastGrade.contamination.filter(Boolean):[];
+  const gross=w*p;
+
+  const { data, error } = await sb.from('intakes').insert({
+    operator: operatorId,
+    material: materialIn.value.trim() || null,
+    grade: gradeIn.value.trim() || null,
+    confidence: lastGrade.confidence || null,
+    contamination: contamList.length ? contamList.join(', ') : null,
+    notes: notesIn.value.trim() || null,
+    weight_lb: w,
+    price_per_lb: p,
+    gross_value: gross
+  }).select().single();
+
+  if(error){
+    log('SAVE FAILED: '+error.message);
+    acceptBtn.removeAttribute('disabled');acceptBtn.textContent='ACCEPT GRADE';
+    return;
+  }
+
+  log('INTAKE RECORDED.');
+  decision.style.display='none';decisionControls.style.display='none';result.style.display='none';
+  document.getElementById('successId').textContent=data.id;
+  document.getElementById('successMaterial').textContent=data.material||'UNKNOWN';
+  document.getElementById('successWeight').textContent=w.toFixed(1)+' LB';
+  document.getElementById('successValue').textContent='$'+gross.toFixed(2);
+  success.style.display='block';
+});
+
+window.addEventListener('load', async()=>{
+  const isOperator=await window.watchtowerOperatorReady;
+  if(isOperator) initCam();
+});
 </script>
 </body>
 </html>
