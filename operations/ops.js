@@ -78,6 +78,145 @@ async function createManifest(event) {
   setStatus('manifestStatus', 'Manifest created and sent to the review queue.', 'success');
 }
 
+async function loadManifestOptions() {
+  const selector = document.getElementById('workspaceManifestId');
+  if (!selector) return;
+  const { data, error } = await sb.from('manifests').select('id, manifest_id, source').order('created_at', { ascending: false });
+  if (error) return;
+  const current = selector.value;
+  selector.innerHTML = '<option value="">Select a manifest</option>' + (data || []).map((m) => `<option value="${m.id}">${m.manifest_id || ('#' + m.id)} — ${m.source || 'Manifest'}</option>`).join('');
+  if (current) selector.value = current;
+}
+
+async function loadUnassignedPassports() {
+  const selector = document.getElementById('assignPassportId');
+  if (!selector) return;
+  const { data, error } = await sb.from('passports').select('id, passport_id, manufacturer').is('manifest_id', null).order('created_at', { ascending: false });
+  if (error) return;
+  selector.innerHTML = '<option value="">Select an unassigned passport</option>' + (data || []).map((p) => `<option value="${p.id}">${p.passport_id || ('#' + p.id)} — ${p.manufacturer || 'Passport'}</option>`).join('');
+}
+
+async function loadManifestWorkspace(manifestId) {
+  const panel = document.getElementById('manifestWorkspace');
+  if (!panel) return;
+  if (!manifestId) { panel.classList.add('hidden'); return; }
+
+  const { data: manifest, error } = await sb.from('manifests').select('*').eq('id', manifestId).single();
+  if (error || !manifest) { panel.classList.add('hidden'); return; }
+
+  document.getElementById('wsManifestId').textContent = manifest.manifest_id || ('#' + manifest.id);
+  document.getElementById('wsStatus').textContent = manifest.status || '—';
+  document.getElementById('wsCreated').textContent = fmtDateTime(manifest.created_at);
+
+  const { data: passports } = await sb.from('passports').select('*').eq('manifest_id', manifestId).order('created_at', { ascending: true });
+  const list = passports || [];
+
+  document.getElementById('wsPassportCount').textContent = list.length;
+  const totalWeight = list.reduce((sum, p) => sum + (Number(p.incoming_weight) || 0), 0);
+  document.getElementById('wsTotalWeight').textContent = totalWeight ? totalWeight.toLocaleString(undefined, { maximumFractionDigits: 1 }) + ' lb' : '—';
+
+  // Resolve source business per passport (intake -> source_business_id ->
+  // business_name) with small separate queries rather than a nested
+  // PostgREST embed -- simpler and more robust for a first pass.
+  const intakeIds = [...new Set(list.filter((p) => p.intake_id).map((p) => p.intake_id))];
+  let intakeGrossById = {}, intakeBizNameById = {};
+  if (intakeIds.length) {
+    const { data: intakes } = await sb.from('intakes').select('id, gross_value, source_business_id').in('id', intakeIds);
+    const bizIds = [...new Set((intakes || []).filter((i) => i.source_business_id).map((i) => i.source_business_id))];
+    let bizNameById = {};
+    if (bizIds.length) {
+      const { data: bizs } = await sb.from('businesses').select('id, business_name').in('id', bizIds);
+      bizNameById = Object.fromEntries((bizs || []).map((b) => [b.id, b.business_name]));
+    }
+    (intakes || []).forEach((i) => {
+      intakeGrossById[i.id] = i.gross_value;
+      intakeBizNameById[i.id] = i.source_business_id ? bizNameById[i.source_business_id] : null;
+    });
+  }
+  const estValue = list.reduce((sum, p) => sum + (p.intake_id && intakeGrossById[p.intake_id] ? Number(intakeGrossById[p.intake_id]) : 0), 0);
+  const anyValueKnown = list.some((p) => p.intake_id && intakeGrossById[p.intake_id] != null);
+  document.getElementById('wsEstValue').textContent = anyValueKnown ? '$' + estValue.toFixed(2) : '—';
+
+  const passportIds = list.map((p) => p.id);
+  const { data: materials } = passportIds.length
+    ? await sb.from('materials_recovered').select('*').in('passport_id', passportIds)
+    : { data: [] };
+  const materialsByPassport = {};
+  (materials || []).forEach((m) => {
+    (materialsByPassport[m.passport_id] = materialsByPassport[m.passport_id] || []).push(m);
+  });
+
+  // Passport List (Priority 2)
+  const listEl = document.getElementById('wsPassportList');
+  listEl.innerHTML = list.length ? list.map((p) => {
+    const mats = materialsByPassport[p.id];
+    const tags = mats && mats.length ? mats.map((m) => m.material_name).join(', ') : (p.intake_material || '—');
+    const source = p.intake_id ? (intakeBizNameById[p.intake_id] || 'Walk-in / Resident') : 'Standalone (no linked intake)';
+    return `
+      <div class="rounded-lg border border-slate-800 bg-slate-950/60 p-4 text-sm">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <a href="./passport.html?view_passport=${p.id}" class="font-semibold text-cyan-400 hover:underline">${p.passport_id || ('#' + p.id)}</a>
+          <span class="text-xs uppercase tracking-wide text-slate-500">${p.lifecycle_status || 'CREATED'}</span>
+        </div>
+        <p class="mt-1 text-slate-300">${p.manufacturer || 'Unclassified'}</p>
+        <p class="mt-1 text-xs text-slate-500">${tags}</p>
+        <div class="mt-2 flex flex-wrap justify-between gap-2 text-xs text-slate-500">
+          <span>${p.incoming_weight != null ? Number(p.incoming_weight).toFixed(1) + ' lb' : '—'}</span>
+          <span>Source: ${source}</span>
+          <span>Verified by: ${p.created_by || '—'}</span>
+        </div>
+      </div>`;
+  }).join('') : '<p class="text-sm text-slate-500">No passports assigned to this manifest yet.</p>';
+
+  // Manifest Statistics (Priority 3) -- from materials_recovered only, real
+  // structured data. Empty honestly when none has been logged yet.
+  const totals = {};
+  (materials || []).forEach((m) => {
+    const key = (m.material_name || 'Unclassified') + '|' + (m.unit || '');
+    totals[key] = totals[key] || { name: m.material_name || 'Unclassified', unit: m.unit || '', qty: 0 };
+    totals[key].qty += Number(m.quantity) || 0;
+  });
+  const statsEl = document.getElementById('wsStatistics');
+  const statRows = Object.values(totals);
+  statsEl.innerHTML = statRows.length
+    ? statRows.map((s) => `<div class="rounded-lg border border-slate-800 bg-slate-950/60 p-4 text-center"><p class="text-2xl font-bold">${s.qty.toLocaleString(undefined, { maximumFractionDigits: 1 })}${s.unit ? ' ' + s.unit : ''}</p><p class="mt-1 text-xs uppercase tracking-wide text-slate-500">${s.name}</p></div>`).join('')
+    : '<p class="text-sm text-slate-500 sm:col-span-2 lg:col-span-4">No recovered materials logged for these passports yet.</p>';
+
+  // Processing Progress (Priority 4) -- real lifecycle_status breakdown,
+  // using the actual 8-state names rather than an invented 3-bucket scheme.
+  const progressCounts = {};
+  list.forEach((p) => {
+    const s = p.lifecycle_status || 'CREATED';
+    progressCounts[s] = (progressCounts[s] || 0) + 1;
+  });
+  const progressEl = document.getElementById('wsProgress');
+  const total = list.length || 1;
+  progressEl.innerHTML = list.length
+    ? Object.entries(progressCounts).map(([status, count]) => `
+        <div>
+          <div class="flex justify-between text-xs text-slate-400"><span>${status}</span><span>${count} / ${list.length}</span></div>
+          <div class="mt-1 h-2 rounded-full bg-slate-800"><div class="h-2 rounded-full bg-emerald-400" style="width:${(count / total) * 100}%"></div></div>
+        </div>`).join('')
+    : '<p class="text-sm text-slate-500">No passports to track yet.</p>';
+
+  panel.classList.remove('hidden');
+  loadUnassignedPassports();
+}
+
+async function assignPassportToManifest(manifestId) {
+  const select = document.getElementById('assignPassportId');
+  const statusEl = document.getElementById('assignStatus');
+  const passportId = select.value;
+  if (!passportId) { statusEl.textContent = 'Choose a passport first.'; return; }
+
+  const { error } = await sb.from('passports').update({ manifest_id: manifestId }).eq('id', passportId);
+  if (error) { statusEl.textContent = error.message; return; }
+
+  statusEl.textContent = '✓ Passport added to this manifest.';
+  select.value = '';
+  loadManifestWorkspace(manifestId);
+}
+
 async function loadReviewQueue() {
   const list = document.getElementById('queueList');
   if (!list) return;
@@ -665,6 +804,17 @@ function initOperations() {
     prefillManifestFromIntake();
   }
 
+  const workspaceManifestId = document.getElementById('workspaceManifestId');
+  if (workspaceManifestId) {
+    loadManifestOptions();
+    workspaceManifestId.addEventListener('change', (e) => loadManifestWorkspace(e.target.value));
+  }
+
+  const assignPassportBtn = document.getElementById('assignPassportBtn');
+  if (assignPassportBtn) {
+    assignPassportBtn.addEventListener('click', () => assignPassportToManifest(document.getElementById('workspaceManifestId').value));
+  }
+
   const refreshQueue = document.getElementById('refreshQueue');
   if (refreshQueue) {
     refreshQueue.addEventListener('click', loadReviewQueue);
@@ -716,7 +866,14 @@ function initOperations() {
     transactionForm.addEventListener('submit', createTransaction);
   }
 
-  loadPassportOptions();
+  loadPassportOptions().then(() => {
+    const viewPassportId = new URLSearchParams(window.location.search).get('view_passport');
+    const profileSelector = document.getElementById('profilePassportId');
+    if (viewPassportId && profileSelector) {
+      profileSelector.value = viewPassportId;
+      loadPassportProfile(viewPassportId);
+    }
+  });
 }
 
 document.addEventListener('DOMContentLoaded', () => {

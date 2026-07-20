@@ -28,7 +28,64 @@
         </div>
       </header>
 
-      <main class="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+      <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 class="text-lg font-semibold">Manifest Workspace</h2>
+            <p class="mt-1 text-xs text-slate-500">Select a manifest to see its full lot: passports included, material totals, and processing progress.</p>
+          </div>
+          <label class="block text-sm text-slate-300 md:w-72">
+            <span class="mb-2 block font-medium">View Manifest</span>
+            <select id="workspaceManifestId" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-400"><option value="">Select a manifest</option></select>
+          </label>
+        </div>
+
+        <div id="manifestWorkspace" class="hidden mt-6 space-y-6">
+          <div class="rounded-xl border border-emerald-800/50 bg-slate-950/60 p-5">
+            <div class="flex flex-wrap items-baseline justify-between gap-2">
+              <div>
+                <p class="text-xs uppercase tracking-[0.25em] text-emerald-400">Manifest</p>
+                <p class="mt-1 text-2xl font-bold tracking-wide" id="wsManifestId">&mdash;</p>
+              </div>
+              <span id="wsStatus" class="rounded-full border border-slate-700 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-300">&mdash;</span>
+            </div>
+            <div class="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+              <div><p class="text-xs text-slate-500">Created</p><p id="wsCreated" class="mt-1">&mdash;</p></div>
+              <div><p class="text-xs text-slate-500">Passports</p><p id="wsPassportCount" class="mt-1">&mdash;</p></div>
+              <div><p class="text-xs text-slate-500">Total Weight</p><p id="wsTotalWeight" class="mt-1">&mdash;</p></div>
+              <div><p class="text-xs text-slate-500">Estimated Value</p><p id="wsEstValue" class="mt-1">&mdash;</p></div>
+            </div>
+          </div>
+
+          <div class="rounded-lg border border-slate-800 bg-slate-950/40 p-4">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <label class="block flex-1 text-sm text-slate-300">
+                <span class="mb-2 block font-medium">Add Passport to This Manifest</span>
+                <select id="assignPassportId" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-400"><option value="">Select an unassigned passport</option></select>
+              </label>
+              <button id="assignPassportBtn" type="button" class="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400">Add</button>
+            </div>
+            <p id="assignStatus" class="mt-2 text-xs text-slate-500">&nbsp;</p>
+          </div>
+
+          <div>
+            <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-400">Passports in This Lot</h3>
+            <div id="wsPassportList" class="mt-3 space-y-3"></div>
+          </div>
+
+          <div>
+            <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-400">Manifest Statistics</h3>
+            <div id="wsStatistics" class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"></div>
+          </div>
+
+          <div>
+            <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-400">Processing Progress</h3>
+            <div class="mt-3 space-y-3" id="wsProgress"></div>
+          </div>
+        </div>
+      </section>
+
+      <main class="mt-8 grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
         <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20">
           <form id="manifestForm" class="space-y-5">
             <div class="grid gap-5 md:grid-cols-2">
