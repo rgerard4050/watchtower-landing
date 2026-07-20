@@ -43,8 +43,9 @@ video,#capturedImg{width:100%;height:100%;object-fit:cover;display:block;}
 #success{display:none;width:90%;max-width:450px;margin-top:14px;background:var(--panel);border:1px solid var(--green);border-radius:8px;padding:18px;text-align:center;}
 #success h3{color:var(--green);margin:0 0 10px;letter-spacing:2px;}
 #successActions{border-top:1px solid var(--border);margin-top:14px;padding-top:14px;display:flex;flex-direction:column;}
+#postAcquireActions{display:flex;flex-direction:column;}
 #success .btn{margin-top:8px;}
-#successActions .btn:first-child{margin-top:0;}
+#successActions .btn:first-child,#postAcquireActions .btn:first-child{margin-top:0;}
 </style>
 </head>
 <body>
@@ -85,8 +86,12 @@ video,#capturedImg{width:100%;height:100%;object-fit:cover;display:block;}
   <div class="row"><span class="k">VALUE</span><span class="v" id="successValue"></span></div>
   <div class="row"><span class="k">AI CONFIDENCE</span><span class="v" id="successConfidence"></span></div>
   <div class="row"><span class="k">PROVENANCE</span><span class="v" id="successTimestamp"></span></div>
+  <div class="row"><span class="k">STATUS</span><span class="v" id="successStatus">VERIFIED</span></div>
   <div id="successActions">
     <button class="btn" type="button" id="newIntakeBtn">SCAN NEXT LOAD</button>
+    <button class="btn sec" type="button" id="confirmAcquireBtn">CONFIRM ACQUISITION</button>
+  </div>
+  <div id="postAcquireActions" style="display:none">
     <button class="btn sec" type="button" id="genPassportBtn">GENERATE PASSPORT</button>
     <button class="btn sec" type="button" id="addManifestBtn">CREATE REVIEW MANIFEST</button>
   </div>
@@ -103,9 +108,11 @@ const decision=document.getElementById('decision'),decisionControls=document.get
 const materialIn=document.getElementById('materialIn'),gradeIn=document.getElementById('gradeIn'),weightIn=document.getElementById('weightIn'),priceIn=document.getElementById('priceIn'),notesIn=document.getElementById('notesIn'),grossOut=document.getElementById('grossOut');
 const success=document.getElementById('success');
 const genPassportBtn=document.getElementById('genPassportBtn'),newIntakeBtn=document.getElementById('newIntakeBtn'),addManifestBtn=document.getElementById('addManifestBtn');
+const confirmAcquireBtn=document.getElementById('confirmAcquireBtn'),postAcquireActions=document.getElementById('postAcquireActions'),successStatus=document.getElementById('successStatus');
 let lastGrade=null;
 let passportUrl='operations/passport.html';
 let manifestUrl='operations/manifest.html';
+let currentIntakeId=null;
 genPassportBtn.addEventListener('click',()=>{window.location.href=passportUrl;});
 addManifestBtn.addEventListener('click',()=>{window.location.href=manifestUrl;});
 function log(m){cons.innerHTML+='<br>&gt; '+m;cons.scrollTop=cons.scrollHeight;}
@@ -131,7 +138,9 @@ function resetToCamera(){
   capBtn.textContent='GRADE LOAD';capBtn.removeAttribute('disabled');retakeBtn.style.display='none';
   result.style.display='none';cons.innerHTML='READY.';
   decision.style.display='none';decisionControls.style.display='none';success.style.display='none';
-  lastGrade=null;
+  postAcquireActions.style.display='none';
+  confirmAcquireBtn.style.display='block';confirmAcquireBtn.removeAttribute('disabled');confirmAcquireBtn.textContent='CONFIRM ACQUISITION';
+  lastGrade=null;currentIntakeId=null;
 }
 retakeBtn.addEventListener('click',resetToCamera);
 newIntakeBtn.addEventListener('click',resetToCamera);
@@ -223,6 +232,10 @@ acceptBtn.addEventListener('click',async()=>{
 
   log('INTAKE RECORDED.');
   decision.style.display='none';decisionControls.style.display='none';result.style.display='none';
+  currentIntakeId=data.id;
+  postAcquireActions.style.display='none';
+  confirmAcquireBtn.style.display='block';confirmAcquireBtn.removeAttribute('disabled');confirmAcquireBtn.textContent='CONFIRM ACQUISITION';
+  successStatus.textContent=data.lifecycle_status||'VERIFIED';
   document.getElementById('successId').textContent=data.intake_number||data.id;
   document.getElementById('successMaterial').textContent=data.material||'UNKNOWN';
   document.getElementById('successWeight').textContent=w.toFixed(1)+' LB';
@@ -242,6 +255,28 @@ acceptBtn.addEventListener('click',async()=>{
   passportUrl='operations/passport.html?'+new URLSearchParams(custodyFields).toString();
   manifestUrl='operations/manifest.html?'+new URLSearchParams(custodyFields).toString();
   success.style.display='block';
+});
+
+confirmAcquireBtn.addEventListener('click',async()=>{
+  if(!currentIntakeId||!sb)return;
+  confirmAcquireBtn.setAttribute('disabled','true');confirmAcquireBtn.textContent='CONFIRMING...';
+
+  const { data, error } = await sb.from('intakes')
+    .update({ lifecycle_status:'ACQUIRED', acquired_at:new Date().toISOString() })
+    .eq('id', currentIntakeId)
+    .select()
+    .single();
+
+  if(error){
+    log('ACQUISITION CONFIRM FAILED: '+error.message);
+    confirmAcquireBtn.removeAttribute('disabled');confirmAcquireBtn.textContent='CONFIRM ACQUISITION';
+    return;
+  }
+
+  log('ACQUISITION CONFIRMED.');
+  successStatus.textContent=data.lifecycle_status;
+  confirmAcquireBtn.style.display='none';
+  postAcquireActions.style.display='flex';
 });
 
 window.addEventListener('load', async()=>{
