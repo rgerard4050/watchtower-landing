@@ -35,7 +35,7 @@ video,#capturedImg{width:100%;height:100%;object-fit:cover;display:block;}
 #decision{display:none;width:90%;max-width:450px;margin-top:14px;background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
 #result .section-label{display:block;padding:12px 14px 8px;color:var(--amber);font-size:11px;letter-spacing:.12em;}
 #decision .section-label{display:block;padding:12px 14px 8px;color:var(--green);font-size:11px;letter-spacing:.12em;}
-#decision input,#decision textarea{background:var(--dark);border:1px solid var(--border);color:#fff;font-family:'Share Tech Mono',monospace;font-size:13px;padding:7px 8px;border-radius:4px;width:100%;text-align:right;}
+#decision input,#decision textarea,#decision select{background:var(--dark);border:1px solid var(--border);color:#fff;font-family:'Share Tech Mono',monospace;font-size:13px;padding:7px 8px;border-radius:4px;width:100%;text-align:right;}
 #decision textarea{min-height:58px;resize:vertical;text-align:left;}
 #decision .field-row{display:block;}
 #decision .field-row .k{display:block;margin-bottom:7px;}
@@ -72,6 +72,9 @@ video,#capturedImg{width:100%;height:100%;object-fit:cover;display:block;}
   <div class="row field-row"><span class="k">WEIGHT (LB)</span><input id="weightIn" type="number" step="0.1" min="0" inputmode="decimal" placeholder="0.0"></div>
   <div class="row field-row"><span class="k">PRICE/LB ($)</span><input id="priceIn" type="number" step="0.01" min="0" inputmode="decimal"></div>
   <div class="row field-row"><span class="k">NOTES</span><textarea id="notesIn" autocomplete="off"></textarea></div>
+  <div class="row field-row"><span class="k">BUSINESS PARTNER (OPTIONAL)</span>
+    <select id="businessIn"><option value="">— WALK-IN / RESIDENT —</option></select>
+  </div>
   <div class="row"><span class="k">GROSS VALUE</span><span class="v" id="grossOut">$0.00</span></div>
 </div>
 <div class="controls" id="decisionControls">
@@ -116,6 +119,7 @@ const success=document.getElementById('success');
 const genPassportBtn=document.getElementById('genPassportBtn'),newIntakeBtn=document.getElementById('newIntakeBtn'),addManifestBtn=document.getElementById('addManifestBtn');
 const confirmAcquireBtn=document.getElementById('confirmAcquireBtn'),postAcquireActions=document.getElementById('postAcquireActions'),successStatus=document.getElementById('successStatus');
 const photoRetry=document.getElementById('photoRetry'),retryPhotoBtn=document.getElementById('retryPhotoBtn');
+const businessIn=document.getElementById('businessIn');
 let lastGrade=null;
 let passportUrl='operations/passport.html';
 let manifestUrl='operations/manifest.html';
@@ -148,6 +152,7 @@ function resetToCamera(){
   decision.style.display='none';decisionControls.style.display='none';success.style.display='none';
   postAcquireActions.style.display='none';photoRetry.style.display='none';
   confirmAcquireBtn.style.display='block';confirmAcquireBtn.removeAttribute('disabled');confirmAcquireBtn.textContent='CONFIRM ACQUISITION';
+  businessIn.value='';
   lastGrade=null;currentIntakeId=null;pendingIntakeData=null;
 }
 retakeBtn.addEventListener('click',resetToCamera);
@@ -290,6 +295,7 @@ acceptBtn.addEventListener('click',async()=>{
     weight_lb: w,
     price_per_lb: p,
     gross_value: gross,
+    source_business_id: businessIn.value || null,
     ai_provider: lastGrade.ai_provider || null,
     ai_model: lastGrade.ai_model || null,
     ai_prompt_version: lastGrade.ai_prompt_version || null,
@@ -363,9 +369,16 @@ confirmAcquireBtn.addEventListener('click',async()=>{
   postAcquireActions.style.display='flex';
 });
 
+async function loadBusinessPartners(){
+  if(!sb)return;
+  const { data, error } = await sb.from('businesses').select('id,business_name').eq('is_supplier',true).order('business_name');
+  if(error||!data)return;
+  businessIn.innerHTML='<option value="">— WALK-IN / RESIDENT —</option>'+data.map(b=>'<option value="'+b.id+'">'+b.business_name+'</option>').join('');
+}
+
 window.addEventListener('load', async()=>{
   const isOperator=await window.watchtowerOperatorReady;
-  if(isOperator) initCam();
+  if(isOperator){ initCam(); loadBusinessPartners(); }
 });
 </script>
 </body>
