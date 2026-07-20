@@ -96,15 +96,16 @@ async function grade(b64){
 }
 
 function showResult(d){
-  const lo=Number(d.price_per_lb_low)||0, hi=Number(d.price_per_lb_high)||0;
-  const contaminated = d.contamination && d.contamination.toLowerCase()!=='none';
+  const lo=Number(d.price_per_lb_usd && d.price_per_lb_usd.low)||0, hi=Number(d.price_per_lb_usd && d.price_per_lb_usd.high)||0;
+  const contamList=Array.isArray(d.contamination)?d.contamination.filter(Boolean):[];
+  const contaminated=contamList.length>0;
   result.innerHTML =
     row('MATERIAL', d.material || 'UNKNOWN') +
     row('GRADE', d.grade || '-') +
     row('CONFIDENCE', d.confidence || '-') +
     row('EST $/LB', '$'+lo.toFixed(2)+' - $'+hi.toFixed(2)) +
-    row('CONTAMINATION', contaminated ? d.contamination : 'NONE NOTED', contaminated ? 'warn' : '') +
-    row('NOTES', d.notes || '-');
+    row('CONTAMINATION', contaminated ? contamList.join(', ') : 'NONE NOTED', contaminated ? 'warn' : '') +
+    row('NOTES', d.operator_notes || '-');
   result.style.display='block';
 }
 function row(k,v,cls){return '<div class="row"><span class="k">'+k+'</span><span class="v '+(cls||'')+'">'+v+'</span></div>';}
