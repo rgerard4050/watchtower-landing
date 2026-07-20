@@ -81,7 +81,7 @@ video,#capturedImg{width:100%;height:100%;object-fit:cover;display:block;}
   <div class="row"><span class="k">MATERIAL</span><span class="v" id="successMaterial"></span></div>
   <div class="row"><span class="k">WEIGHT</span><span class="v" id="successWeight"></span></div>
   <div class="row"><span class="k">EST VALUE</span><span class="v" id="successValue"></span></div>
-  <button class="btn" type="button" onclick="window.location.href='operations/passport.html'">GENERATE PASSPORT</button>
+  <button class="btn" type="button" id="genPassportBtn">GENERATE PASSPORT</button>
   <button class="btn sec" type="button" onclick="window.location.href='operations/manifest.html'">ADD TO REVIEW MANIFEST</button>
 </div>
 
@@ -95,7 +95,10 @@ const capBtn=document.getElementById('capBtn'),retakeBtn=document.getElementById
 const decision=document.getElementById('decision'),decisionControls=document.getElementById('decisionControls'),acceptBtn=document.getElementById('acceptBtn');
 const materialIn=document.getElementById('materialIn'),gradeIn=document.getElementById('gradeIn'),weightIn=document.getElementById('weightIn'),priceIn=document.getElementById('priceIn'),notesIn=document.getElementById('notesIn'),grossOut=document.getElementById('grossOut');
 const success=document.getElementById('success');
+const genPassportBtn=document.getElementById('genPassportBtn');
 let lastGrade=null;
+let passportUrl='operations/passport.html';
+genPassportBtn.addEventListener('click',()=>{window.location.href=passportUrl;});
 function log(m){cons.innerHTML+='<br>&gt; '+m;cons.scrollTop=cons.scrollHeight;}
 
 async function initCam(){
@@ -209,6 +212,8 @@ acceptBtn.addEventListener('click',async()=>{
   document.getElementById('successMaterial').textContent=data.material||'UNKNOWN';
   document.getElementById('successWeight').textContent=w.toFixed(1)+' LB';
   document.getElementById('successValue').textContent='$'+gross.toFixed(2);
+  const passportParams=new URLSearchParams({intake_id:data.id,material:data.material||'',weight:w,grade:data.grade||''});
+  passportUrl='operations/passport.html?'+passportParams.toString();
   success.style.display='block';
 });
 

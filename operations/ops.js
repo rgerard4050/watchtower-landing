@@ -446,6 +446,24 @@ async function createTransaction(event) {
   alert('Transaction recorded.');
 }
 
+function prefillPassportFromIntake() {
+  const params = new URLSearchParams(window.location.search);
+  const intakeId = params.get('intake_id');
+  if (!intakeId) return;
+
+  const manufacturer = document.getElementById('manufacturer');
+  if (manufacturer && !manufacturer.value && params.get('material')) {
+    manufacturer.value = params.get('material');
+  }
+
+  const incomingWeight = document.getElementById('incoming_weight');
+  if (incomingWeight && !incomingWeight.value && params.get('weight')) {
+    incomingWeight.value = params.get('weight');
+  }
+
+  setStatus('passportStatus', `Prefilled from intake #${intakeId}.`, 'neutral');
+}
+
 function attachReuseWarning() {
   const disposition = document.getElementById('disposition');
   const warning = document.getElementById('reuseWarning');
@@ -494,6 +512,7 @@ function initOperations() {
   if (passportForm) {
     passportForm.addEventListener('submit', createPassport);
     attachReuseWarning();
+    prefillPassportFromIntake();
   }
 
   const materialForm = document.getElementById('materialForm');
