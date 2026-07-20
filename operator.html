@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Watchtower Operator</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="operator-auth.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600;700&display=swap');
   :root{
@@ -74,14 +75,6 @@
 </head>
 <body>
 
-  <!-- PASSCODE GATE -->
-  <div id="gate">
-    <div class="lock">&#128274; OPERATOR ACCESS</div>
-    <input id="code" type="text" placeholder="CODE" autocomplete="off" autocapitalize="characters">
-    <button class="btn" id="enter" style="width:90%;max-width:320px;">Enter</button>
-    <div class="err" id="gateErr"></div>
-  </div>
-
   <div class="header"><span>WATCHTOWER // OPERATOR</span><a href="index.html">&#8592; HOME</a></div>
 
   <div class="view">
@@ -126,7 +119,6 @@
 
 <script>
   // ===== SETTINGS YOU CONTROL =====
-  const OP_CODE = "WATCH2026";          // operator passcode — change anytime
   const WTWR_PER_DOLLAR = 100;          // your peg. 100 = $1 of value -> 100 WTWR. SET THIS to your real rate.
   const RESIDENT_SHARE = 0.40;          // resident gets 40% of gross (locked split)
   // ================================
@@ -145,17 +137,7 @@
 
   function log(m){ consoleEl.innerHTML += `<br>&gt; ${m}`; consoleEl.scrollTop = consoleEl.scrollHeight; }
 
-  // ---- gate ----
-  function tryEnter(){
-    if($('code').value.trim() === OP_CODE){
-      $('gate').style.display='none';
-      initCam();
-    } else {
-      $('gateErr').textContent = 'Denied.';
-    }
-  }
-  $('enter').addEventListener('click', tryEnter);
-  $('code').addEventListener('keydown', e=>{ if(e.key==='Enter') tryEnter(); });
+  initCam();
 
   async function initCam(){
     try{

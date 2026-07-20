@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Watchtower Operator Login</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700&display=swap');
+:root{
+  --black:#080c0f; --dark:#0d1318; --panel:#111820; --border:#1e2d3a;
+  --green:#00ff88; --green-dim:#00cc6a; --green-glow:rgba(0,255,136,0.12);
+  --red:#ff4455; --text:#c8d8e8; --muted:#5a7a8a;
+  --mono:'Share Tech Mono',monospace; --sans:'Inter',sans-serif;
+}
+*{box-sizing:border-box;}
+body{margin:0;min-height:100vh;background:var(--black);color:var(--text);font-family:var(--sans);
+  display:flex;align-items:center;justify-content:center;padding:24px;}
+.card{width:100%;max-width:380px;background:var(--panel);border:1px solid var(--border);border-radius:10px;
+  padding:28px 24px;box-shadow:0 0 30px rgba(0,0,0,0.5);}
+.title{font-family:var(--mono);font-size:12px;letter-spacing:0.25em;color:var(--green);
+  text-shadow:0 0 6px var(--green-dim);text-transform:uppercase;margin-bottom:4px;}
+.sub{font-size:12px;color:var(--muted);margin-bottom:22px;}
+label{display:block;font-size:12px;color:var(--muted);margin:14px 0 6px;}
+input{width:100%;background:var(--dark);border:1px solid var(--border);color:var(--text);
+  padding:11px 12px;border-radius:6px;font-family:var(--sans);font-size:14px;outline:none;}
+input:focus{border-color:var(--green);}
+.actions{display:flex;gap:10px;margin-top:20px;}
+button{flex:1;padding:12px;border-radius:6px;font-family:var(--mono);font-size:12px;letter-spacing:0.08em;
+  text-transform:uppercase;cursor:pointer;}
+.btn-primary{background:var(--green);color:var(--black);border:1px solid var(--green);font-weight:700;}
+.btn-secondary{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.msg{margin-top:14px;font-size:12px;min-height:16px;}
+.msg.error{color:var(--red);}
+.msg.ok{color:var(--green);}
+a.back{display:block;margin-top:18px;text-align:center;font-size:11px;color:var(--muted);text-decoration:none;}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="title">Watchtower Operator Access</div>
+    <div class="sub">Sign in with your operator account. New accounts require manual approval before gaining write access.</div>
+    <label for="email">Email</label>
+    <input id="email" type="email" autocomplete="username" placeholder="you@example.com">
+    <label for="password">Password</label>
+    <input id="password" type="password" autocomplete="current-password" placeholder="••••••••">
+    <div class="actions">
+      <button class="btn-primary" id="signInBtn">Sign In</button>
+      <button class="btn-secondary" id="signUpBtn">Create Account</button>
+    </div>
+    <div class="msg" id="msg"></div>
+    <a class="back" href="index.html">&larr; Back to Watchtower</a>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = 'https://eypovuxuddiqgncjdpkq.supabase.co';
+    const SUPABASE_ANON = 'sb_publishable_ZlykauNc-3YY80w6nxzsKw_Z2lgAgU1';
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    const params = new URLSearchParams(window.location.search);
+    const next = params.get('next') || 'operations/manifest.html';
+
+    const msgEl = document.getElementById('msg');
+    function setMsg(text, tone) {
+      msgEl.textContent = text;
+      msgEl.className = 'msg' + (tone ? ' ' + tone : '');
+    }
+
+    async function afterSignIn(userId) {
+      const { data, error } = await client.from('operators').select('id').eq('id', userId).maybeSingle();
+      if (error || !data) {
+        setMsg('Signed in, but this account is not an approved operator yet. Ask the project owner to grant access.', 'error');
+        await client.auth.signOut();
+        return;
+      }
+      window.location.href = next;
+    }
+
+    document.getElementById('signInBtn').addEventListener('click', async () => {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      if (!email || !password) { setMsg('Email and password are required.', 'error'); return; }
+      setMsg('Signing in…');
+      const { data, error } = await client.auth.signInWithPassword({ email, password });
+      if (error) { setMsg(error.message, 'error'); return; }
+      await afterSignIn(data.user.id);
+    });
+
+    document.getElementById('signUpBtn').addEventListener('click', async () => {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      if (!email || !password) { setMsg('Email and password are required.', 'error'); return; }
+      if (password.length < 6) { setMsg('Password must be at least 6 characters.', 'error'); return; }
+      setMsg('Creating account…');
+      const { data, error } = await client.auth.signUp({ email, password });
+      if (error) { setMsg(error.message, 'error'); return; }
+      setMsg('Account created. This login has no operator access until the project owner approves it in the operators table.', 'ok');
+    });
+  </script>
+</body>
+</html>

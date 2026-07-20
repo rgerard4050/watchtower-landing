@@ -1,18 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>
-(function(){
-  if(localStorage.getItem('wt_op')==='1')return;
-  var c=prompt('Watchtower operator code:');
-  if(c==='WATCH2026'){localStorage.setItem('wt_op','1');}
-  else{alert('Operators only.');location.replace('index.html');}
-})();
-</script>
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Watchtower Terminal v2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="operator-auth.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700&display=swap');
 :root {
@@ -229,19 +222,11 @@ header{background:rgba(8,12,15,0.98);border-bottom:1px solid var(--border);paddi
 <div style="position:fixed;top:0;left:0;right:0;z-index:1200;background:rgba(8,12,15,0.96);border-bottom:1px solid var(--border);padding:10px 12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
   <a href="index.html" style="font-family:var(--mono);font-size:11px;color:var(--green);text-decoration:none;letter-spacing:0.12em;text-transform:uppercase;">◈ WATCHTOWER</a>
   <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+    <a href="operations/manifest.html" style="font-family:var(--mono);font-size:9px;color:var(--muted);text-decoration:none;letter-spacing:0.08em;text-transform:uppercase;">Operations</a>
     <a href="resident.html" style="font-family:var(--mono);font-size:9px;color:var(--muted);text-decoration:none;letter-spacing:0.08em;text-transform:uppercase;">Residents</a>
     <a href="business.html" style="font-family:var(--mono);font-size:9px;color:var(--muted);text-decoration:none;letter-spacing:0.08em;text-transform:uppercase;">Businesses</a>
     <a href="learn.html" style="font-family:var(--mono);font-size:9px;color:var(--muted);text-decoration:none;letter-spacing:0.08em;text-transform:uppercase;">Learn</a>
-  </div>
-</div>
-
-<!-- OPERATOR ACCESS GATE — big tap targets, replaces native prompt() -->
-<div class="gate-overlay" id="gateOverlay">
-  <div class="gate-box">
-    <div class="gate-title">// WATCHTOWER OPERATOR CODE</div>
-    <input type="text" id="gateInput" class="gate-input" placeholder="ACCESS CODE" autocomplete="off" autocapitalize="characters">
-    <button class="gate-enter" onclick="submitGateCode()">ENTER &#8594;</button>
-    <div class="gate-err" id="gateErr"></div>
+    <a href="#" onclick="watchtowerSignOut();return false;" style="font-family:var(--mono);font-size:9px;color:var(--muted);text-decoration:none;letter-spacing:0.08em;text-transform:uppercase;">Sign Out</a>
   </div>
 </div>
 
@@ -522,32 +507,6 @@ header{background:rgba(8,12,15,0.98);border-bottom:1px solid var(--border);paddi
 <div class="toast" id="toast"></div>
 
 <script>
-// ═══════════════════ ACCESS GATE (replaces native prompt) ═══════════════════
-(function(){
-  var overlay = document.getElementById('gateOverlay');
-  var input = document.getElementById('gateInput');
-  var err = document.getElementById('gateErr');
-
-  if(localStorage.getItem('wt_op')==='1'){
-    overlay.classList.add('closed');
-  } else {
-    setTimeout(function(){ input.focus(); }, 50);
-    input.addEventListener('keydown', function(e){ if(e.key==='Enter'){ submitGateCode(); } });
-  }
-
-  window.submitGateCode = function(){
-    var val = (input.value||'').trim();
-    if(val === 'WATCH2026'){
-      localStorage.setItem('wt_op','1');
-      overlay.classList.add('closed');
-    } else {
-      err.textContent = 'Incorrect code. Try again.';
-      input.value = '';
-      input.focus();
-    }
-  };
-})();
-
 // ═══════════════════ MATERIALS ═══════════════════
 const MAT = [
   // COPPER
@@ -658,20 +617,20 @@ async function refreshTickets(){
   });
 }
 async function refreshRedemptions(){
-  const { data, error } = await sb.from('redemptions').select('*, businesses(name), residents(wallet_id)').order('created_at',{ascending:false});
+  const { data, error } = await sb.from('redemptions').select('*, businesses(business_name), residents(wallet_id)').order('created_at',{ascending:false});
   if(error){console.error(error);return;}
   S.redemptions = (data||[]).map(r=>({
     id:r.id, ts:r.created_at, wallet:(r.residents&&r.residents.wallet_id)||'', amt:r.wtwr_amount.toFixed(2),
-    type:(r.businesses&&r.businesses.name)||'business', usd:r.usd_value.toFixed(2),
+    type:(r.businesses&&r.businesses.business_name)||'business', usd:r.usd_value.toFixed(2),
   }));
 }
 async function refreshBusinesses(){
-  const { data, error } = await sb.from('businesses').select('*').order('name');
+  const { data, error } = await sb.from('businesses').select('*').order('business_name');
   if(error){console.error(error);return;}
   S.businesses = data||[];
   const sel = document.getElementById('rdmBusiness');
   if(sel){
-    sel.innerHTML = S.businesses.map(b=>`<option value="${b.id}" data-mult="${b.multiplier}">${b.name} (${b.tier}, ${Number(b.multiplier).toFixed(2)}×)</option>`).join('');
+    sel.innerHTML = S.businesses.map(b=>`<option value="${b.id}" data-mult="${b.multiplier}">${b.business_name} (${b.tier}, ${Number(b.multiplier).toFixed(2)}×)</option>`).join('');
   }
 }
 async function findResidentByWallet(wallet){

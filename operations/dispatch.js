@@ -1,6 +1,6 @@
 const SUPABASE_URL = 'https://eypovuxuddiqgncjdpkq.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_ZlykauNc-3YY80w6nxzsKw_Z2lgAgU1';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON) : null;
 
 const STATUS_APPROVED = 'APPROVED';
 const STATUS_QUEUED = 'QUEUED';
@@ -332,4 +332,9 @@ async function initDispatch() {
   await loadActiveRuns();
 }
 
-window.addEventListener('DOMContentLoaded', initDispatch);
+window.addEventListener('DOMContentLoaded', () => {
+  if (!window.watchtowerOperatorReady) return;
+  window.watchtowerOperatorReady.then((isOperator) => {
+    if (isOperator) initDispatch();
+  });
+});

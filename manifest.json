@@ -7,6 +7,6 @@
   "background_color": "#060a0d",
   "theme_color": "#060a0d",
   "icons": [
-    { "src": "/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "/icon-1.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ]
 }

@@ -1,6 +1,6 @@
 const SUPABASE_URL = 'https://eypovuxuddiqgncjdpkq.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_ZlykauNc-3YY80w6nxzsKw_Z2lgAgU1';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON) : null;
 
 function setStatus(id, message, tone = 'neutral') {
   const el = document.getElementById(id);
@@ -509,4 +509,9 @@ function initOperations() {
   loadPassportOptions();
 }
 
-document.addEventListener('DOMContentLoaded', initOperations);
+document.addEventListener('DOMContentLoaded', () => {
+  if (!window.watchtowerOperatorReady) return;
+  window.watchtowerOperatorReady.then((isOperator) => {
+    if (isOperator) initOperations();
+  });
+});
