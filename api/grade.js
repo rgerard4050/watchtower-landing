@@ -1,95 +1,150 @@
-// Watchtower — OPERATOR intake scanner API
-// Compatible with Vercel serverless routes in /api.
+// api/grade.js — Watchtower operator intake grading
+// Replace the whole file with this. Deploy, scan once, then check Vercel runtime logs.
 
-const MODEL = "claude-haiku-4-5-20251001";
+const MODEL = "claude-sonnet-5";
 
-const SYSTEM = `You are the Watchtower OPERATOR intake scanner — a cold, precise grading instrument for a scrap and e-waste operator at intake. No encouragement, no coaching, no fluff. Identify and grade the material accurately for payout.
+const SYSTEM_PROMPT = `You are the Watchtower operator intake grading instrument.
+You are NOT a coach and NOT an educator. You are a cold, precise grading tool
+used by an operator at intake to price a load.
 
-Grade against standard scrap grades:
-- Copper: Bare Bright, #1 Copper, #2 Copper, insulated wire (note recovery %).
-- Aluminum: extrusion, sheet, cast, UBC (used beverage cans).
-- Brass: yellow brass, red brass.
-- Steel: light iron / shred; Stainless 304 vs 316 (note magnet test).
-- Batteries: lead-acid, lithium, alkaline.
-- Electric motors, sealed units / compressors.
-- E-scrap / PCBs: gold-finger boards, CPUs, RAM, telecom-grade vs low-grade boards.
-- Plastics: resin code #1 through #7.
-- Glass by color.
+Rules:
+- No encouragement, no fluff, no praise, no hedging language.
+- If you cannot see enough to grade confidently, say so plainly and lower confidence.
+- Flag contamination explicitly. Contamination changes payout.
+- Flag safety hazards explicitly: lithium cells, sealed capacitors, leaking batteries,
+  mercury switches, CRT glass, freon-bearing appliances.
+- Never invent a weight. If weight is not provided, estimate a range and mark it estimated.
 
-Flag contamination and any downgrade reason: attachments, coatings, mixed metals, moisture, non-target material. Give a rough US $/lb range as a STARTING estimate only — the operator sets the real price.
+Respond with ONLY a raw JSON object. No markdown, no backticks, no preamble.
+Use exactly this shape:
 
-Respond with ONLY a JSON object, no markdown, no backticks, no extra words:
 {
-  "material": "material family",
-  "grade": "specific grade",
+  "material": "short name of the dominant material",
+  "grade": "the trade grade designation",
   "confidence": "high | medium | low",
-  "contamination": "downgrade or contamination notes, or 'none'",
-  "price_per_lb_low": number,
-  "price_per_lb_high": number,
-  "notes": "short technical note, e.g. verify with magnet / strip insulation"
-}`;
+  "estimated_weight_lbs": { "low": 0, "high": 0, "estimated": true },
+  "contamination": ["each contaminant found, empty array if clean"],
+  "safety_flags": ["each hazard found, empty array if none"],
+  "downgrade_reasons": ["why this is not a higher grade, empty array if top grade"],
+  "price_per_lb_usd": { "low": 0, "high": 0 },
+  "load_value_usd": { "low": 0, "high": 0 },
+  "payout": {
+    "platform_usd": { "low": 0, "high": 0 },
+    "resident_usd": { "low": 0, "high": 0 },
+    "driver_usd": { "low": 0, "high": 0 },
+    "resident_wtwr": { "low": 0, "high": 0 }
+  },
+  "operator_notes": "one or two sentences, blunt, actionable at the scale"
+}
 
-module.exports = async function handler(req, res) {
+Payout math is fixed: platform 50%, resident 40%, driver 10% of load_value_usd.
+resident_wtwr = resident_usd * 100 (peg is 100 WTWR per $1).`;
+
+export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Use POST" });
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return res.status(500).json({
-      error: "Missing ANTHROPIC_API_KEY. Add it in Vercel > Settings > Environment Variables, then redeploy.",
-    });
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    console.error("GRADE: ANTHROPIC_API_KEY is not set in this environment");
+    return res.status(500).json({ error: "Server is missing ANTHROPIC_API_KEY" });
   }
 
   try {
-    const { imageBase64, mediaType } = req.body || {};
-    if (!imageBase64) {
-      return res.status(400).json({ error: "No image received." });
+    const body = req.body || {};
+
+    // Accept whatever key the front end happens to send.
+    const rawImage =
+      body.image || body.imageBase64 || body.photo || body.data || body.base64;
+
+    if (!rawImage) {
+      console.error("GRADE: no image in body. Keys received:", Object.keys(body));
+      return res.status(400).json({ error: "No image received" });
     }
 
-    const apiResponse = await fetch("https://api.anthropic.com/v1/messages", {
+    // THE FIX: strip the data URL prefix. Anthropic wants raw base64 only.
+    // "data:image/jpeg;base64,/9j/4AAQ..." -> "/9j/4AAQ..."
+    let base64 = String(rawImage);
+    let mediaType = "image/jpeg";
+
+    const dataUrlMatch = base64.match(/^data:(image\/[a-zA-Z+]+);base64,(.*)$/s);
+    if (dataUrlMatch) {
+      mediaType = dataUrlMatch[1];
+      base64 = dataUrlMatch[2];
+    }
+    base64 = base64.replace(/\s/g, "");
+
+    if (mediaType === "image/jpg") mediaType = "image/jpeg";
+
+    const userText = body.notes
+      ? `Operator notes from the scale: ${body.notes}`
+      : "Grade this intake load.";
+
+    const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        "content-type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 1024,
-        system: SYSTEM,
+        max_tokens: 1500,
+        system: SYSTEM_PROMPT,
         messages: [
           {
             role: "user",
             content: [
               {
                 type: "image",
-                source: { type: "base64", media_type: mediaType || "image/jpeg", data: imageBase64 },
+                source: { type: "base64", media_type: mediaType, data: base64 },
               },
-              { type: "text", text: "Grade this material. Reply with the JSON only." },
+              { type: "text", text: userText },
             ],
           },
         ],
       }),
     });
 
-    const data = await apiResponse.json();
-    if (data.error) {
-      return res.status(502).json({ error: data.error.message || "API error" });
+    // THE DIAGNOSTIC: read the body as text first so a failure is always readable.
+    const rawBody = await anthropicRes.text();
+
+    if (!anthropicRes.ok) {
+      console.error(
+        "GRADE: Anthropic returned",
+        anthropicRes.status,
+        "->",
+        rawBody
+      );
+      return res.status(502).json({
+        error: "Grading service rejected the request",
+        status: anthropicRes.status,
+        detail: rawBody,
+      });
     }
 
-    const textBlock = (data.content || []).find((b) => b.type === "text");
-    const raw = textBlock ? textBlock.text : "";
-    const clean = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
+    const data = JSON.parse(rawBody);
 
-    let parsed;
+    const text = (data.content || [])
+      .filter((b) => b.type === "text")
+      .map((b) => b.text)
+      .join("\n")
+      .trim();
+
+    const cleaned = text.replace(/```json/gi, "").replace(/```/g, "").trim();
+
+    let grade;
     try {
-      parsed = JSON.parse(clean);
-    } catch {
-      return res.status(200).json({ error: "Unreadable result. Re-shoot the material." });
+      grade = JSON.parse(cleaned);
+    } catch (parseErr) {
+      console.error("GRADE: model did not return clean JSON ->", cleaned);
+      return res.status(200).json({ raw: cleaned, parse_failed: true });
     }
 
-    return res.status(200).json(parsed);
+    return res.status(200).json(grade);
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("GRADE: unhandled failure ->", err && err.stack ? err.stack : err);
+    return res.status(500).json({ error: "Grading failed", detail: String(err) });
   }
-};
+}
