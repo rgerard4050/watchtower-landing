@@ -257,18 +257,97 @@ function viewManifest(manifestId) {
 async function loadPassportOptions() {
   const selector = document.getElementById('materialPassportId');
   const txSelector = document.getElementById('transactionMaterialId');
-  if (!selector && !txSelector) return;
+  const profileSelector = document.getElementById('profilePassportId');
+  if (!selector && !txSelector && !profileSelector) return;
 
-  const { data, error } = await sb.from('passports').select('id, manufacturer, model').order('created_at', { ascending: false });
+  const { data, error } = await sb.from('passports').select('id, passport_id, manufacturer, model').order('created_at', { ascending: false });
   if (error) return;
 
   if (selector) {
     selector.innerHTML = '<option value="">Select passport</option>' + (data || []).map((passport) => `<option value="${passport.id}">${passport.manufacturer || 'Passport'} ${passport.model || ''}</option>`).join('');
   }
+  if (profileSelector) {
+    const current = profileSelector.value;
+    profileSelector.innerHTML = '<option value="">Select a passport</option>' + (data || []).map((passport) => `<option value="${passport.id}">${passport.passport_id || ('#' + passport.id)} — ${passport.manufacturer || 'Passport'} ${passport.model || ''}</option>`).join('');
+    if (current) profileSelector.value = current;
+  }
   if (txSelector) {
     const { data: materials } = await sb.from('materials_recovered').select('id, material_name').order('created_at', { ascending: false });
     txSelector.innerHTML = '<option value="">Choose recovered material</option>' + (materials || []).map((material) => `<option value="${material.id}">${material.material_name || 'Recovered material'}</option>`).join('');
   }
+}
+
+const EVENT_LABELS = {
+  CREATED: 'Intake Created', AI_GRADED: 'AI Graded', OPERATOR_VERIFIED: 'Operator Verified',
+  ACQUIRED: 'Acquisition Confirmed', PASSPORT_CREATED: 'Passport Created',
+  MANIFEST_CREATED: 'Manifest Created',
+};
+function fmtEventLabel(type) { return EVENT_LABELS[type] || type.replace(/_/g, ' '); }
+function fmtDateTime(iso) { return iso ? new Date(iso).toLocaleString() : '—'; }
+
+async function loadPassportProfile(passportId) {
+  const panel = document.getElementById('passportProfile');
+  if (!panel) return;
+  if (!passportId) { panel.classList.add('hidden'); return; }
+
+  const { data: passport, error } = await sb.from('passports').select('*').eq('id', passportId).single();
+  if (error || !passport) { panel.classList.add('hidden'); return; }
+
+  document.getElementById('profileWtMat').textContent = passport.passport_id || ('#' + passport.id);
+  document.getElementById('profileLifecycle').textContent = passport.lifecycle_status || 'CREATED';
+  document.getElementById('profileManufacturer').textContent = passport.manufacturer || '—';
+  document.getElementById('profileModel').textContent = passport.model || '—';
+  document.getElementById('profileOperator').textContent = passport.created_by || '—';
+  document.getElementById('profileIntakeLink').textContent = passport.intake_number || 'Standalone (no linked intake)';
+
+  document.getElementById('provIntakeNumber').textContent = passport.intake_number || '—';
+  document.getElementById('provIntakeDate').textContent = fmtDateTime(passport.intake_created_at);
+  document.getElementById('provOperator').textContent = passport.intake_operator || '—';
+  document.getElementById('provConfidence').textContent = passport.intake_confidence ? passport.intake_confidence.toUpperCase() : '—';
+  document.getElementById('provMaterial').textContent = passport.intake_material || '—';
+  document.getElementById('provGrade').textContent = passport.intake_grade || '—';
+
+  // Timeline: real passport_events, merged with the source intake's real
+  // intake_events when one exists -- the full life history, not a stub.
+  const queries = [sb.from('passport_events').select('event_type,actor,notes,created_at').eq('passport_id', passportId)];
+  if (passport.intake_id) {
+    // Excludes intake_events' own PASSPORT_CREATED marker -- passport_events'
+    // birth-certificate row above already covers that moment; keeping both
+    // would show the same event twice in one timeline.
+    queries.push(sb.from('intake_events').select('event_type,actor,notes,created_at').eq('intake_id', passport.intake_id).neq('event_type', 'PASSPORT_CREATED'));
+  }
+  const results = await Promise.all(queries);
+  const timeline = results.flatMap((r) => r.data || []).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  const timelineEl = document.getElementById('profileTimelineList');
+  timelineEl.innerHTML = timeline.length
+    ? timeline.map((e) => `<li class="flex items-center justify-between border-b border-slate-800/60 pb-2"><span><span class="text-emerald-400">✓</span> ${fmtEventLabel(e.event_type)}${e.actor ? ' <span class="text-slate-500">— ' + e.actor + '</span>' : ''}</span><span class="text-xs text-slate-500">${fmtDateTime(e.created_at)}</span></li>`).join('')
+    : '<li class="text-slate-500">No events recorded yet.</li>';
+
+  // Evidence: real passport_evidence rows. Legacy photo_url shown only as a
+  // clearly-labeled fallback when no structured evidence exists yet.
+  const { data: evidence } = await sb.from('passport_evidence').select('*').eq('passport_id', passportId).order('uploaded_at', { ascending: false });
+  const evidenceEl = document.getElementById('profileEvidenceGrid');
+  if (evidence && evidence.length) {
+    evidenceEl.innerHTML = evidence.map((ev) => `<div class="rounded-lg border border-slate-800 bg-slate-950/60 p-3 text-sm"><p class="font-medium">${ev.evidence_type.replace(/_/g, ' ')}</p><p class="mt-1 text-xs text-slate-500">${ev.verification_status} · ${fmtDateTime(ev.uploaded_at)}</p></div>`).join('');
+  } else if (passport.photo_url) {
+    evidenceEl.innerHTML = `<div class="rounded-lg border border-dashed border-slate-700 bg-slate-950/40 p-3 text-sm text-slate-400">Legacy photo reference on file<p class="mt-1 text-xs text-slate-600">Not yet migrated to the structured evidence system.</p></div>`;
+  } else {
+    evidenceEl.innerHTML = '<p class="text-sm text-slate-500">No evidence photos recorded yet.</p>';
+  }
+
+  const { data: materials } = await sb.from('materials_recovered').select('*').eq('passport_id', passportId);
+  const compBody = document.getElementById('profileCompositionBody');
+  compBody.innerHTML = (materials && materials.length)
+    ? materials.map((m) => `<tr class="border-b border-slate-800/60"><td class="py-2 pr-4">${m.material_name || '—'}</td><td class="py-2 pr-4">${m.quantity ?? '—'}</td><td class="py-2 pr-4">${m.unit || '—'}</td><td class="py-2">${m.sale_value_estimate != null ? '$' + Number(m.sale_value_estimate).toFixed(2) : '—'}</td></tr>`).join('')
+    : '<tr><td colspan="4" class="py-2 text-slate-500">No recovered materials logged yet.</td></tr>';
+
+  const { data: manifests } = await sb.from('manifests').select('id, manifest_id, status, created_at').eq('passport_id', passportId);
+  const manifestEl = document.getElementById('profileManifestList');
+  manifestEl.innerHTML = (manifests && manifests.length)
+    ? manifests.map((m) => `<li class="flex items-center justify-between border-b border-slate-800/60 pb-2"><a href="./manifest.html" class="text-cyan-400 hover:underline">${m.manifest_id || ('#' + m.id)}</a><span class="text-xs text-slate-500">${m.status} · ${fmtDateTime(m.created_at)}</span></li>`).join('')
+    : '<li class="text-slate-500">Not yet linked to a manifest.</li>';
+
+  panel.classList.remove('hidden');
 }
 
 async function loadReconcileData() {
@@ -435,8 +514,14 @@ async function createPassport(event) {
   }
 
   form.reset();
-  loadPassportOptions();
+  await loadPassportOptions();
   setStatus('passportStatus', `✓ Passport ${data.id} created.`, 'success');
+
+  const profileSelector = document.getElementById('profilePassportId');
+  if (profileSelector) {
+    profileSelector.value = data.id;
+    loadPassportProfile(data.id);
+  }
 
   if (intakeLinked) {
     // This intake has now produced its passport -- leave the button locked
@@ -614,6 +699,11 @@ function initOperations() {
     passportForm.addEventListener('submit', createPassport);
     attachReuseWarning();
     prefillPassportFromIntake();
+  }
+
+  const profilePassportId = document.getElementById('profilePassportId');
+  if (profilePassportId) {
+    profilePassportId.addEventListener('change', (e) => loadPassportProfile(e.target.value));
   }
 
   const materialForm = document.getElementById('materialForm');
