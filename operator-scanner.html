@@ -87,7 +87,7 @@ retakeBtn.addEventListener('click',()=>{
 
 async function grade(b64){
   try{
-    const r=await fetch('/api/scan-operator',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imageBase64:b64,mediaType:'image/jpeg'})});
+    const r=await fetch('/api/grade',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imageBase64:b64,mediaType:'image/jpeg'})});
     const d=await r.json();
     if(d.error){log('ERROR: '+d.error);capBtn.textContent='GRADE LOAD';capBtn.removeAttribute('disabled');return;}
     log('GRADE COMPLETE.');
@@ -96,15 +96,14 @@ async function grade(b64){
 }
 
 function showResult(d){
-  const actClass = 'action'+(d.action||'HOLD');
+  const lo=Number(d.price_per_lb_low)||0, hi=Number(d.price_per_lb_high)||0;
+  const contaminated = d.contamination && d.contamination.toLowerCase()!=='none';
   result.innerHTML =
-    row('ITEM', d.item) +
-    row('CATEGORY', d.category) +
-    row('GRADE', d.grade) +
-    row('EST WEIGHT', d.est_weight_lbs) +
-    row('CONTAMINATION', d.contamination || 'NONE NOTED', d.contamination ? 'warn' : '') +
-    row('ACTION', d.action, actClass) +
-    row('CONFIDENCE', (d.confidence_pct ?? 0)+'%') +
+    row('MATERIAL', d.material || 'UNKNOWN') +
+    row('GRADE', d.grade || '-') +
+    row('CONFIDENCE', d.confidence || '-') +
+    row('EST $/LB', '$'+lo.toFixed(2)+' - $'+hi.toFixed(2)) +
+    row('CONTAMINATION', contaminated ? d.contamination : 'NONE NOTED', contaminated ? 'warn' : '') +
     row('NOTES', d.notes || '-');
   result.style.display='block';
 }
