@@ -42,7 +42,9 @@ video,#capturedImg{width:100%;height:100%;object-fit:cover;display:block;}
 #decisionControls{display:none;width:90%;max-width:450px;margin-top:10px;flex-direction:column;gap:10px;}
 #success{display:none;width:90%;max-width:450px;margin-top:14px;background:var(--panel);border:1px solid var(--green);border-radius:8px;padding:18px;text-align:center;}
 #success h3{color:var(--green);margin:0 0 10px;letter-spacing:2px;}
+#successActions{border-top:1px solid var(--border);margin-top:14px;padding-top:14px;display:flex;flex-direction:column;}
 #success .btn{margin-top:8px;}
+#successActions .btn:first-child{margin-top:0;}
 </style>
 </head>
 <body>
@@ -76,13 +78,18 @@ video,#capturedImg{width:100%;height:100%;object-fit:cover;display:block;}
 </div>
 
 <div id="success">
-  <h3>INTAKE CREATED</h3>
-  <div class="row"><span class="k">INTAKE ID</span><span class="v" id="successId"></span></div>
+  <h3>&#10003; INTAKE RECORDED</h3>
+  <div class="row"><span class="k">INTAKE #</span><span class="v" id="successId"></span></div>
   <div class="row"><span class="k">MATERIAL</span><span class="v" id="successMaterial"></span></div>
   <div class="row"><span class="k">WEIGHT</span><span class="v" id="successWeight"></span></div>
-  <div class="row"><span class="k">EST VALUE</span><span class="v" id="successValue"></span></div>
-  <button class="btn" type="button" id="genPassportBtn">GENERATE PASSPORT</button>
-  <button class="btn sec" type="button" onclick="window.location.href='operations/manifest.html'">ADD TO REVIEW MANIFEST</button>
+  <div class="row"><span class="k">VALUE</span><span class="v" id="successValue"></span></div>
+  <div class="row"><span class="k">AI CONFIDENCE</span><span class="v" id="successConfidence"></span></div>
+  <div class="row"><span class="k">PROVENANCE</span><span class="v" id="successTimestamp"></span></div>
+  <div id="successActions">
+    <button class="btn" type="button" id="newIntakeBtn">SCAN NEXT LOAD</button>
+    <button class="btn sec" type="button" id="genPassportBtn">GENERATE PASSPORT</button>
+    <button class="btn sec" type="button" id="addManifestBtn">CREATE REVIEW MANIFEST</button>
+  </div>
 </div>
 
 <canvas id="snap" style="display:none;"></canvas>
@@ -95,10 +102,12 @@ const capBtn=document.getElementById('capBtn'),retakeBtn=document.getElementById
 const decision=document.getElementById('decision'),decisionControls=document.getElementById('decisionControls'),acceptBtn=document.getElementById('acceptBtn');
 const materialIn=document.getElementById('materialIn'),gradeIn=document.getElementById('gradeIn'),weightIn=document.getElementById('weightIn'),priceIn=document.getElementById('priceIn'),notesIn=document.getElementById('notesIn'),grossOut=document.getElementById('grossOut');
 const success=document.getElementById('success');
-const genPassportBtn=document.getElementById('genPassportBtn');
+const genPassportBtn=document.getElementById('genPassportBtn'),newIntakeBtn=document.getElementById('newIntakeBtn'),addManifestBtn=document.getElementById('addManifestBtn');
 let lastGrade=null;
 let passportUrl='operations/passport.html';
+let manifestUrl='operations/manifest.html';
 genPassportBtn.addEventListener('click',()=>{window.location.href=passportUrl;});
+addManifestBtn.addEventListener('click',()=>{window.location.href=manifestUrl;});
 function log(m){cons.innerHTML+='<br>&gt; '+m;cons.scrollTop=cons.scrollHeight;}
 
 async function initCam(){
@@ -117,13 +126,15 @@ capBtn.addEventListener('click',()=>{
   grade(dataUrl.split(',')[1]);
 });
 
-retakeBtn.addEventListener('click',()=>{
+function resetToCamera(){
   video.style.display='block';capImg.style.display='none';
   capBtn.textContent='GRADE LOAD';capBtn.removeAttribute('disabled');retakeBtn.style.display='none';
   result.style.display='none';cons.innerHTML='READY.';
   decision.style.display='none';decisionControls.style.display='none';success.style.display='none';
   lastGrade=null;
-});
+}
+retakeBtn.addEventListener('click',resetToCamera);
+newIntakeBtn.addEventListener('click',resetToCamera);
 
 async function grade(b64){
   try{
@@ -197,7 +208,11 @@ acceptBtn.addEventListener('click',async()=>{
     notes: notesIn.value.trim() || null,
     weight_lb: w,
     price_per_lb: p,
-    gross_value: gross
+    gross_value: gross,
+    ai_provider: lastGrade.ai_provider || null,
+    ai_model: lastGrade.ai_model || null,
+    ai_prompt_version: lastGrade.ai_prompt_version || null,
+    ai_timestamp: lastGrade.ai_timestamp || null
   }).select().single();
 
   if(error){
@@ -208,12 +223,24 @@ acceptBtn.addEventListener('click',async()=>{
 
   log('INTAKE RECORDED.');
   decision.style.display='none';decisionControls.style.display='none';result.style.display='none';
-  document.getElementById('successId').textContent=data.id;
+  document.getElementById('successId').textContent=data.intake_number||data.id;
   document.getElementById('successMaterial').textContent=data.material||'UNKNOWN';
   document.getElementById('successWeight').textContent=w.toFixed(1)+' LB';
   document.getElementById('successValue').textContent='$'+gross.toFixed(2);
-  const passportParams=new URLSearchParams({intake_id:data.id,material:data.material||'',weight:w,grade:data.grade||''});
-  passportUrl='operations/passport.html?'+passportParams.toString();
+  document.getElementById('successConfidence').textContent=lastGrade.confidence?lastGrade.confidence.toUpperCase():'-';
+  document.getElementById('successTimestamp').textContent=data.ai_timestamp?new Date(data.ai_timestamp).toLocaleString():new Date(data.created_at).toLocaleString();
+  const custodyFields={
+    intake_id:data.id,
+    intake_number:data.intake_number||'',
+    intake_created_at:data.created_at||'',
+    intake_operator:data.operator||'',
+    intake_confidence:data.confidence||'',
+    material:data.material||'',
+    grade:data.grade||'',
+    weight:w
+  };
+  passportUrl='operations/passport.html?'+new URLSearchParams(custodyFields).toString();
+  manifestUrl='operations/manifest.html?'+new URLSearchParams(custodyFields).toString();
   success.style.display='block';
 });
 

@@ -2,6 +2,7 @@
 // Replace the whole file with this. Deploy, scan once, then check Vercel runtime logs.
 
 const MODEL = "claude-sonnet-5";
+const PROMPT_VERSION = "2026-07-19";
 
 const SYSTEM_PROMPT = `You are the Watchtower operator intake grading instrument.
 You are NOT a coach and NOT an educator. You are a cold, precise grading tool
@@ -141,6 +142,11 @@ export default async function handler(req, res) {
       console.error("GRADE: model did not return clean JSON ->", cleaned);
       return res.status(200).json({ raw: cleaned, parse_failed: true });
     }
+
+    grade.ai_provider = "anthropic";
+    grade.ai_model = MODEL;
+    grade.ai_prompt_version = PROMPT_VERSION;
+    grade.ai_timestamp = new Date().toISOString();
 
     return res.status(200).json(grade);
   } catch (err) {

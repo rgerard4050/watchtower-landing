@@ -2,6 +2,12 @@ const SUPABASE_URL = 'https://eypovuxuddiqgncjdpkq.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_ZlykauNc-3YY80w6nxzsKw_Z2lgAgU1';
 const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON) : null;
 
+// Populated by prefillPassportFromIntake()/prefillManifestFromIntake() when the
+// page was reached via an intake_id URL param, then read back into the insert
+// payload on submit so the lineage persists without the operator retyping it.
+let passportIntakeProvenance = null;
+let manifestIntakeProvenance = null;
+
 function setStatus(id, message, tone = 'neutral') {
   const el = document.getElementById(id);
   if (!el) return;
@@ -38,6 +44,12 @@ async function createManifest(event) {
     risk_flags: parseRiskFlags(document.getElementById('risk_flags').value),
     status: 'REVIEWING',
   };
+
+  if (manifestIntakeProvenance) {
+    payload.intake_id = manifestIntakeProvenance.intake_id;
+    payload.intake_number = manifestIntakeProvenance.intake_number || null;
+    payload.passport_id = manifestIntakeProvenance.passport_id || null;
+  }
 
   if (!payload.source || !payload.description) {
     setStatus('manifestStatus', 'Source and description are required.', 'error');
@@ -383,6 +395,16 @@ async function createPassport(event) {
     status: 'received',
   };
 
+  if (passportIntakeProvenance) {
+    payload.intake_id = passportIntakeProvenance.intake_id;
+    payload.intake_number = passportIntakeProvenance.intake_number || null;
+    payload.intake_created_at = passportIntakeProvenance.intake_created_at || null;
+    payload.intake_operator = passportIntakeProvenance.intake_operator || null;
+    payload.intake_confidence = passportIntakeProvenance.intake_confidence || null;
+    payload.intake_material = passportIntakeProvenance.material || null;
+    payload.intake_grade = passportIntakeProvenance.grade || null;
+  }
+
   const { data, error } = await sb.from('passports').insert(payload).select().single();
   if (error) {
     setStatus('passportStatus', error.message, 'error');
@@ -461,7 +483,43 @@ function prefillPassportFromIntake() {
     incomingWeight.value = params.get('weight');
   }
 
-  setStatus('passportStatus', `Prefilled from intake #${intakeId}.`, 'neutral');
+  passportIntakeProvenance = {
+    intake_id: intakeId,
+    intake_number: params.get('intake_number'),
+    intake_created_at: params.get('intake_created_at'),
+    intake_operator: params.get('intake_operator'),
+    intake_confidence: params.get('intake_confidence'),
+    material: params.get('material'),
+    grade: params.get('grade'),
+  };
+
+  const intakeNumber = params.get('intake_number');
+  setStatus('passportStatus', `Prefilled from intake ${intakeNumber || '#' + intakeId}.`, 'neutral');
+}
+
+function prefillManifestFromIntake() {
+  const params = new URLSearchParams(window.location.search);
+  const intakeId = params.get('intake_id');
+  if (!intakeId) return;
+
+  const description = document.getElementById('description');
+  if (description && !description.value && params.get('material')) {
+    description.value = params.get('material');
+  }
+
+  const estimatedWeight = document.getElementById('estimated_weight');
+  if (estimatedWeight && !estimatedWeight.value && params.get('weight')) {
+    estimatedWeight.value = params.get('weight');
+  }
+
+  manifestIntakeProvenance = {
+    intake_id: intakeId,
+    intake_number: params.get('intake_number'),
+    passport_id: params.get('passport_id'),
+  };
+
+  const intakeNumber = params.get('intake_number');
+  setStatus('manifestStatus', `Prefilled from intake ${intakeNumber || '#' + intakeId}.`, 'neutral');
 }
 
 function attachReuseWarning() {
@@ -477,6 +535,7 @@ function initOperations() {
   const manifestForm = document.getElementById('manifestForm');
   if (manifestForm) {
     manifestForm.addEventListener('submit', createManifest);
+    prefillManifestFromIntake();
   }
 
   const refreshQueue = document.getElementById('refreshQueue');
