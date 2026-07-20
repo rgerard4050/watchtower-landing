@@ -8,6 +8,14 @@ const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE
 let passportIntakeProvenance = null;
 let manifestIntakeProvenance = null;
 
+async function logIntakeEvent(intakeId, eventType) {
+  if (!intakeId) return;
+  const { data: sessionData } = await sb.auth.getSession();
+  const actorId = sessionData && sessionData.session && sessionData.session.user ? sessionData.session.user.id : null;
+  const { error } = await sb.from('intake_events').insert({ intake_id: intakeId, event_type: eventType, actor: actorId });
+  if (error) console.error('EVENT LOG WARNING:', error.message);
+}
+
 function setStatus(id, message, tone = 'neutral') {
   const el = document.getElementById(id);
   if (!el) return;
@@ -60,6 +68,10 @@ async function createManifest(event) {
   if (error) {
     setStatus('manifestStatus', error.message, 'error');
     return;
+  }
+
+  if (payload.intake_id) {
+    logIntakeEvent(payload.intake_id, 'MANIFEST_CREATED');
   }
 
   form.reset();
@@ -409,6 +421,10 @@ async function createPassport(event) {
   if (error) {
     setStatus('passportStatus', error.message, 'error');
     return;
+  }
+
+  if (payload.intake_id) {
+    logIntakeEvent(payload.intake_id, 'PASSPORT_CREATED');
   }
 
   event.currentTarget.reset();

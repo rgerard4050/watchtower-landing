@@ -97,6 +97,12 @@ video,#capturedImg{width:100%;height:100%;object-fit:cover;display:block;}
   </div>
 </div>
 
+<div id="photoRetry" style="display:none;width:90%;max-width:450px;margin-top:14px;background:var(--panel);border:1px solid var(--red);border-radius:8px;padding:18px;text-align:center;">
+  <h3 style="color:var(--red);margin:0 0 10px;letter-spacing:2px;">&#9888; PHOTO EVIDENCE FAILED TO SAVE</h3>
+  <p style="color:#5a7a8a;font-size:13px;margin:0 0 14px;">Intake data is recorded, but the evidence photo did not upload. This intake cannot be marked ready until the photo is saved.</p>
+  <button class="btn" type="button" id="retryPhotoBtn">RETRY PHOTO UPLOAD</button>
+</div>
+
 <canvas id="snap" style="display:none;"></canvas>
 
 <script>
@@ -109,10 +115,12 @@ const materialIn=document.getElementById('materialIn'),gradeIn=document.getEleme
 const success=document.getElementById('success');
 const genPassportBtn=document.getElementById('genPassportBtn'),newIntakeBtn=document.getElementById('newIntakeBtn'),addManifestBtn=document.getElementById('addManifestBtn');
 const confirmAcquireBtn=document.getElementById('confirmAcquireBtn'),postAcquireActions=document.getElementById('postAcquireActions'),successStatus=document.getElementById('successStatus');
+const photoRetry=document.getElementById('photoRetry'),retryPhotoBtn=document.getElementById('retryPhotoBtn');
 let lastGrade=null;
 let passportUrl='operations/passport.html';
 let manifestUrl='operations/manifest.html';
 let currentIntakeId=null;
+let pendingIntakeData=null;
 genPassportBtn.addEventListener('click',()=>{window.location.href=passportUrl;});
 addManifestBtn.addEventListener('click',()=>{window.location.href=manifestUrl;});
 function log(m){cons.innerHTML+='<br>&gt; '+m;cons.scrollTop=cons.scrollHeight;}
@@ -138,9 +146,9 @@ function resetToCamera(){
   capBtn.textContent='GRADE LOAD';capBtn.removeAttribute('disabled');retakeBtn.style.display='none';
   result.style.display='none';cons.innerHTML='READY.';
   decision.style.display='none';decisionControls.style.display='none';success.style.display='none';
-  postAcquireActions.style.display='none';
+  postAcquireActions.style.display='none';photoRetry.style.display='none';
   confirmAcquireBtn.style.display='block';confirmAcquireBtn.removeAttribute('disabled');confirmAcquireBtn.textContent='CONFIRM ACQUISITION';
-  lastGrade=null;currentIntakeId=null;
+  lastGrade=null;currentIntakeId=null;pendingIntakeData=null;
 }
 retakeBtn.addEventListener('click',resetToCamera);
 newIntakeBtn.addEventListener('click',resetToCamera);
@@ -160,12 +168,15 @@ function showResult(d){
   const lo=Number(d.price_per_lb_usd && d.price_per_lb_usd.low)||0, hi=Number(d.price_per_lb_usd && d.price_per_lb_usd.high)||0;
   const contamList=Array.isArray(d.contamination)?d.contamination.filter(Boolean):[];
   const contaminated=contamList.length>0;
+  const safetyList=Array.isArray(d.safety_flags)?d.safety_flags.filter(Boolean):[];
+  const hazardous=safetyList.length>0;
   result.innerHTML = '<span class="section-label">AI SUGGESTION</span>' +
     row('MATERIAL', d.material || 'UNKNOWN') +
     row('GRADE', d.grade || '-') +
     row('CONFIDENCE', d.confidence || '-') +
     row('EST $/LB', '$'+lo.toFixed(2)+' - $'+hi.toFixed(2)) +
     row('CONTAMINATION', contaminated ? contamList.join(', ') : 'NONE NOTED', contaminated ? 'warn' : '') +
+    row('SAFETY', hazardous ? safetyList.join(', ') : 'NONE NOTED', hazardous ? 'warn' : '') +
     row('NOTES', d.operator_notes || '-');
   result.style.display='block';
 
@@ -189,52 +200,39 @@ function computeGross(){
 weightIn.addEventListener('input',computeGross);
 priceIn.addEventListener('input',computeGross);
 
-acceptBtn.addEventListener('click',async()=>{
-  if(!lastGrade)return;
-  const w=parseFloat(weightIn.value)||0, p=parseFloat(priceIn.value)||0;
-  if(w<=0||p<=0){log('ENTER WEIGHT AND PRICE FIRST.');return;}
-  if(!sb){log('SAVE ERROR: Supabase client unavailable.');return;}
+function getLocationBestEffort(timeoutMs){
+  return new Promise((resolve)=>{
+    if(!navigator.geolocation){resolve(null);return;}
+    const timer=setTimeout(()=>resolve(null), timeoutMs);
+    navigator.geolocation.getCurrentPosition(
+      pos=>{clearTimeout(timer);resolve({lat:pos.coords.latitude,lng:pos.coords.longitude});},
+      ()=>{clearTimeout(timer);resolve(null);},
+      {maximumAge:60000,timeout:timeoutMs}
+    );
+  });
+}
 
-  acceptBtn.setAttribute('disabled','true');acceptBtn.textContent='SAVING...';
+async function logIntakeEvents(events){
+  const { error } = await sb.from('intake_events').insert(events);
+  if(error) log('EVENT LOG WARNING: '+error.message);
+}
 
-  const { data:sessionData } = await sb.auth.getSession();
-  const operatorId = sessionData && sessionData.session && sessionData.session.user ? sessionData.session.user.id : null;
-  if(!operatorId){
-    log('SAVE ERROR: No operator session.');
-    acceptBtn.removeAttribute('disabled');acceptBtn.textContent='ACCEPT GRADE';
-    return;
+async function uploadEvidence(data){
+  try{
+    const blob = await (await fetch(capImg.src)).blob();
+    const objectPath = data.intake_number+'/'+Date.now()+'.jpg';
+    const { error: upErr } = await sb.storage.from('intake-evidence').upload(objectPath, blob, {contentType:'image/jpeg'});
+    if(upErr) throw upErr;
+    const { error: updErr } = await sb.from('intakes').update({ photo_path:'intake-evidence/'+objectPath }).eq('id', data.id);
+    if(updErr) throw updErr;
+    return true;
+  }catch(e){
+    log('PHOTO UPLOAD FAILED: '+(e && e.message ? e.message : e));
+    return false;
   }
+}
 
-  const contamList=Array.isArray(lastGrade.contamination)?lastGrade.contamination.filter(Boolean):[];
-  const gross=w*p;
-
-  const { data, error } = await sb.from('intakes').insert({
-    operator: operatorId,
-    material: materialIn.value.trim() || null,
-    grade: gradeIn.value.trim() || null,
-    confidence: lastGrade.confidence || null,
-    contamination: contamList.length ? contamList.join(', ') : null,
-    notes: notesIn.value.trim() || null,
-    weight_lb: w,
-    price_per_lb: p,
-    gross_value: gross,
-    ai_provider: lastGrade.ai_provider || null,
-    ai_model: lastGrade.ai_model || null,
-    ai_prompt_version: lastGrade.ai_prompt_version || null,
-    ai_timestamp: lastGrade.ai_timestamp || null
-  }).select().single();
-
-  if(error){
-    log('SAVE FAILED: '+error.message);
-    acceptBtn.removeAttribute('disabled');acceptBtn.textContent='ACCEPT GRADE';
-    return;
-  }
-
-  log('INTAKE RECORDED.');
-  decision.style.display='none';decisionControls.style.display='none';result.style.display='none';
-  currentIntakeId=data.id;
-  postAcquireActions.style.display='none';
-  confirmAcquireBtn.style.display='block';confirmAcquireBtn.removeAttribute('disabled');confirmAcquireBtn.textContent='CONFIRM ACQUISITION';
+function finishSuccess(data, w, gross){
   successStatus.textContent=data.lifecycle_status||'VERIFIED';
   document.getElementById('successId').textContent=data.intake_number||data.id;
   document.getElementById('successMaterial').textContent=data.material||'UNKNOWN';
@@ -254,12 +252,93 @@ acceptBtn.addEventListener('click',async()=>{
   };
   passportUrl='operations/passport.html?'+new URLSearchParams(custodyFields).toString();
   manifestUrl='operations/manifest.html?'+new URLSearchParams(custodyFields).toString();
+  photoRetry.style.display='none';
   success.style.display='block';
+}
+
+acceptBtn.addEventListener('click',async()=>{
+  if(!lastGrade)return;
+  const w=parseFloat(weightIn.value)||0, p=parseFloat(priceIn.value)||0;
+  if(w<=0||p<=0){log('ENTER WEIGHT AND PRICE FIRST.');return;}
+  if(!sb){log('SAVE ERROR: Supabase client unavailable.');return;}
+
+  acceptBtn.setAttribute('disabled','true');acceptBtn.textContent='SAVING...';
+
+  const [{ data:sessionData }, loc] = await Promise.all([sb.auth.getSession(), getLocationBestEffort(4000)]);
+  const operatorId = sessionData && sessionData.session && sessionData.session.user ? sessionData.session.user.id : null;
+  if(!operatorId){
+    log('SAVE ERROR: No operator session.');
+    acceptBtn.removeAttribute('disabled');acceptBtn.textContent='ACCEPT GRADE';
+    return;
+  }
+
+  const contamList=Array.isArray(lastGrade.contamination)?lastGrade.contamination.filter(Boolean):[];
+  const safetyList=Array.isArray(lastGrade.safety_flags)?lastGrade.safety_flags.filter(Boolean):[];
+  const gross=w*p;
+
+  const { data, error } = await sb.from('intakes').insert({
+    operator: operatorId,
+    material: materialIn.value.trim() || null,
+    grade: gradeIn.value.trim() || null,
+    confidence: lastGrade.confidence || null,
+    contamination: contamList.length ? contamList : null,
+    safety_flags: safetyList.length ? safetyList : null,
+    notes: notesIn.value.trim() || null,
+    weight_lb: w,
+    price_per_lb: p,
+    gross_value: gross,
+    ai_provider: lastGrade.ai_provider || null,
+    ai_model: lastGrade.ai_model || null,
+    ai_prompt_version: lastGrade.ai_prompt_version || null,
+    ai_timestamp: lastGrade.ai_timestamp || null,
+    ai_raw_response: lastGrade,
+    lat: loc ? loc.lat : null,
+    lng: loc ? loc.lng : null
+  }).select().single();
+
+  if(error){
+    log('SAVE FAILED: '+error.message);
+    acceptBtn.removeAttribute('disabled');acceptBtn.textContent='ACCEPT GRADE';
+    return;
+  }
+
+  log('INTAKE RECORDED.');
+  decision.style.display='none';decisionControls.style.display='none';result.style.display='none';
+  currentIntakeId=data.id;
+  pendingIntakeData=data;
+  postAcquireActions.style.display='none';
+  confirmAcquireBtn.style.display='block';confirmAcquireBtn.removeAttribute('disabled');confirmAcquireBtn.textContent='CONFIRM ACQUISITION';
+
+  logIntakeEvents([
+    { intake_id:data.id, event_type:'CREATED', actor:operatorId, created_at:data.created_at },
+    { intake_id:data.id, event_type:'AI_GRADED', actor:operatorId, created_at:lastGrade.ai_timestamp||data.created_at },
+    { intake_id:data.id, event_type:'OPERATOR_VERIFIED', actor:operatorId }
+  ]);
+
+  const photoOk = await uploadEvidence(data);
+  if(!photoOk){
+    photoRetry.style.display='block';
+    return;
+  }
+  finishSuccess(data, w, gross);
+});
+
+retryPhotoBtn.addEventListener('click', async()=>{
+  if(!pendingIntakeData)return;
+  retryPhotoBtn.setAttribute('disabled','true');retryPhotoBtn.textContent='RETRYING...';
+  const ok = await uploadEvidence(pendingIntakeData);
+  retryPhotoBtn.removeAttribute('disabled');retryPhotoBtn.textContent='RETRY PHOTO UPLOAD';
+  if(ok){
+    finishSuccess(pendingIntakeData, Number(pendingIntakeData.weight_lb)||0, Number(pendingIntakeData.gross_value)||0);
+  }
 });
 
 confirmAcquireBtn.addEventListener('click',async()=>{
   if(!currentIntakeId||!sb)return;
   confirmAcquireBtn.setAttribute('disabled','true');confirmAcquireBtn.textContent='CONFIRMING...';
+
+  const { data:sessionData } = await sb.auth.getSession();
+  const operatorId = sessionData && sessionData.session && sessionData.session.user ? sessionData.session.user.id : null;
 
   const { data, error } = await sb.from('intakes')
     .update({ lifecycle_status:'ACQUIRED', acquired_at:new Date().toISOString() })
@@ -272,6 +351,8 @@ confirmAcquireBtn.addEventListener('click',async()=>{
     confirmAcquireBtn.removeAttribute('disabled');confirmAcquireBtn.textContent='CONFIRM ACQUISITION';
     return;
   }
+
+  logIntakeEvents([{ intake_id:data.id, event_type:'ACQUIRED', actor:operatorId }]);
 
   log('ACQUISITION CONFIRMED.');
   successStatus.textContent=data.lifecycle_status;
