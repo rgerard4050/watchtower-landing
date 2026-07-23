@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>Watchtower Revenue Console</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="operator-auth.js"></script>
+  </head>
+  <body class="min-h-screen bg-slate-950 text-slate-100">
+    <div class="mx-auto max-w-xl px-3 py-4">
+      <header class="rounded-xl border border-slate-800 bg-slate-900/80 p-4">
+        <p class="text-xs uppercase tracking-[0.3em] text-amber-400">Watchtower</p>
+        <h1 class="mt-1 text-xl font-bold">Revenue Console</h1>
+      </header>
+
+      <nav class="mt-4 grid grid-cols-3 gap-2">
+        <button data-tab="calls" class="tab-btn rounded-lg border border-amber-400 bg-amber-500/10 px-3 py-3 text-sm font-semibold text-amber-300">CALLS</button>
+        <button data-tab="sell" class="tab-btn rounded-lg border border-slate-700 px-3 py-3 text-sm font-semibold text-slate-300">SELL</button>
+        <button data-tab="money" class="tab-btn rounded-lg border border-slate-700 px-3 py-3 text-sm font-semibold text-slate-300">MONEY</button>
+      </nav>
+
+      <!-- ================= CALLS ================= -->
+      <section id="tab-calls" class="tab-panel mt-4 space-y-4">
+        <div class="rounded-xl border border-slate-800 bg-slate-900/80 p-4 text-center">
+          <p class="text-xs uppercase tracking-wide text-slate-500">Calls Made Today</p>
+          <p class="mt-1 text-3xl font-bold"><span id="callsToday">0</span> <span class="text-base font-normal text-slate-500">/ 10</span></p>
+        </div>
+
+        <div id="callsQueue" class="space-y-3"></div>
+      </section>
+
+      <!-- ================= SELL ================= -->
+      <section id="tab-sell" class="tab-panel mt-4 hidden space-y-4">
+        <div class="rounded-xl border border-slate-800 bg-slate-900/80 p-4">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-400">Add Item</h2>
+          <form id="itemForm" class="mt-3 space-y-3">
+            <input id="itemName" placeholder="Item name" required class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm outline-none focus:border-amber-400" />
+            <input id="itemCategory" placeholder="Category" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm outline-none focus:border-amber-400" />
+            <textarea id="itemDescription" placeholder="Photo description — what it is, condition, anything visible in the photo" rows="3" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm outline-none focus:border-amber-400"></textarea>
+            <div class="grid grid-cols-2 gap-3">
+              <input id="itemAsk" type="number" step="0.01" placeholder="Ask price" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm outline-none focus:border-amber-400" />
+              <input id="itemFloor" type="number" step="0.01" placeholder="Floor price" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm outline-none focus:border-amber-400" />
+            </div>
+            <button type="submit" class="w-full rounded-lg bg-amber-500 px-4 py-3 text-sm font-semibold text-slate-950">Add Item</button>
+            <p id="itemFormStatus" class="text-xs text-slate-500">&nbsp;</p>
+          </form>
+        </div>
+
+        <div id="itemsList" class="space-y-3"></div>
+      </section>
+
+      <!-- ================= MONEY ================= -->
+      <section id="tab-money" class="tab-panel mt-4 hidden space-y-4">
+        <div class="rounded-xl border border-emerald-800/50 bg-slate-900/80 p-4 text-center">
+          <p class="text-xs uppercase tracking-wide text-slate-500">Sold This Month</p>
+          <p class="mt-1 text-3xl font-bold text-emerald-400" id="moneySoldTotal">$0.00</p>
+        </div>
+
+        <div class="rounded-xl border border-slate-800 bg-slate-900/80 p-4">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-400">Active Prospects</h2>
+          <div id="moneyProspectCounts" class="mt-3 space-y-2 text-sm"></div>
+        </div>
+
+        <div class="rounded-xl border border-slate-800 bg-slate-900/80 p-4">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-400">Next 3 Follow-Ups Due</h2>
+          <div id="moneyFollowUps" class="mt-3 space-y-2 text-sm"></div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const sb = window.watchtowerAuth || null;
+
+      // ---------- Tabs ----------
+      document.querySelectorAll('.tab-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab-btn').forEach((b) => {
+            b.classList.remove('border-amber-400', 'bg-amber-500/10', 'text-amber-300');
+            b.classList.add('border-slate-700', 'text-slate-300');
+          });
+          btn.classList.add('border-amber-400', 'bg-amber-500/10', 'text-amber-300');
+          btn.classList.remove('border-slate-700', 'text-slate-300');
+
+          document.querySelectorAll('.tab-panel').forEach((p) => p.classList.add('hidden'));
+          document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
+
+          if (btn.dataset.tab === 'sell') loadSellTab();
+          if (btn.dataset.tab === 'money') loadMoneyTab();
+        });
+      });
+
+      function fmtMoney(n) { return '$' + (Number(n) || 0).toFixed(2); }
+      function fmtDateTime(iso) { return iso ? new Date(iso).toLocaleString() : '—'; }
+      function startOfToday() { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }
+      function startOfMonth() { const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d; }
+
+      // ================= CALLS =================
+      const OUTCOMES = ['No Answer', 'Left Message', 'Interested', 'Not Interested', 'Callback Requested', 'Scheduled Pickup'];
+
+      async function loadCallsTab() {
+        const { count } = await sb.from('business_touches').select('id', { count: 'exact', head: true })
+          .ilike('channel', 'call').gte('created_at', startOfToday().toISOString());
+        document.getElementById('callsToday').textContent = count || 0;
+
+        const { data: businesses } = await sb.from('businesses').select('id, business_name, phone, created_at').eq('is_supplier', true);
+        const { data: touches } = await sb.from('business_touches').select('*').order('created_at', { ascending: false });
+
+        const latestTouchByBiz = {};
+        (touches || []).forEach((t) => { if (!latestTouchByBiz[t.business_id]) latestTouchByBiz[t.business_id] = t; });
+
+        const queue = (businesses || []).map((b) => {
+          const last = latestTouchByBiz[b.id];
+          const dueAt = last && last.next_touch_at ? new Date(last.next_touch_at) : new Date(b.created_at);
+          return { business: b, last, dueAt };
+        }).sort((a, b) => a.dueAt - b.dueAt);
+
+        const listEl = document.getElementById('callsQueue');
+        listEl.innerHTML = queue.length ? queue.map((q) => `
+          <div class="rounded-xl border border-slate-800 bg-slate-900/80 p-4">
+            <div class="flex items-center justify-between">
+              <p class="font-semibold">${q.business.business_name}</p>
+              <span class="text-xs text-slate-500">${q.business.phone || 'no phone on file'}</span>
+            </div>
+            <p class="mt-1 text-xs text-slate-500">${q.last ? `Last: ${q.last.outcome || q.last.channel || 'touch'} — ${fmtDateTime(q.last.created_at)}` : 'Never contacted'}</p>
+            <p class="mt-1 text-xs text-slate-500">${q.last && q.last.next_touch_at ? `Due: ${fmtDateTime(q.last.next_touch_at)}` : 'Call now'}</p>
+            <button class="log-call-btn mt-3 w-full rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm font-medium text-amber-300" data-business-id="${q.business.id}">Log Call</button>
+            <div class="log-call-form mt-3 hidden space-y-2" data-business-id="${q.business.id}">
+              <select class="lc-outcome w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm">
+                ${OUTCOMES.map((o) => `<option value="${o}">${o}</option>`).join('')}
+              </select>
+              <textarea class="lc-notes w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm" rows="2" placeholder="Notes"></textarea>
+              <label class="block text-xs text-slate-500">Next follow-up
+                <input type="datetime-local" class="lc-next mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm" />
+              </label>
+              <button class="lc-save w-full rounded-lg bg-emerald-500 px-3 py-2 text-sm font-semibold text-slate-950" data-business-id="${q.business.id}">Save</button>
+            </div>
+          </div>
+        `).join('') : '<p class="text-sm text-slate-500">No supplier prospects yet — add one in Command Center\'s businesses table to start the queue.</p>';
+
+        listEl.querySelectorAll('.log-call-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const form = listEl.querySelector(`.log-call-form[data-business-id="${btn.dataset.businessId}"]`);
+            form.classList.toggle('hidden');
+          });
+        });
+        listEl.querySelectorAll('.lc-save').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const businessId = btn.dataset.businessId;
+            const form = listEl.querySelector(`.log-call-form[data-business-id="${businessId}"]`);
+            const outcome = form.querySelector('.lc-outcome').value;
+            const notes = form.querySelector('.lc-notes').value.trim();
+            const nextTouch = form.querySelector('.lc-next').value;
+            const { error } = await sb.from('business_touches').insert({
+              business_id: businessId,
+              channel: 'call',
+              outcome,
+              notes: notes || null,
+              next_touch_at: nextTouch ? new Date(nextTouch).toISOString() : null,
+            });
+            if (error) { alert(error.message); return; }
+            loadCallsTab();
+          });
+        });
+      }
+
+      // ================= SELL =================
+      const STATUS_FLOW = { NEW: 'LISTED', LISTED: 'PENDING', PENDING: 'SOLD' };
+
+      document.getElementById('itemForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const statusEl = document.getElementById('itemFormStatus');
+        const payload = {
+          name: document.getElementById('itemName').value.trim(),
+          category: document.getElementById('itemCategory').value.trim() || null,
+          notes: document.getElementById('itemDescription').value.trim() || null,
+          ask_price: document.getElementById('itemAsk').value ? Number(document.getElementById('itemAsk').value) : null,
+          floor_price: document.getElementById('itemFloor').value ? Number(document.getElementById('itemFloor').value) : null,
+        };
+        const { error } = await sb.from('sale_items').insert(payload);
+        if (error) { statusEl.textContent = error.message; return; }
+        document.getElementById('itemForm').reset();
+        statusEl.textContent = '✓ Item added.';
+        loadSellTab();
+      });
+
+      async function loadSellTab() {
+        const { data: items, error } = await sb.from('sale_items').select('*').order('created_at', { ascending: false });
+        const listEl = document.getElementById('itemsList');
+        if (error) { listEl.innerHTML = `<p class="text-sm text-rose-400">${error.message}</p>`; return; }
+        if (!items || !items.length) { listEl.innerHTML = '<p class="text-sm text-slate-500">No items yet.</p>'; return; }
+
+        listEl.innerHTML = items.map((it) => `
+          <div class="rounded-xl border border-slate-800 bg-slate-900/80 p-4">
+            <div class="flex items-center justify-between">
+              <p class="font-semibold">${it.name}</p>
+              <span class="rounded-full border border-slate-700 px-2 py-0.5 text-xs uppercase tracking-wide text-slate-400">${it.status}</span>
+            </div>
+            <p class="mt-1 text-xs text-slate-500">${it.category || 'uncategorized'} · Ask ${it.ask_price != null ? fmtMoney(it.ask_price) : '—'} · Floor ${it.floor_price != null ? fmtMoney(it.floor_price) : '—'}</p>
+            ${it.notes ? `<p class="mt-1 text-xs text-slate-500">${it.notes}</p>` : ''}
+            <div class="mt-3 flex flex-wrap gap-2">
+              ${it.status !== 'SOLD' ? `<button class="advance-btn rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-300" data-id="${it.id}" data-status="${it.status}">Mark ${STATUS_FLOW[it.status] || ''}</button>` : ''}
+              <button class="gen-listing-btn rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-300" data-id="${it.id}">Generate Listing</button>
+            </div>
+            <div class="listing-output mt-3 hidden" data-id="${it.id}"></div>
+          </div>
+        `).join('');
+
+        listEl.querySelectorAll('.advance-btn').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const id = btn.dataset.id;
+            const next = STATUS_FLOW[btn.dataset.status];
+            if (!next) return;
+            const updates = { status: next };
+            if (next === 'LISTED') updates.listed_at = new Date().toISOString();
+            if (next === 'SOLD') {
+              const price = prompt('Sold price?');
+              if (price === null) return;
+              updates.sold_price = Number(price) || 0;
+              updates.sold_at = new Date().toISOString();
+            }
+            const { error } = await sb.from('sale_items').update(updates).eq('id', id);
+            if (error) { alert(error.message); return; }
+            loadSellTab();
+          });
+        });
+
+        listEl.querySelectorAll('.gen-listing-btn').forEach((btn) => {
+          btn.addEventListener('click', () => generateListing(btn.dataset.id, items.find((i) => String(i.id) === btn.dataset.id)));
+        });
+      }
+
+      async function generateListing(id, item) {
+        const outEl = document.querySelector(`.listing-output[data-id="${id}"]`);
+        outEl.classList.remove('hidden');
+        outEl.innerHTML = '<p class="text-xs text-slate-500">Generating…</p>';
+
+        try {
+          const resp = await fetch('/api/generate-listing', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: item.name, category: item.category, description: item.notes, ask_price: item.ask_price }),
+          });
+          const data = await resp.json();
+          if (data.error) { outEl.innerHTML = `<p class="text-xs text-rose-400">${data.error}</p>`; return; }
+          const text = data.title && data.body ? `${data.title}\n\n${data.body}` : (data.raw || 'No listing text returned.');
+          outEl.innerHTML = `
+            <textarea readonly class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm" rows="6">${text}</textarea>
+            <button class="copy-listing-btn mt-2 w-full rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300">Copy</button>
+          `;
+          outEl.querySelector('.copy-listing-btn').addEventListener('click', () => {
+            navigator.clipboard.writeText(text);
+            outEl.querySelector('.copy-listing-btn').textContent = 'Copied ✓';
+          });
+        } catch (e) {
+          outEl.innerHTML = '<p class="text-xs text-rose-400">Connection error.</p>';
+        }
+      }
+
+      // ================= MONEY =================
+      async function loadMoneyTab() {
+        const { data: sold } = await sb.from('sale_items').select('sold_price, sold_at, status').eq('status', 'SOLD').gte('sold_at', startOfMonth().toISOString());
+        const total = (sold || []).reduce((sum, r) => sum + (Number(r.sold_price) || 0), 0);
+        document.getElementById('moneySoldTotal').textContent = fmtMoney(total);
+
+        const { data: businesses } = await sb.from('businesses').select('relationship_status').eq('is_supplier', true);
+        const counts = {};
+        (businesses || []).forEach((b) => {
+          const key = b.relationship_status || 'Uncategorized';
+          counts[key] = (counts[key] || 0) + 1;
+        });
+        const countsEl = document.getElementById('moneyProspectCounts');
+        countsEl.innerHTML = Object.keys(counts).length
+          ? Object.entries(counts).map(([status, n]) => `<div class="flex justify-between"><span class="text-slate-400">${status}</span><span class="font-semibold">${n}</span></div>`).join('')
+          : '<p class="text-slate-500">No supplier prospects yet.</p>';
+
+        const { data: followUps } = await sb.from('business_touches').select('business_id, next_touch_at').not('next_touch_at', 'is', null).order('next_touch_at', { ascending: true }).limit(3);
+        const followUpsEl = document.getElementById('moneyFollowUps');
+        if (!followUps || !followUps.length) {
+          followUpsEl.innerHTML = '<p class="text-slate-500">No follow-ups scheduled.</p>';
+        } else {
+          const bizIds = [...new Set(followUps.map((f) => f.business_id))];
+          const { data: bizRows } = await sb.from('businesses').select('id, business_name').in('id', bizIds);
+          const nameById = Object.fromEntries((bizRows || []).map((b) => [b.id, b.business_name]));
+          followUpsEl.innerHTML = followUps.map((f) => `<div class="flex justify-between"><span class="text-slate-400">${nameById[f.business_id] || 'Unknown'}</span><span class="font-semibold">${fmtDateTime(f.next_touch_at)}</span></div>`).join('');
+        }
+      }
+
+      window.addEventListener('load', async () => {
+        const isOperator = await window.watchtowerOperatorReady;
+        if (!isOperator) return;
+        loadCallsTab();
+      });
+    </script>
+  </body>
+</html>
