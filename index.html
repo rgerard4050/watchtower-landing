@@ -324,7 +324,7 @@ function switchTab(tab, btn) {
 
 async function createResident(subscriber) {
   const name=document.getElementById('fname').value.trim();
-  const email=document.getElementById('femail').value.trim();
+  const email=document.getElementById('femail').value.trim().toLowerCase();
   const address=document.getElementById('faddress').value.trim();
   const zip=document.getElementById('fzip').value.trim();
   const pass=document.getElementById('fpass').value;
@@ -342,10 +342,33 @@ async function createResident(subscriber) {
     return;
   }
 
-  const walletId='WTWR-'+Math.random().toString(36).substr(2,6).toUpperCase()+'-'+(zip||'FL');
-  const { error } = await sb.from('residents').insert({
-    name, email, address, zip, wallet_id: walletId, subscriber: !!subscriber
-  });
+  // Repeat signup (same email, case-insensitive) updates the existing row
+  // instead of creating a duplicate. wallet_id is preserved on update --
+  // only a first-time signup ever generates a new one, so a resident's
+  // WTWR balance/history never gets disconnected from a reissued wallet.
+  // subscriber is guarded the same way: this path may only turn it true or
+  // leave it as-is, never set an existing subscriber back to false.
+  const { data: existing } = await sb.from('residents').select('id, wallet_id, subscriber').eq('email', email).maybeSingle();
+  let walletId, error;
+  if (existing) {
+    walletId = existing.wallet_id;
+    const nextSubscriber = !!existing.subscriber || !!subscriber;
+    ({ error } = await sb.from('residents').update({ name, address, zip, subscriber: nextSubscriber }).eq('id', existing.id));
+  } else {
+    walletId = 'WTWR-'+Math.random().toString(36).substr(2,6).toUpperCase()+'-'+(zip||'FL');
+    ({ error } = await sb.from('residents').insert({ name, email, address, zip, wallet_id: walletId, subscriber: !!subscriber }));
+    if (error && error.code === '23505') {
+      // Two signups for this email raced between the select above and this
+      // insert. The unique constraint caught it -- fall back to updating
+      // that row instead of surfacing a raw duplicate-key error.
+      const { data: racedRow } = await sb.from('residents').select('id, wallet_id, subscriber').eq('email', email).maybeSingle();
+      if (racedRow) {
+        walletId = racedRow.wallet_id;
+        const nextSubscriber = !!racedRow.subscriber || !!subscriber;
+        ({ error } = await sb.from('residents').update({ name, address, zip, subscriber: nextSubscriber }).eq('id', racedRow.id));
+      }
+    }
+  }
   if (error) console.error(error);
 
   const inNow = !!auth.session;
