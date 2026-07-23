@@ -272,6 +272,7 @@
           <div class="field"><label for="loginPass">Password</label><div class="pw-wrap"><input type="password" id="loginPass" placeholder="Your password"><button type="button" class="pw-eye" onclick="togglePw('loginPass',this)">show</button></div></div>
           <button class="primary-btn" style="margin-top:12px" onclick="loginUser()">LOG IN →</button>
           <button class="link-btn" onclick="forgotPassword()">Forgot password?</button>
+          <button class="link-btn" onclick="sendMagicLink()">Trouble signing in? Get a link instead</button>
         </div>
       </div>
       <div class="success-wrap" id="emailSuccess">
@@ -401,6 +402,24 @@ async function forgotPassword(){
   const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:'https://app.ocalaassetsecurity.com/index.html'});
   if(error){alert('Could not send reset link: '+error.message);return;}
   alert('Reset link sent to '+email+'. Check your inbox and spam folder.');
+}
+async function sendMagicLink(){
+  const email=(document.getElementById('loginEmail').value||document.getElementById('femail').value||'').trim().toLowerCase();
+  if(!email){alert('Type your email in the login box first, then tap "Get a link instead".');return;}
+  const {error}=await sb.auth.signInWithOtp({
+    email,
+    options:{ shouldCreateUser:false, emailRedirectTo:'https://app.ocalaassetsecurity.com/index.html' }
+  });
+  if(error){
+    const m=(error.message||'').toLowerCase();
+    if(m.includes('signup') || m.includes('not found') || m.includes('not allowed')){
+      alert('No account found for that email. Use "Join Free" above to create one.');
+    } else {
+      alert('Could not send sign-in link: '+error.message);
+    }
+    return;
+  }
+  alert('Sign-in link sent to '+email+'. Check your inbox and spam folder, then tap the link to log in.');
 }
 function showLoggedIn(user){
   location.href='resident.html';
