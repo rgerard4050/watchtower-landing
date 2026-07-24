@@ -207,38 +207,12 @@
 </div>
 
 <section>
-  <div class="section-tag">Why this exists</div>
-  <h2>The city stopped picking up recycling.<br>So we built something better.</h2>
-  <p>We're trying a different way &mdash; one where you don't <em>pay</em> to recycle, you <strong>earn</strong> for it. The carrot works better than the stick.</p>
-  <p>You sort what needs sorting, and that only helps you. When you submit a full bounty, we verify it meets the minimum &mdash; whether it's one clean category or a mixed load.</p>
-  <p>No more rigid every-day, every-week pickup. This is &agrave; la carte: you cash in once you've got enough above the minimum. Doing a remodel? Got car batteries, aluminum scrap, an old sink, a dead fridge? <strong>Rule of thumb &mdash; if it has metal, snap a photo.</strong> We'll tell you if it's worth money, how to make it worth more, and whether to hold for a bigger load or send it now.</p>
-  <a class="learn-link" href="learn.html">Want to dig deeper? Read how it all works &#8594;</a>
-</section>
-
-<section>
   <div class="section-tag">How to participate</div>
   <h2>Your recycling.<br>Your credits. Your call.</h2>
   <div class="how-grid">
     <div class="how-card"><span class="how-icon">&#128248;</span><div class="how-title">Snap a photo</div><p class="how-desc">If it has metal, send a pic. We price it and tell you if it's ready to go.</p></div>
     <div class="how-card"><span class="how-icon">&#127968;</span><div class="how-title">We come get it</div><p class="how-desc">Hit the minimum and a driver is dispatched. Free for valuable loads.</p></div>
     <div class="how-card"><span class="how-icon">&#127978;</span><div class="how-title">Spend locally</div><p class="how-desc">Redeem WTWR at partner stores near you. Store list coming soon.</p></div>
-  </div>
-</section>
-
-<section>
-  <div class="section-tag">Optional: Driveway Service</div>
-  <h2>Want weekly pickup?</h2>
-  <p>Free covers your valuable metal. For weekly plastic &amp; cardboard from your driveway, add the subscription.</p>
-  <div class="driveway-card">
-    <div class="driveway-price">$4.99 <span>/ month</span></div>
-    <ul class="driveway-list">
-      <li>We provide the collection vessel</li>
-      <li>Ping us through the app when it's full</li>
-      <li>Weekly plastic &amp; cardboard pickup</li>
-      <li>Earn WTWR on valuable loads too</li>
-      <li>Cancel anytime</li>
-    </ul>
-    <button class="primary-btn" onclick="document.getElementById('wallet-section').scrollIntoView({behavior:'smooth'})">ADD DRIVEWAY PICKUP &#8594;</button>
   </div>
 </section>
 
@@ -264,8 +238,8 @@
           <p style="font-size:14px;color:var(--text);margin:0 0 10px;line-height:1.6;"><b style="color:var(--green);">$4.99/mo —</b> Weekly driveway pickup of your everyday plastic &amp; cardboard (the old curbside service).</p>
           <p style="font-size:13px;color:var(--muted);margin:0;line-height:1.5;">Small loads under the minimum ride along with your weekly pickup, or wait for a paid run.</p>
         </div>
-        <button class="primary-btn" style="margin-top:16px" onclick="subscribeStripe()">GET WEEKLY PICKUP — $4.99/MO →</button>
-        <button class="secondary-btn" onclick="createEmailWallet()">JOIN FREE — NO SUBSCRIPTION</button>
+        <button class="primary-btn" style="margin-top:16px" onclick="createEmailWallet()">CREATE MY FREE WALLET →</button>
+        <button class="secondary-btn" onclick="subscribeStripe()">Add weekly driveway pickup — $4.99/mo</button>
         <div class="login-card">
           <div class="login-divider">— ALREADY JOINED? LOG IN —</div>
           <div class="field"><label for="loginEmail">Email</label><input type="email" id="loginEmail" placeholder="you@email.com"></div>
@@ -287,9 +261,35 @@
 </section>
 
 <section>
+  <div class="section-tag">Why this exists</div>
+  <h2>The city stopped picking up recycling.<br>So we built something better.</h2>
+  <p>We're trying a different way &mdash; one where you don't <em>pay</em> to recycle, you <strong>earn</strong> for it. The carrot works better than the stick.</p>
+  <p>You sort what needs sorting, and that only helps you. When you submit a full bounty, we verify it meets the minimum &mdash; whether it's one clean category or a mixed load.</p>
+  <p>No more rigid every-day, every-week pickup. This is &agrave; la carte: you cash in once you've got enough above the minimum. Doing a remodel? Got car batteries, aluminum scrap, an old sink, a dead fridge? <strong>Rule of thumb &mdash; if it has metal, snap a photo.</strong> We'll tell you if it's worth money, how to make it worth more, and whether to hold for a bigger load or send it now.</p>
+  <a class="learn-link" href="learn.html">Want to dig deeper? Read how it all works &#8594;</a>
+</section>
+
+<section>
+  <div class="section-tag">Optional: Driveway Service</div>
+  <h2>Want weekly pickup?</h2>
+  <p>Free covers your valuable metal. For weekly plastic &amp; cardboard from your driveway, add the subscription.</p>
+  <div class="driveway-card">
+    <div class="driveway-price">$4.99 <span>/ month</span></div>
+    <ul class="driveway-list">
+      <li>We provide the collection vessel</li>
+      <li>Ping us through the app when it's full</li>
+      <li>Weekly plastic &amp; cardboard pickup</li>
+      <li>Earn WTWR on valuable loads too</li>
+      <li>Cancel anytime</li>
+    </ul>
+    <button class="primary-btn" onclick="document.getElementById('wallet-section').scrollIntoView({behavior:'smooth'})">ADD DRIVEWAY PICKUP &#8594;</button>
+  </div>
+</section>
+
+<section>
   <div class="section-tag">Learn</div>
   <h2>Waste is valuable.<br>Most people just don't know it.</h2>
-  <p>Daily education feed coming July 6th — commodity prices, sorting guides, network updates, and the real economics of recycling.</p>
+  <p>Commodity prices, sorting guides, network updates, and the real economics of recycling.</p>
   <div class="edu-cards">
     <div class="edu-card"><div class="edu-icon">♻️</div><div><div class="edu-tag">Sorting Guide</div><div class="edu-title">What actually has value in your bin</div><p class="edu-desc">Aluminum pays 20x more than mixed recycling. Learn what to separate and why. <span class="coming-badge">COMING SOON</span></p></div></div>
     <div class="edu-card"><div class="edu-icon">💰</div><div><div class="edu-tag">Commodity Education</div><div class="edu-title">Why copper is $4/lb and why that matters to you</div><p class="edu-desc">Live commodity prices explained in plain language. Updated daily. <span class="coming-badge">COMING SOON</span></p></div></div>
