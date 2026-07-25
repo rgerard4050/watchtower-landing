@@ -251,6 +251,7 @@ header{background:rgba(8,12,15,0.98);border-bottom:1px solid var(--border);paddi
   <button class="tab-btn" onclick="goTab('queue')">QUEUE<span class="badge badge-red" id="bQueue">0</span></button>
   <button class="tab-btn" onclick="goTab('nodes')">NODES<span class="badge badge-amber" id="bNodes">0</span></button>
   <button class="tab-btn" onclick="goTab('dispatch')">DISPATCH<span class="badge badge-blue" id="bDispatch">0</span></button>
+  <button class="tab-btn" onclick="goTab('bounties')">BOUNTIES<span class="badge badge-amber" id="bBounties">0</span></button>
   <button class="tab-btn" onclick="goTab('cashier')">CASHIER</button>
   <button class="tab-btn" onclick="goTab('ledger')">LEDGER</button>
 </nav>
@@ -404,6 +405,14 @@ header{background:rgba(8,12,15,0.98);border-bottom:1px solid var(--border);paddi
   <div id="dispatchList"></div>
   <div class="sh" style="margin-top:14px">// IN TRANSIT</div>
   <div id="transitList"></div>
+</div>
+</div>
+
+<!-- ══ PENDING BOUNTIES ══ -->
+<div class="tab-content" id="tab-bounties">
+<div class="scroll">
+  <div class="sh">// PENDING BOUNTIES</div>
+  <div id="bountyList"></div>
 </div>
 </div>
 
@@ -570,6 +579,7 @@ let S = {
   prices:{}, drvCut:20, platformCut:50, mfgBonus:40,
   tickets:[], nodes:[], redemptions:[],
   businesses:[], selMat:null, wtwrPrice:0,
+  bounties:[], ackBounties:[],
 };
 
 async function load(){
@@ -581,6 +591,7 @@ async function load(){
     S.platformCut=d.platformCut??50;
     S.mfgBonus=d.mfgBonus??40;
     S.nodes=d.nodes||[];
+    S.ackBounties=d.ackBounties||[];
   }catch(e){}
   MAT.forEach(m=>{ if(S.prices[m.id]===undefined) S.prices[m.id]=m.rate; });
 
@@ -588,12 +599,21 @@ async function load(){
   await refreshTickets();
   await refreshRedemptions();
   await refreshBusinesses();
+  await refreshBounties();
 }
 function save(){
   // Only config is local now — tickets/redemptions write directly to Supabase as they happen
   localStorage.setItem('wtwr_v3',JSON.stringify({
-    prices:S.prices,drvCut:S.drvCut,mfgBonus:S.mfgBonus,nodes:S.nodes
+    prices:S.prices,drvCut:S.drvCut,mfgBonus:S.mfgBonus,nodes:S.nodes,ackBounties:S.ackBounties
   }));
+}
+async function refreshBounties(){
+  // NOTE: there's no FK from scans to dispatch_stops/dispatch_runs in the current schema
+  // (dispatch_stops links to manifests, not scans), so "not yet linked to dispatch" is
+  // tracked locally via S.ackBounties until real dispatch wiring exists for scans.
+  const { data, error } = await sb.from('scans').select('*, residents(name)').eq('bounty_created', true).order('created_at',{ascending:false});
+  if(error){console.error(error);toast('Failed to load bounties — check connection',true);return;}
+  S.bounties = (data||[]).filter(s=>!S.ackBounties.includes(s.id));
 }
 async function refreshTickets(){
   const { data, error } = await sb.from('tickets').select('*, residents(wallet_id, name)').order('created_at',{ascending:false});
@@ -987,6 +1007,41 @@ async function confirmDelivery(id){
   toast('Delivery confirmed — resident credited, driver paid ✓');
 }
 
+// ═══════════════════ PENDING BOUNTIES ═══════════════════
+function renderBounties(){
+  const el=document.getElementById('bountyList');
+  if(!S.bounties.length){el.innerHTML=empty('🎯','NO PENDING BOUNTIES');return;}
+  el.innerHTML=S.bounties.map(s=>{
+    const name=(s.residents&&s.residents.name)||'Unknown resident';
+    const loc=(s.lat!=null&&s.lng!=null)
+      ?`<a href="https://www.google.com/maps?q=${s.lat},${s.lng}" target="_blank" rel="noopener" style="color:var(--blue);font-family:var(--mono);font-size:9px;text-decoration:none">VIEW ON MAP →</a>`
+      :`<span style="color:var(--muted);font-size:9px">No location</span>`;
+    return `<div class="card">
+      <div class="card-header">
+        <span class="q-id">${name}</span>
+        <span class="pill pill-pending">BOUNTY</span>
+        <span class="q-time">${fmtT(s.created_at)}</span>
+      </div>
+      <div class="card-body">
+        <div class="q-row"><span class="q-key">Summary</span><span class="q-val">${s.summary||'—'}</span></div>
+        <div class="q-row"><span class="q-key">Est High</span><span class="q-val g">$${(s.est_high??0)}</span></div>
+        <div class="q-row"><span class="q-key">Location</span><span class="q-val">${loc}</span></div>
+      </div>
+      <div class="card-footer">
+        <button class="btn-blue" onclick="assignBounty('${s.id}')">ASSIGN TO DISPATCH</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function assignBounty(id){
+  // Local acknowledge-only for now — see note on refreshBounties() re: no real dispatch FK yet
+  S.ackBounties.push(id);
+  save();
+  S.bounties=S.bounties.filter(b=>b.id!==id);
+  renderBounties(); updateBadges();
+  toast('Marked acknowledged — real dispatch linkage not wired yet');
+}
+
 // ═══════════════════ CASHIER ═══════════════════
 function calcRedeem(){
   const amt=parseFloat(document.getElementById('rdmAmt').value)||0;
@@ -1144,13 +1199,14 @@ function savePrices(){
 
 // ═══════════════════ HELPERS ═══════════════════
 function goTab(name){
-  const tabs=['intake','queue','nodes','dispatch','cashier','ledger'];
+  const tabs=['intake','queue','nodes','dispatch','bounties','cashier','ledger'];
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',tabs[i]===name));
   document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
   if(name==='queue')renderQueue();
   if(name==='nodes')renderNodes();
   if(name==='dispatch')renderDispatch();
+  if(name==='bounties')renderBounties();
   if(name==='cashier')renderRdm();
   if(name==='ledger')renderLedger();
 }
@@ -1161,6 +1217,7 @@ function updateBadges(){
   setBadge('bQueue',pending,'badge-red');
   setBadge('bNodes',fullNodes,'badge-amber');
   setBadge('bDispatch',openDisp,'badge-blue');
+  setBadge('bBounties',S.bounties.length,'badge-amber');
 }
 function setBadge(id,n,cls){
   const el=document.getElementById(id);
@@ -1187,6 +1244,7 @@ function toast(msg,err=false){
   renderQueue();
   renderNodes();
   renderDispatch();
+  renderBounties();
   renderRdm();
   renderLedger();
   updateBadges();

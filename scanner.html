@@ -172,6 +172,32 @@
         if (!sessionId) { sessionId = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())); localStorage.setItem('wt_session', sessionId); }
 
         let lastScan = null; // holds the most recent read so the LOG button can save it
+        let currentResidentId = null;
+
+        // Look up the logged-in resident (if any) so scans can be tied to their account
+        async function loadCurrentResident() {
+            try {
+                const { data: { session } } = await db.auth.getSession();
+                if (!session) return;
+                const { data } = await db.from('residents').select('id').eq('email', session.user.email).maybeSingle();
+                if (data) currentResidentId = data.id;
+            } catch (e) {
+                // not logged in, or lookup failed — scan can still be logged without a resident_id
+            }
+        }
+        loadCurrentResident();
+
+        // Grabs a one-shot GPS fix, failing gracefully (denied / unavailable / slow)
+        function getGeolocation() {
+            return new Promise((resolve) => {
+                if (!navigator.geolocation) { resolve({ lat: null, lng: null }); return; }
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+                    () => resolve({ lat: null, lng: null }),
+                    { timeout: 5000 }
+                );
+            });
+        }
 
         const video = document.getElementById('webcam');
         const capturedImg = document.getElementById('capturedImg');
@@ -302,14 +328,21 @@
             logBtn.setAttribute('disabled', 'true');
             logBtn.textContent = 'Logging...';
 
+            const { lat, lng } = await getGeolocation();
+            const bountyCreated = (lastScan.estimated_value_high ?? 0) >= 25;
+
             const { error } = await db.from('scans').insert({
                 session_id: sessionId,
+                resident_id: currentResidentId,
                 summary: lastScan.summary || null,
                 items_seen: lastScan.items_seen || [],
                 est_low: lastScan.estimated_value_low ?? null,
                 est_high: lastScan.estimated_value_high ?? null,
                 coaching_tip: lastScan.coaching_tip || null,
-                safety_warning: lastScan.safety_warning || null
+                safety_warning: lastScan.safety_warning || null,
+                lat, lng,
+                accepted: true,
+                bounty_created: bountyCreated
             });
 
             if (error) {
@@ -324,9 +357,11 @@
 
             logBtn.style.display = 'none';
             logConfirm.style.color = 'var(--green)';
-            logConfirm.textContent = '\u2713 Haul logged. Bring it to a drop point to claim your WTWR.';
+            logConfirm.textContent = bountyCreated
+                ? '\u2713 Bounty created \u2014 a driver will be dispatched.'
+                : '\u2713 Haul logged. Bring it to a drop point to claim your WTWR.';
             logConfirm.style.display = 'block';
-            printLog("HAUL LOGGED.");
+            printLog(bountyCreated ? "BOUNTY CREATED." : "HAUL LOGGED.");
         });
 
         window.addEventListener('load', initCamera);
