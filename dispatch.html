@@ -625,15 +625,15 @@
     <div class="detail-grid">
       <div class="detail-box">
         <span class="detail-val" id="sheetMaterial">ALU</span>
-        <div class="detail-label">Material</div>
+        <div class="detail-label" id="sheetMaterialLabel">Material</div>
       </div>
       <div class="detail-box">
         <span class="detail-val" id="sheetWeight">~28 lbs</span>
-        <div class="detail-label">Est. Weight</div>
+        <div class="detail-label" id="sheetWeightLabel">Est. Weight</div>
       </div>
       <div class="detail-box">
         <span class="detail-val" id="sheetDist">0.8 mi</span>
-        <div class="detail-label">Distance</div>
+        <div class="detail-label" id="sheetDistLabel">Distance</div>
       </div>
     </div>
 
@@ -649,20 +649,25 @@
     </div>
 
     <button class="claim-btn" id="claimBtn" onclick="claimBounty()">⚡ CLAIM THIS BOUNTY</button>
+    <button class="claim-btn" id="completeBtn" style="display:none" onclick="completeBounty()">✅ MARK COMPLETE</button>
     <button class="claim-btn nav-btn" id="navBtn" style="display:none" onclick="navigate()">🧭 NAVIGATE</button>
     <button class="close-btn" onclick="closeSheet()">CLOSE</button>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="operator-auth.js"></script>
 <script>
-// Dispatch map data pulled from the current operations workflow
-const SUPABASE_URL = 'https://eypovuxuddiqgncjdpkq.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_ZlykauNc-3YY80w6nxzsKw_Z2lgAgU1';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// Dispatch map data pulled from the current operations workflow.
+// sb comes from operator-auth.js (window.watchtowerAuth) once a real
+// operator session is confirmed -- this page has no login of its own.
+let sb = null;
+let currentOperatorId = null;
 let wtwrPrice = 0.0042;
 let dispatchStops = [];
 let activeStop = null;
+let bounties = [];
+let activeBounty = null;
 
 async function fetchPrice(){
   try{
@@ -756,7 +761,73 @@ async function loadDispatchStops(){
   });
 
   renderPins();
-  document.getElementById('openBounties').textContent = dispatchStops.length;
+}
+
+async function loadBounties(){
+  // Pull open bounties (everyone) plus claimed ones (everyone can see who has
+  // what via RLS, but we only keep MY claims client-side -- a bounty claimed
+  // by the other driver should vanish from this list, not show as theirs).
+  const { data, error } = await sb
+    .from('scans')
+    .select('id, summary, est_low, est_high, lat, lng, created_at, bounty_status, claimed_by')
+    .in('bounty_status', ['open', 'claimed'])
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error(error);
+    showToast('Failed to load bounties');
+    return;
+  }
+
+  bounties = (data || [])
+    .filter((row) => row.bounty_status === 'open' || row.claimed_by === currentOperatorId)
+    .map((row) => ({
+      id: row.id,
+      title: row.summary || 'Recyclable material scan',
+      estLow: row.est_low,
+      estHigh: row.est_high,
+      lat: row.lat,
+      lng: row.lng,
+      hasCoordinates: Number.isFinite(Number(row.lat)) && Number.isFinite(Number(row.lng)),
+      createdAt: row.created_at,
+      claimedByMe: row.bounty_status === 'claimed' && row.claimed_by === currentOperatorId,
+    }));
+
+  renderBountyPins();
+  document.getElementById('openBounties').textContent = bounties.filter((b) => !b.claimedByMe).length;
+}
+
+function timeAgo(iso) {
+  if (!iso) return '—';
+  const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + ' min ago';
+  return Math.round(mins / 60) + ' hr ago';
+}
+
+function renderBountyPins() {
+  const container = document.getElementById('pins');
+  container.querySelectorAll('.bounty-pin').forEach((el) => el.remove());
+
+  bounties.forEach((bounty, index) => {
+    const spot = getPinSpot(index + 100);
+    const pin = document.createElement('div');
+    pin.className = 'pin bounty-pin';
+    pin.style.left = spot.left;
+    pin.style.top = spot.top;
+
+    const ringClass = bounty.claimedByMe ? 'mine' : 'available';
+    const tagClass = bounty.claimedByMe ? 'mine-tag' : '';
+
+    pin.innerHTML = `
+      <div class="pin-ring ${ringClass}">
+        <span class="pin-icon">${bounty.hasCoordinates ? '📍' : '📦'}</span>
+        <div class="pin-payout ${tagClass}">${bounty.estHigh != null ? '$' + bounty.estHigh : '—'}</div>
+      </div>
+    `;
+    pin.onclick = () => openBountySheet(bounty.id);
+    container.appendChild(pin);
+  });
 }
 
 function renderPins() {
@@ -787,6 +858,7 @@ function openSheet(id) {
   const stop = dispatchStops.find((item) => item.id === id);
   if (!stop) return;
   activeStop = stop;
+  activeBounty = null;
 
   const statusEl = document.getElementById('sheetStatus');
   const claimBtn = document.getElementById('claimBtn');
@@ -796,8 +868,11 @@ function openSheet(id) {
 
   document.getElementById('sheetTitle').textContent = stop.title;
   document.getElementById('sheetAddr').textContent = '📍 ' + (stop.address || 'Location pending');
+  document.getElementById('sheetMaterialLabel').textContent = 'Material';
   document.getElementById('sheetMaterial').textContent = stop.material;
+  document.getElementById('sheetWeightLabel').textContent = 'Est. Weight';
   document.getElementById('sheetWeight').textContent = stop.weight;
+  document.getElementById('sheetDistLabel').textContent = 'Distance';
   document.getElementById('sheetDist').textContent = stop.hasCoordinates ? 'Coords ready' : 'Pending';
   document.getElementById('sheetPayout').textContent = stop.runStatus;
   document.getElementById('sheetUsd').textContent = 'Stop: ' + stop.stopStatus;
@@ -807,10 +882,67 @@ function openSheet(id) {
   statusEl.className = 'sheet-status available';
   payoutBox.className = 'payout-box';
   payoutAmt.className = 'payout-amount';
+  claimBtn.style.display = 'block';
   claimBtn.textContent = '📍 VIEW STOP DETAILS';
   claimBtn.className = 'claim-btn';
+  claimBtn.disabled = false;
   claimBtn.onclick = closeSheet;
+  document.getElementById('completeBtn').style.display = 'none';
   navBtn.style.display = 'none';
+
+  document.getElementById('backdrop').classList.add('open');
+  document.getElementById('bountySheet').classList.add('open');
+}
+
+function openBountySheet(id) {
+  const bounty = bounties.find((item) => item.id === id);
+  if (!bounty) return;
+  activeBounty = bounty;
+  activeStop = null;
+
+  const statusEl = document.getElementById('sheetStatus');
+  const claimBtn = document.getElementById('claimBtn');
+  const navBtn = document.getElementById('navBtn');
+  const payoutBox = document.getElementById('payoutBox');
+  const payoutAmt = document.getElementById('sheetPayout');
+
+  document.getElementById('sheetTitle').textContent = bounty.title;
+  document.getElementById('sheetAddr').textContent = bounty.hasCoordinates
+    ? '📍 GPS location on file'
+    : '📍 No GPS — coordinate pickup with the resident directly';
+  document.getElementById('sheetMaterialLabel').textContent = 'Low Est.';
+  document.getElementById('sheetMaterial').textContent = bounty.estLow != null ? '$' + bounty.estLow : '—';
+  document.getElementById('sheetWeightLabel').textContent = 'Location';
+  document.getElementById('sheetWeight').textContent = bounty.hasCoordinates ? 'GPS ready' : 'No GPS';
+  document.getElementById('sheetDistLabel').textContent = 'Logged';
+  document.getElementById('sheetDist').textContent = timeAgo(bounty.createdAt);
+
+  document.getElementById('sheetPayout').textContent = bounty.estHigh != null ? '$' + bounty.estHigh : '—';
+  document.getElementById('sheetUsd').textContent = 'High estimate';
+  document.getElementById('sheetTime').textContent = '';
+
+  const completeBtn = document.getElementById('completeBtn');
+  payoutBox.className = 'payout-box';
+  payoutAmt.className = 'payout-amount';
+
+  if (bounty.claimedByMe) {
+    statusEl.textContent = 'CLAIMED BY YOU';
+    statusEl.className = 'sheet-status mine';
+    claimBtn.style.display = 'none';
+    completeBtn.style.display = 'block';
+    completeBtn.disabled = false;
+    completeBtn.textContent = '✅ MARK COMPLETE';
+  } else {
+    statusEl.textContent = 'AVAILABLE';
+    statusEl.className = 'sheet-status available';
+    claimBtn.style.display = 'block';
+    claimBtn.textContent = '⚡ CLAIM THIS BOUNTY';
+    claimBtn.className = 'claim-btn';
+    claimBtn.disabled = false;
+    claimBtn.onclick = claimBounty;
+    completeBtn.style.display = 'none';
+  }
+  navBtn.style.display = bounty.hasCoordinates ? 'block' : 'none';
 
   document.getElementById('backdrop').classList.add('open');
   document.getElementById('bountySheet').classList.add('open');
@@ -820,19 +952,90 @@ function closeSheet() {
   document.getElementById('backdrop').classList.remove('open');
   document.getElementById('bountySheet').classList.remove('open');
   activeStop = null;
+  activeBounty = null;
 }
 
 async function claimBounty() {
-  if (!activeStop) return;
-  showToast('Dispatch stop view only');
+  if (!activeBounty) return;
+  if (!currentOperatorId) { showToast('Not signed in as an operator'); return; }
+
+  const claimBtn = document.getElementById('claimBtn');
+  claimBtn.disabled = true;
+  claimBtn.textContent = 'CLAIMING…';
+
+  // Conditional update: only touches the row if it is STILL 'open' at the
+  // instant this runs. .select() is required -- Supabase does not error on
+  // a zero-row update, it just returns an empty array, which is how we
+  // detect that someone else already claimed it first.
+  const { data, error } = await sb
+    .from('scans')
+    .update({ bounty_status: 'claimed', claimed_by: currentOperatorId, claimed_at: new Date().toISOString() })
+    .eq('id', activeBounty.id)
+    .eq('bounty_status', 'open')
+    .select();
+
+  if (error) {
+    claimBtn.disabled = false;
+    claimBtn.textContent = '⚡ CLAIM THIS BOUNTY';
+    showToast('Claim failed: ' + error.message);
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    showToast('Already claimed by another driver');
+    closeSheet();
+    await loadBounties();
+    return;
+  }
+
+  showToast('Bounty claimed ✓');
+  closeSheet();
+  await loadBounties();
 }
 
-async function deliverBounty() {
-  if (!activeStop) return;
-  showToast('Dispatch stop view only');
+async function completeBounty() {
+  if (!activeBounty) return;
+  if (!currentOperatorId) { showToast('Not signed in as an operator'); return; }
+
+  const completeBtn = document.getElementById('completeBtn');
+  completeBtn.disabled = true;
+  completeBtn.textContent = 'COMPLETING…';
+
+  // Same pattern as claimBounty(): only succeeds while this bounty is still
+  // 'claimed' by ME. .select() + empty-result check, not error-only.
+  const { data, error } = await sb
+    .from('scans')
+    .update({ bounty_status: 'completed', completed_at: new Date().toISOString() })
+    .eq('id', activeBounty.id)
+    .eq('bounty_status', 'claimed')
+    .eq('claimed_by', currentOperatorId)
+    .select();
+
+  if (error) {
+    completeBtn.disabled = false;
+    completeBtn.textContent = '✅ MARK COMPLETE';
+    showToast('Complete failed: ' + error.message);
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    showToast('Could not complete — status may have changed');
+    closeSheet();
+    await loadBounties();
+    return;
+  }
+
+  showToast('Bounty completed ✓');
+  closeSheet();
+  await loadBounties();
 }
 
 function navigate() {
+  if (activeBounty) {
+    if (!activeBounty.hasCoordinates) return;
+    window.open('https://maps.google.com/?q=' + activeBounty.lat + ',' + activeBounty.lng, '_blank');
+    return;
+  }
   if (!activeStop) return;
   const addr = encodeURIComponent(activeStop.address || 'pickup location');
   window.open('https://maps.google.com/?q=' + addr, '_blank');
@@ -846,8 +1049,16 @@ function showToast(msg) {
 }
 
 (async function init(){
+  const isOperator = await window.watchtowerOperatorReady;
+  if (!isOperator) return; // operator-auth.js already redirects to login
+
+  sb = window.watchtowerAuth;
+  const { data: { user } } = await sb.auth.getUser();
+  currentOperatorId = user ? user.id : null;
+
   await loadDispatchStops();
-  setInterval(async () => { await loadDispatchStops(); }, 15000);
+  await loadBounties();
+  setInterval(async () => { await loadDispatchStops(); await loadBounties(); }, 15000);
 })();
 </script>
 </body>

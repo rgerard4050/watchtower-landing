@@ -187,14 +187,27 @@
         }
         loadCurrentResident();
 
-        // Grabs a one-shot GPS fix, failing gracefully (denied / unavailable / slow)
+        // A bounty sends a driver to a physical address, so it is only ever created from
+        // a fix taken at the pile during this scan. If the fix is missing, refused, or too
+        // coarse to tell one house from the next, the haul is logged without a bounty —
+        // we never fall back to the resident's address on file to place a pickup.
+        const BOUNTY_MIN_VALUE   = 25;   // dollars, estimated high
+        const BOUNTY_MAX_ACCURACY_M = 100; // reject anything vaguer than this
+
+        // Grabs a one-shot GPS fix, failing gracefully (denied / unavailable / slow).
+        // maximumAge:0 so we never reuse a cached fix from somewhere the user has left.
         function getGeolocation() {
             return new Promise((resolve) => {
-                if (!navigator.geolocation) { resolve({ lat: null, lng: null }); return; }
+                const noFix = { lat: null, lng: null, accuracy: null };
+                if (!navigator.geolocation) { resolve(noFix); return; }
                 navigator.geolocation.getCurrentPosition(
-                    (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-                    () => resolve({ lat: null, lng: null }),
-                    { timeout: 5000 }
+                    (pos) => resolve({
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude,
+                        accuracy: pos.coords.accuracy
+                    }),
+                    () => resolve(noFix),
+                    { timeout: 10000, enableHighAccuracy: true, maximumAge: 0 }
                 );
             });
         }
@@ -328,8 +341,16 @@
             logBtn.setAttribute('disabled', 'true');
             logBtn.textContent = 'Logging...';
 
-            const { lat, lng } = await getGeolocation();
-            const bountyCreated = (lastScan.estimated_value_high ?? 0) >= 25;
+            logBtn.textContent = 'Getting location...';
+            const { lat, lng, accuracy } = await getGeolocation();
+            logBtn.textContent = 'Logging...';
+
+            // Three independent conditions, all required. A driver is only sent out when
+            // we know where to send them and who is waiting there.
+            const worthDispatch = (lastScan.estimated_value_high ?? 0) >= BOUNTY_MIN_VALUE;
+            const haveFix       = lat != null && lng != null;
+            const fixIsPrecise  = haveFix && accuracy != null && accuracy <= BOUNTY_MAX_ACCURACY_M;
+            const bountyCreated = worthDispatch && fixIsPrecise && currentResidentId != null;
 
             const { error } = await db.from('scans').insert({
                 session_id: sessionId,
@@ -341,8 +362,10 @@
                 coaching_tip: lastScan.coaching_tip || null,
                 safety_warning: lastScan.safety_warning || null,
                 lat, lng,
+                location_accuracy_m: accuracy,
                 accepted: true,
-                bounty_created: bountyCreated
+                bounty_created: bountyCreated,
+                bounty_status: bountyCreated ? 'open' : null
             });
 
             if (error) {
@@ -357,11 +380,25 @@
 
             logBtn.style.display = 'none';
             logConfirm.style.color = 'var(--green)';
-            logConfirm.textContent = bountyCreated
-                ? '\u2713 Bounty created \u2014 a driver will be dispatched.'
-                : '\u2713 Haul logged. Bring it to a drop point to claim your WTWR.';
+
+            const dropPoint = '\u2713 Haul logged. Bring it to a drop point to claim your WTWR.';
+            let confirmMsg = dropPoint;
+            if (bountyCreated) {
+                confirmMsg = '\u2713 Bounty created \u2014 a driver will be dispatched.';
+            } else if (worthDispatch && !fixIsPrecise) {
+                // Say why, so a denied permission doesn't just look like a lost pickup.
+                confirmMsg = haveFix
+                    ? '\u2713 Haul logged. We couldn\u2019t pin your location precisely enough to send a driver \u2014 bring it to a drop point to claim your WTWR.'
+                    : '\u2713 Haul logged. Location sharing is off, so we can\u2019t send a driver \u2014 turn it on and rescan for pickup, or bring it to a drop point.';
+            } else if (worthDispatch && !currentResidentId) {
+                confirmMsg = '\u2713 Haul logged. Sign in before scanning to have a driver come to you \u2014 otherwise bring it to a drop point.';
+            }
+
+            logConfirm.textContent = confirmMsg;
             logConfirm.style.display = 'block';
-            printLog(bountyCreated ? "BOUNTY CREATED." : "HAUL LOGGED.");
+            printLog(bountyCreated
+                ? `BOUNTY CREATED. FIX \u00b1${Math.round(accuracy)}M.`
+                : "HAUL LOGGED. NO BOUNTY.");
         });
 
         window.addEventListener('load', initCamera);
