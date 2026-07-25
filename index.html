@@ -338,7 +338,7 @@ async function createResident(subscriber) {
     options: { data:{ name, address, zip }, emailRedirectTo: 'https://app.ocalaassetsecurity.com/index.html' }
   });
   if (authErr) {
-    if((authErr.message||'').toLowerCase().includes('already')) alert('That email already has an account. Log in below, or tap Forgot password.');
+    if((authErr.message||'').toLowerCase().includes('already')) alert("Welcome back! You're already signed up with that email - log in below, or tap \"Trouble signing in?\" for a link instead of a password.");
     else { alert('Signup failed: '+authErr.message); console.error(authErr); }
     return;
   }
@@ -374,7 +374,7 @@ async function createResident(subscriber) {
 
   const inNow = !!auth.session;
   document.getElementById('emailSuccessAddr').textContent =
-    'Wallet ID: '+walletId+(subscriber?' (Driveway subscriber - $4.99/mo)':'')+(inNow?'':'  -  Check your email to confirm.');
+    (existing?"Welcome back, you're already signed up! ":'')+'Wallet ID: '+walletId+(subscriber?' (Driveway subscriber - $4.99/mo)':'')+(inNow?'':'  -  Check your email to confirm.');
   document.getElementById('emailForm').style.display='none';
   document.getElementById('emailSuccess').classList.add('show');
   if (subscriber && !document.getElementById('stripeNote')) {
