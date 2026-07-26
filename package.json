@@ -1,0 +1,27 @@
+{
+  "name": "watchtower-landing",
+  "version": "1.0.0",
+  "description": "Watchtower is a public-facing recycling network that connects residents, businesses, operators, and dispatch into one simple experience.",
+  "main": "operator-auth.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rgerard4050/watchtower-landing.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/rgerard4050/watchtower-landing/issues"
+  },
+  "homepage": "https://github.com/rgerard4050/watchtower-landing#readme",
+  "dependencies": {
+    "stripe": "^22.3.2"
+  }
+}
