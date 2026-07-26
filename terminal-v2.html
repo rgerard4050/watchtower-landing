@@ -85,6 +85,7 @@ nav{display:flex;background:var(--dark);border-bottom:1px solid var(--border);}
   <button class="tab-btn active" data-tab="map">Map</button>
   <button class="tab-btn" data-tab="queue">Queue</button>
   <button class="tab-btn" data-tab="dispatch">Dispatch</button>
+  <button class="tab-btn" data-tab="payouts">Payouts</button>
 </nav>
 
 <div class="tab-content active" id="tab-map" style="position:relative">
@@ -111,11 +112,19 @@ nav{display:flex;background:var(--dark);border-bottom:1px solid var(--border);}
   </div>
 </div>
 
+<div class="tab-content" id="tab-payouts">
+  <div class="scroll">
+    <div class="sh">Driver Payouts — Owed</div>
+    <div id="payoutsList"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
 let sb = null;
 let currentUserId = null;
+let currentAccessToken = null;
 let map = null;
 let mapInitialized = false;
 
@@ -144,6 +153,7 @@ document.querySelectorAll('.tab-btn').forEach((btn) => {
     }
     if (btn.dataset.tab === 'queue') loadQueue();
     if (btn.dataset.tab === 'dispatch') loadDispatch();
+    if (btn.dataset.tab === 'payouts') loadPayouts();
   });
 });
 
@@ -296,6 +306,55 @@ async function loadDispatch() {
   });
 }
 
+// ---------- PAYOUTS -- operator-reviewed, no automatic transfer ----------
+async function loadPayouts() {
+  const el = document.getElementById('payoutsList');
+  const { data, error } = await sb.from('scans')
+    .select('id, summary, driver_payout_cents, claimed_by, completed_at')
+    .eq('bounty_status', 'completed')
+    .not('driver_payout_cents', 'is', null)
+    .is('driver_transfer_id', null)
+    .order('completed_at', { ascending: true });
+
+  if (error) { el.innerHTML = `<div class="empty">Failed to load payouts: ${error.message}</div>`; return; }
+  if (!data || !data.length) { el.innerHTML = '<div class="empty">Nothing owed right now.</div>'; return; }
+
+  el.innerHTML = data.map((s) => `
+    <div class="card" data-id="${s.id}">
+      <div class="card-top">
+        <div class="card-title">${s.summary || 'Recyclable material scan'}</div>
+        <div class="card-value">${fmtMoney((s.driver_payout_cents / 100).toFixed(2))}</div>
+      </div>
+      <div class="card-sub">Driver: ${shortId(s.claimed_by)} &middot; Completed: ${s.completed_at ? new Date(s.completed_at).toLocaleString() : '—'}</div>
+      <button class="btn pay-btn">PAY</button>
+    </div>
+  `).join('');
+
+  el.querySelectorAll('.pay-btn').forEach((btn) => {
+    btn.addEventListener('click', () => payDriver(btn.closest('.card').dataset.id, btn));
+  });
+}
+
+async function payDriver(id, btn) {
+  btn.disabled = true;
+  btn.textContent = 'PAYING…';
+
+  try {
+    const res = await fetch('/api/pay-driver', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token: currentAccessToken, scan_id: id }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Payout failed.');
+    showToast('Paid ✓');
+    await loadPayouts();
+  } catch (err) {
+    btn.disabled = false; btn.textContent = 'PAY';
+    showToast('Payout failed: ' + err.message, true);
+  }
+}
+
 async function claimBounty(id, btn) {
   btn.disabled = true;
   btn.textContent = 'CLAIMING…';
@@ -360,6 +419,8 @@ async function completeBounty(id, btn) {
   sb = window.watchtowerAuth;
   const { data: { user } } = await sb.auth.getUser();
   currentUserId = user ? user.id : null;
+  const { data: { session } } = await sb.auth.getSession();
+  currentAccessToken = session ? session.access_token : null;
 
   // Real, reachable nav entry for an operator who is also a verified driver.
   if (currentUserId) {

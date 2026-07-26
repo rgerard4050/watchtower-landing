@@ -106,6 +106,10 @@
 
         <div class="sh">My Claimed Bounties</div>
         <div id="mineList"></div>
+
+        <div class="sh">Payouts</div>
+        <div id="connectStatus" class="card"></div>
+        <div id="payoutList"></div>
     </div>
 
     <div class="wrap" id="stateScreen">
@@ -120,7 +124,10 @@
         const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
         let currentUserId = null;
+        let currentAccessToken = null;
         const board = document.getElementById('board');
+        const connectStatus = document.getElementById('connectStatus');
+        const payoutList = document.getElementById('payoutList');
         const stateScreen = document.getElementById('stateScreen');
         const stateText = document.getElementById('stateText');
         const openList = document.getElementById('openList');
@@ -280,6 +287,84 @@
             });
         }
 
+        async function startConnectOnboarding() {
+            const btn = document.getElementById('setupPayoutsBtn');
+            if (btn) { btn.disabled = true; btn.textContent = 'LOADING…'; }
+            try {
+                const res = await fetch('/api/driver-connect-onboarding', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ access_token: currentAccessToken }),
+                });
+                const json = await res.json();
+                if (!res.ok) throw new Error(json.error || 'Could not start onboarding.');
+                window.location.href = json.url;
+            } catch (err) {
+                showToast('Payout setup failed: ' + err.message, true);
+                if (btn) { btn.disabled = false; btn.textContent = 'SET UP PAYOUTS'; }
+            }
+        }
+
+        async function loadConnectStatus() {
+            const { data: driverRow } = await sb.from('drivers')
+                .select('stripe_payouts_enabled')
+                .eq('user_id', currentUserId)
+                .maybeSingle();
+
+            if (driverRow && driverRow.stripe_payouts_enabled) {
+                connectStatus.innerHTML = '<div class="card-sub" style="margin:0;color:var(--green)">✓ Payouts are set up. Completed bounties will be paid out here.</div>';
+            } else {
+                connectStatus.innerHTML = `
+                    <div class="card-sub" style="margin-bottom:10px">Set up Stripe payouts to get paid for completed bounties.</div>
+                    <button class="btn" id="setupPayoutsBtn">SET UP PAYOUTS</button>
+                `;
+                document.getElementById('setupPayoutsBtn').addEventListener('click', startConnectOnboarding);
+            }
+        }
+
+        async function loadPayoutHistory() {
+            const { data, error } = await sb.from('scans')
+                .select('id, summary, driver_payout_cents, driver_transfer_id, completed_at')
+                .eq('claimed_by', currentUserId)
+                .eq('bounty_status', 'completed')
+                .not('driver_payout_cents', 'is', null)
+                .order('completed_at', { ascending: false });
+
+            if (error || !data || !data.length) {
+                payoutList.innerHTML = '<div class="empty">No payouts yet.</div>';
+                return;
+            }
+
+            payoutList.innerHTML = data.map((r) => `
+                <div class="card">
+                    <div class="card-top">
+                        <div class="card-title">${r.summary || 'Recyclable material scan'}</div>
+                        <div class="card-value">${fmtMoney((r.driver_payout_cents / 100).toFixed(2))}</div>
+                    </div>
+                    <div class="card-sub" style="margin:0">${r.driver_transfer_id ? 'Paid ✓' : 'Pending — awaiting operator payout'}</div>
+                </div>
+            `).join('');
+        }
+
+        async function handleConnectReturnIfPresent() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('connect') !== 'return') return;
+
+            history.replaceState(null, '', window.location.pathname);
+            try {
+                const res = await fetch('/api/driver-connect-return', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ access_token: currentAccessToken }),
+                });
+                const json = await res.json();
+                if (!res.ok) throw new Error(json.error || 'Could not confirm payout setup.');
+                showToast(json.payouts_enabled ? 'Payouts are set up ✓' : 'Almost there — Stripe still needs more info from you.');
+            } catch (err) {
+                showToast('Could not confirm payout setup: ' + err.message, true);
+            }
+        }
+
         async function loadBounties() {
             const { data, error } = await sb.from('scans')
                 .select('id, summary, est_low, est_high, pickup_lat, pickup_lng, pickup_photo_url, bounty_status, claimed_by, created_at')
@@ -305,9 +390,11 @@
                 return;
             }
             currentUserId = session.user.id;
+            currentAccessToken = session.access_token;
             board.style.display = 'block';
-            await loadBounties();
-            setInterval(loadBounties, 15000);
+            await handleConnectReturnIfPresent();
+            await Promise.all([loadBounties(), loadConnectStatus(), loadPayoutHistory()]);
+            setInterval(() => { loadBounties(); loadPayoutHistory(); }, 15000);
         })();
     </script>
 </body>

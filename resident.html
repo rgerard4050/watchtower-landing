@@ -120,9 +120,39 @@ async function loadAccount(){
   if(data){
     currentResidentId = data.id;
     document.getElementById('walletId').textContent = data.wallet_id || '&mdash;';
-    document.getElementById('wtwrBalance').textContent = (Number(data.wtwr_balance) || 0).toFixed(2);
     document.getElementById('subBadge').textContent = data.subscriber ? 'DRIVEWAY SUBSCRIBER' : 'FREE ACCOUNT';
   }
+}
+
+// Live-bound, real-time WTWR balance (replaces the static set that used to
+// live in loadAccount()). Matches by email, same as RLS on scans, since
+// residents has no auth_id/user_id column yet -- worth a real column later
+// so this isn't email-fragile long-term.
+async function loadWtwrBalance() {
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return;
+
+  const { data: resident } = await sb
+    .from('residents')
+    .select('id, wtwr_balance')
+    .eq('email', user.email.toLowerCase())
+    .single();
+
+  if (!resident) return;
+
+  document.getElementById('wtwrBalance').textContent = Number(resident.wtwr_balance || 0).toFixed(2);
+
+  sb
+    .channel('resident-balance')
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'residents',
+      filter: `id=eq.${resident.id}`
+    }, (payload) => {
+      document.getElementById('wtwrBalance').textContent = Number(payload.new.wtwr_balance || 0).toFixed(2);
+    })
+    .subscribe();
 }
 
 function signOut(){
@@ -147,6 +177,7 @@ async function requestPickup(){
 }
 
 loadAccount();
+loadWtwrBalance();
 </script>
 </body>
 </html>
