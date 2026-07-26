@@ -50,6 +50,7 @@ nav button{background:transparent;border:1px solid var(--border);color:var(--mut
     <a href="index.html" style="color:var(--muted);text-decoration:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;">Home</a>
     <a href="business.html" style="color:var(--muted);text-decoration:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;">Businesses</a>
     <a href="terminal.html" style="color:var(--muted);text-decoration:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;">Operators</a>
+    <a href="driver-board.html" id="driverNavLink" style="display:none;color:var(--green);text-decoration:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;">Driver</a>
     <button onclick="signOut()">SIGN OUT</button>
   </div>
 </nav>
@@ -97,6 +98,15 @@ const sb = supabase.createClient('https://eypovuxuddiqgncjdpkq.supabase.co','sb_
 async function loadAccount(){
   const { data:{ session } } = await sb.auth.getSession();
   if(!session){ location.href = 'index.html'; return; }
+
+  // Real, reachable nav entry for verified drivers -- no other way to find
+  // driver-board.html today besides typing the URL directly.
+  sb.from('drivers').select('verification_status').eq('user_id', session.user.id).maybeSingle()
+    .then(({ data: driverRow }) => {
+      if (driverRow && driverRow.verification_status === 'verified') {
+        document.getElementById('driverNavLink').style.display = 'inline';
+      }
+    });
 
   const email = session.user.email;
   const { data, error } = await sb.from('residents').select('*').eq('email', email).maybeSingle();

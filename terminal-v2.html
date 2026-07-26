@@ -75,7 +75,10 @@ nav{display:flex;background:var(--dark);border-bottom:1px solid var(--border);}
 
 <header>
   <div class="logo">WATCHTOWER // TERMINAL v2</div>
-  <div class="node-stat">NODES: <b id="nodeCount">—</b></div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <a href="driver-board.html" id="driverNavLink" style="display:none;font-family:var(--mono);font-size:11px;color:var(--green);text-decoration:none;letter-spacing:.1em;text-transform:uppercase;">Driver</a>
+    <div class="node-stat">NODES: <b id="nodeCount">—</b></div>
+  </div>
 </header>
 
 <nav>
@@ -357,6 +360,16 @@ async function completeBounty(id, btn) {
   sb = window.watchtowerAuth;
   const { data: { user } } = await sb.auth.getUser();
   currentUserId = user ? user.id : null;
+
+  // Real, reachable nav entry for an operator who is also a verified driver.
+  if (currentUserId) {
+    sb.from('drivers').select('verification_status').eq('user_id', currentUserId).maybeSingle()
+      .then(({ data: driverRow }) => {
+        if (driverRow && driverRow.verification_status === 'verified') {
+          document.getElementById('driverNavLink').style.display = 'inline';
+        }
+      });
+  }
 
   await loadNodeCount();
   initMapIfNeeded();

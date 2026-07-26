@@ -226,6 +226,7 @@ header{background:rgba(8,12,15,0.98);border-bottom:1px solid var(--border);paddi
     <a href="resident.html" style="font-family:var(--mono);font-size:9px;color:var(--muted);text-decoration:none;letter-spacing:0.08em;text-transform:uppercase;">Residents</a>
     <a href="business.html" style="font-family:var(--mono);font-size:9px;color:var(--muted);text-decoration:none;letter-spacing:0.08em;text-transform:uppercase;">Businesses</a>
     <a href="learn.html" style="font-family:var(--mono);font-size:9px;color:var(--muted);text-decoration:none;letter-spacing:0.08em;text-transform:uppercase;">Learn</a>
+    <a href="driver-board.html" id="driverNavLink" style="display:none;font-family:var(--mono);font-size:9px;color:var(--green);text-decoration:none;letter-spacing:0.08em;text-transform:uppercase;">Driver</a>
     <a href="#" onclick="watchtowerSignOut();return false;" style="font-family:var(--mono);font-size:9px;color:var(--muted);text-decoration:none;letter-spacing:0.08em;text-transform:uppercase;">Sign Out</a>
   </div>
 </div>
@@ -1398,6 +1399,16 @@ function toast(msg,err=false){
     OPERATOR_ID = session ? session.user.id : null;
   }catch(e){ console.error(e); }
   if(!OPERATOR_ID) toast('No operator session — bounty actions disabled',true);
+
+  // Real, reachable nav entry for an operator who is also a verified driver.
+  if(OPERATOR_ID){
+    sb.from('drivers').select('verification_status').eq('user_id', OPERATOR_ID).maybeSingle()
+      .then(({ data: driverRow }) => {
+        if(driverRow && driverRow.verification_status === 'verified'){
+          document.getElementById('driverNavLink').style.display = 'inline';
+        }
+      });
+  }
 
   await load();
   renderMatGrid();
