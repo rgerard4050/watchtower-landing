@@ -352,7 +352,7 @@
             const fixIsPrecise  = haveFix && accuracy != null && accuracy <= BOUNTY_MAX_ACCURACY_M;
             const bountyCreated = worthDispatch && fixIsPrecise && currentResidentId != null;
 
-            const { error } = await db.from('scans').insert({
+            const { data: inserted, error } = await db.from('scans').insert({
                 session_id: sessionId,
                 resident_id: currentResidentId,
                 summary: lastScan.summary || null,
@@ -365,8 +365,8 @@
                 location_accuracy_m: accuracy,
                 accepted: true,
                 bounty_created: bountyCreated,
-                bounty_status: bountyCreated ? 'open' : null
-            });
+                bounty_status: null
+            }).select();
 
             if (error) {
                 logBtn.textContent = '+ LOG THIS HAUL';
@@ -378,14 +378,21 @@
                 return;
             }
 
+            // A bounty isn't done here -- it still needs a pickup-spot photo
+            // before it can go live on the dispatch map, so hand off there
+            // right away instead of stopping on this screen.
+            if (bountyCreated && inserted && inserted[0]) {
+                printLog(`BOUNTY LOGGED. FIX \u00b1${Math.round(accuracy)}M. ROUTING TO PICKUP PHOTO...`);
+                location.href = 'pickup-photo.html?bounty=' + encodeURIComponent(inserted[0].id);
+                return;
+            }
+
             logBtn.style.display = 'none';
             logConfirm.style.color = 'var(--green)';
 
             const dropPoint = '\u2713 Haul logged. Bring it to a drop point to claim your WTWR.';
             let confirmMsg = dropPoint;
-            if (bountyCreated) {
-                confirmMsg = '\u2713 Bounty created \u2014 a driver will be dispatched.';
-            } else if (worthDispatch && !fixIsPrecise) {
+            if (worthDispatch && !fixIsPrecise) {
                 // Say why, so a denied permission doesn't just look like a lost pickup.
                 confirmMsg = haveFix
                     ? '\u2713 Haul logged. We couldn\u2019t pin your location precisely enough to send a driver \u2014 bring it to a drop point to claim your WTWR.'
@@ -396,9 +403,7 @@
 
             logConfirm.textContent = confirmMsg;
             logConfirm.style.display = 'block';
-            printLog(bountyCreated
-                ? `BOUNTY CREATED. FIX \u00b1${Math.round(accuracy)}M.`
-                : "HAUL LOGGED. NO BOUNTY.");
+            printLog("HAUL LOGGED. NO BOUNTY.");
         });
 
         window.addEventListener('load', initCamera);

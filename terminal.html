@@ -494,33 +494,6 @@ header{background:rgba(8,12,15,0.98);border-bottom:1px solid var(--border);paddi
   </div>
 </div>
 
-<!-- ADMIN MODAL -->
-<div class="overlay" id="bountyModal">
-  <div class="modal">
-    <div class="modal-hdr">
-      <div class="modal-title">🚛 ASSIGN BOUNTY TO DISPATCH</div>
-      <button class="modal-close" onclick="closeBountyAssign()">✕</button>
-    </div>
-    <div id="baSummary" style="margin-bottom:14px"></div>
-    <div class="form-row">
-      <div class="fg"><label class="fl">DISPATCH RUN</label>
-        <select class="fi" id="baRun" onchange="baToggleNew()"></select></div>
-    </div>
-    <div id="baNewRun">
-      <div class="form-row">
-        <div class="fg"><label class="fl">DRIVER NAME</label><input class="fi" type="text" id="baDriver" placeholder="Driver name"></div>
-        <div class="fg"><label class="fl">VEHICLE</label><input class="fi" type="text" id="baVehicle" placeholder="Truck / van"></div>
-      </div>
-      <div class="form-row">
-        <div class="fg"><label class="fl">SCHEDULED (OPTIONAL)</label><input class="fi" type="datetime-local" id="baWhen"></div>
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="fg"><label class="fl">ARRIVAL WINDOW (OPTIONAL)</label><input class="fi" type="text" id="baWindow" placeholder="e.g. 9:00–11:00"></div>
-    </div>
-    <button class="btn btn-green btn-full" id="baConfirm" onclick="confirmBountyAssign()">CONFIRM ASSIGNMENT →</button>
-  </div>
-</div>
 
 <div class="overlay" id="adminModal">
   <div class="modal">
@@ -608,7 +581,7 @@ let S = {
   prices:{}, drvCut:20, platformCut:50, mfgBonus:40,
   tickets:[], nodes:[], redemptions:[],
   businesses:[], selMat:null, wtwrPrice:0,
-  bounties:[], bountiesNoLoc:[], bountyStops:[], runs:[],
+  bounties:[], bountiesNoLoc:[], bountiesInProgress:[], bountyStops:[],
 };
 // auth.uid() of the signed-in operator — RLS only lets a bounty be claimed in their name
 let OPERATOR_ID = null;
@@ -629,7 +602,6 @@ async function load(){
   await refreshTickets();
   await refreshRedemptions();
   await refreshBusinesses();
-  await refreshRuns();
   await refreshBounties();
   await refreshBountyStops();
 }
@@ -640,32 +612,21 @@ function save(){
   }));
 }
 async function refreshBounties(){
-  // "Not yet dispatched" is a real join: dispatch_stops.scan_id points back at the bounty
-  // it serves, so an assigned bounty leaves this list for every operator on every device.
-  const [scanRes, stopRes] = await Promise.all([
-    sb.from('scans').select('*, residents(name)')
-      .eq('bounty_created', true).eq('bounty_status', 'open')
-      .order('created_at',{ascending:false}),
-    sb.from('dispatch_stops').select('scan_id')
-      .not('scan_id','is',null).neq('status','CANCELLED'),
-  ]);
-  if(scanRes.error){console.error(scanRes.error);toast('Failed to load bounties — check connection',true);return;}
-  if(stopRes.error){console.error(stopRes.error);toast('Failed to read dispatch stops',true);return;}
+  // Drivers self-claim directly on scans now (RLS-enforced) -- this tab is
+  // read-only status for operators: open / claimed / completed, no action
+  // except CANCEL, which is a separate cleanup valve, not the old assign step.
+  const { data, error } = await sb.from('scans').select('*, residents(name)')
+    .eq('bounty_created', true)
+    .in('bounty_status', ['open','claimed','completed'])
+    .order('created_at',{ascending:false});
+  if(error){console.error(error);toast('Failed to load bounties — check connection',true);return;}
 
-  const assigned = new Set((stopRes.data||[]).map(r=>r.scan_id));
-  const open = (scanRes.data||[]).filter(s=>!assigned.has(s.id));
-
-  // A bounty with no coordinates cannot be dispatched, and we never substitute the
+  // A bounty with no coordinates was never dispatchable, and we never substitute the
   // resident's address on file. Held aside so an operator can see it and cancel it
   // rather than have a driver sent to a guessed location.
-  S.bounties      = open.filter(s=>s.lat!=null && s.lng!=null);
-  S.bountiesNoLoc = open.filter(s=>s.lat==null || s.lng==null);
-}
-async function refreshRuns(){
-  const { data, error } = await sb.from('dispatch_runs').select('*')
-    .in('status',['queued','active']).order('created_at',{ascending:false});
-  if(error){console.error(error);toast('Failed to load dispatch runs',true);return;}
-  S.runs = data||[];
+  S.bounties           = (data||[]).filter(s=>s.bounty_status==='open' && s.lat!=null && s.lng!=null);
+  S.bountiesNoLoc       = (data||[]).filter(s=>s.bounty_status==='open' && (s.lat==null || s.lng==null));
+  S.bountiesInProgress = (data||[]).filter(s=>s.bounty_status==='claimed' || s.bounty_status==='completed');
 }
 async function refreshBountyStops(){
   const { data, error } = await sb.from('dispatch_stops')
@@ -1126,7 +1087,6 @@ function renderBounties(){
           <div class="q-row"><span class="q-key">Fix</span>${acc}</div>
         </div>
         <div class="card-footer">
-          <button class="btn-blue" onclick="assignBounty('${s.id}')">ASSIGN TO DISPATCH →</button>
           <button class="btn-reject" onclick="cancelBounty('${s.id}')">CANCEL</button>
         </div>
       </div>`;
@@ -1156,6 +1116,37 @@ function renderBounties(){
     }).join(''));
   }
 
+  // Claimed / completed -- read-only. Drivers self-claim on the driver
+  // board now; this is status visibility only, no action except CANCEL
+  // while still claimed. Driver identity shows as a short id, not a name --
+  // `drivers` (unlike `operators`) has no name field, and operators can
+  // only SELECT their own operators row, not each other's.
+  if(S.bountiesInProgress.length){
+    parts.push(`<div class="sh" style="margin-top:14px">// CLAIMED / COMPLETED</div>`);
+    parts.push(S.bountiesInProgress.map(s=>{
+      const name=(s.residents&&s.residents.name)||'Unknown resident';
+      const who=s.claimed_by?esc(s.claimed_by.slice(0,8))+'…':'—';
+      const pill=s.bounty_status==='completed'
+        ?`<span class="pill pill-approved">COMPLETED</span>`
+        :`<span class="pill pill-transit">CLAIMED</span>`;
+      return `<div class="card">
+        <div class="card-header">
+          <span class="q-id">${esc(name)}</span>
+          ${pill}
+          <span class="q-time">${fmtT(s.created_at)}</span>
+        </div>
+        <div class="card-body">
+          <div class="q-row"><span class="q-key">Summary</span><span class="q-val">${esc(s.summary||'—')}</span></div>
+          <div class="q-row"><span class="q-key">Est High</span><span class="q-val g">$${esc(s.est_high??0)}</span></div>
+          <div class="q-row"><span class="q-key">Claimed by</span><span class="q-val">${who}</span></div>
+          <div class="q-row"><span class="q-key">Claimed at</span><span class="q-val">${s.claimed_at?fmtT(s.claimed_at):'—'}</span></div>
+          ${s.bounty_status==='completed'?`<div class="q-row"><span class="q-key">Completed at</span><span class="q-val">${s.completed_at?fmtT(s.completed_at):'—'}</span></div>`:''}
+        </div>
+        ${s.bounty_status==='claimed'?`<div class="card-footer"><button class="btn-reject" onclick="cancelBounty('${s.id}')">CANCEL</button></div>`:''}
+      </div>`;
+    }).join(''));
+  }
+
   el.innerHTML=parts.join('');
 }
 
@@ -1165,103 +1156,10 @@ function mapLink(lat,lng){
     style="color:var(--blue);font-family:var(--mono);font-size:9px;text-decoration:none">${Number(lat).toFixed(5)}, ${Number(lng).toFixed(5)} — VIEW ON MAP →</a>`;
 }
 
-// ── Assign to dispatch ──────────────────────────────────────────────
-let baScanId=null;
-
-function assignBounty(id){
-  const s=S.bounties.find(b=>b.id===id);
-  if(!s){toast('Bounty not found — reload',true);return;}
-  if(s.lat==null||s.lng==null){toast('No scan location — cannot dispatch',true);return;}
-
-  baScanId=id;
-  const name=(s.residents&&s.residents.name)||'Unknown resident';
-  document.getElementById('baSummary').innerHTML=
-    `<div class="q-row"><span class="q-key">Resident</span><span class="q-val">${esc(name)}</span></div>
-     <div class="q-row"><span class="q-key">Haul</span><span class="q-val">${esc(s.summary||'—')}</span></div>
-     <div class="q-row"><span class="q-key">Est High</span><span class="q-val g">$${esc(s.est_high??0)}</span></div>
-     <div class="q-row"><span class="q-key">Pickup at</span><span class="q-val">${mapLink(s.lat,s.lng)}</span></div>`;
-
-  const sel=document.getElementById('baRun');
-  sel.innerHTML=`<option value="">＋ Start a new run…</option>`+
-    S.runs.map(r=>`<option value="${r.id}">#${r.id} — ${esc(r.driver_name)} / ${esc(r.vehicle_name)} (${esc(r.status)})</option>`).join('');
-  sel.value='';
-  baToggleNew();
-
-  const btn=document.getElementById('baConfirm');
-  btn.removeAttribute('disabled'); btn.textContent='CONFIRM ASSIGNMENT →';
-  document.getElementById('bountyModal').classList.add('open');
-}
-function baToggleNew(){
-  const isNew=!document.getElementById('baRun').value;
-  document.getElementById('baNewRun').style.display=isNew?'block':'none';
-}
-function closeBountyAssign(){
-  document.getElementById('bountyModal').classList.remove('open');
-  baScanId=null;
-}
-
-async function confirmBountyAssign(){
-  if(!baScanId)return;
-  const btn=document.getElementById('baConfirm');
-  const fail=(msg)=>{toast(msg,true);btn.removeAttribute('disabled');btn.textContent='CONFIRM ASSIGNMENT →';};
-  btn.setAttribute('disabled','true'); btn.textContent='ASSIGNING...';
-
-  if(!OPERATOR_ID){return fail('No operator session — sign in again');}
-  const scanId=baScanId;
-  const arrival=document.getElementById('baWindow').value.trim()||null;
-  let runId=document.getElementById('baRun').value;
-
-  // 1. Resolve the run, creating one if this is a fresh dispatch.
-  if(!runId){
-    const driver=document.getElementById('baDriver').value.trim();
-    const vehicle=document.getElementById('baVehicle').value.trim();
-    if(!driver||!vehicle){return fail('Driver and vehicle are required for a new run');}
-    const when=document.getElementById('baWhen').value;
-    const { data, error } = await sb.from('dispatch_runs')
-      .insert({driver_name:driver, vehicle_name:vehicle, status:'queued',
-               scheduled_at: when?new Date(when).toISOString():null})
-      .select('id').single();
-    if(error){console.error(error);return fail('Could not create run: '+error.message);}
-    runId=data.id;
-  }
-
-  // 2. Next stop number on that run.
-  const { data:last, error:ordErr } = await sb.from('dispatch_stops')
-    .select('stop_order').eq('run_id',runId).order('stop_order',{ascending:false}).limit(1);
-  if(ordErr){console.error(ordErr);return fail('Could not read run stops: '+ordErr.message);}
-  const nextOrder=((last && last[0] && last[0].stop_order)||0)+1;
-
-  // 3. Create the stop first. If the claim in step 4 fails, this stop is cancelled so
-  //    the bounty stays visible rather than silently disappearing from both views.
-  const { data:stop, error:stopErr } = await sb.from('dispatch_stops')
-    .insert({run_id:runId, scan_id:scanId, stop_order:nextOrder, status:'WAITING', arrival_window:arrival})
-    .select('id').single();
-  if(stopErr){
-    console.error(stopErr);
-    return fail(stopErr.code==='23505'
-      ? 'Already assigned to a run — reloading'
-      : 'Could not create stop: '+stopErr.message);
-  }
-
-  // 4. Claim the bounty. The .eq('bounty_status','open') guard means a second operator
-  //    racing on the same bounty updates nothing, and we undo our stop.
-  const { data:claimed, error:claimErr } = await sb.from('scans')
-    .update({bounty_status:'claimed', claimed_by:OPERATOR_ID, claimed_at:new Date().toISOString()})
-    .eq('id',scanId).eq('bounty_status','open').select('id');
-
-  if(claimErr || !claimed || !claimed.length){
-    if(claimErr)console.error(claimErr);
-    await sb.from('dispatch_stops').update({status:'CANCELLED'}).eq('id',stop.id);
-    return fail(claimErr ? 'Could not claim bounty: '+claimErr.message
-                         : 'Bounty was already claimed by someone else');
-  }
-
-  closeBountyAssign();
-  await Promise.all([refreshBounties(), refreshRuns(), refreshBountyStops()]);
-  renderBounties(); renderDispatch(); updateBadges();
-  toast('Bounty assigned to run #'+runId+' ✓');
-}
-
+// ── Bounty cleanup ───────────────────────────────────────────────────
+// Assign-to-dispatch was removed here: drivers self-claim directly on
+// scans now (RLS-enforced, see is_verified_driver()). Cancel remains --
+// it's a separate operator safety valve, not the removed assign step.
 async function cancelBounty(id){
   if(!confirm('Cancel this bounty? The resident will no longer be expecting a pickup.'))return;
   const { data, error } = await sb.from('scans')

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Watchtower — Pickup Spot</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600;700&display=swap');
+
+        :root {
+            --black: #080c0f;
+            --dark: #0d1318;
+            --panel: #111820;
+            --panel2: #161f28;
+            --border: #1e2d3a;
+            --green: #00ff88;
+            --green-dim: #00cc6a;
+            --green-glow: rgba(0,255,136,0.10);
+            --amber: #ffaa00;
+            --red: #ff4455;
+            --muted: #5a7a8a;
+            --text: #c8d8e8;
+            --sans: 'Inter', sans-serif;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--black);
+            color: #fff;
+            font-family: 'Share Tech Mono', monospace;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; box-sizing: border-box; padding-bottom: 40px;
+        }
+
+        .terminal-header {
+            width: 100%; padding: 14px; background: var(--dark);
+            border-bottom: 1px solid var(--border); text-align: center;
+            color: var(--green); text-shadow: 0 0 5px var(--green-dim);
+            letter-spacing: 2px; font-size: 13px; display:flex; align-items:center; justify-content:space-between; box-sizing:border-box;
+        }
+        .terminal-header a { color: var(--muted); text-decoration:none; font-size:11px; }
+
+        .friendly-sub {
+            max-width: 450px; width: 90%; margin-top: 16px;
+            font-family: var(--sans); font-size: 14px; color: var(--muted);
+            line-height: 1.6; text-align: center;
+        }
+
+        .viewscreen-container {
+            position: relative; width: 90%; max-width: 450px; aspect-ratio: 4/3;
+            margin: 18px 0; background: var(--panel); border: 1px solid var(--border);
+            border-radius: 8px; overflow: hidden; box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+        }
+        video, #capturedImg { width: 100%; height: 100%; object-fit: cover; display:block; }
+        #capturedImg { display: none; }
+
+        .reticle {
+            position: absolute; top: 50%; left: 50%; width: 60%; height: 60%;
+            border: 1px dashed var(--green-dim); transform: translate(-50%, -50%);
+            pointer-events: none; box-shadow: 0 0 10px var(--green-glow);
+        }
+        .reticle::before, .reticle::after {
+            content: ''; position: absolute; width: 10px; height: 10px; border: 2px solid var(--green);
+        }
+        .reticle::before { top: -2px; left: -2px; border-right: none; border-bottom: none; }
+        .reticle::after { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+
+        .controls { width: 90%; max-width: 450px; display: flex; flex-direction: column; gap: 12px; }
+
+        .btn {
+            background: var(--panel); border: 1px solid var(--green); color: var(--green);
+            padding: 16px; font-family: 'Share Tech Mono', monospace; font-size: 1rem; font-weight: bold;
+            cursor: pointer; text-transform: uppercase; letter-spacing: 1px;
+            transition: all 0.15s ease; box-shadow: 0 0 5px var(--green-glow); border-radius: 6px;
+        }
+        .btn:active { background: var(--green); color: var(--black); box-shadow: 0 0 15px var(--green); }
+        .btn.secondary { border-color: var(--border); color: var(--muted); box-shadow:none; }
+        .btn.secondary:active { background: var(--panel2); color: var(--text); }
+        .btn[disabled] { opacity: .5; pointer-events: none; }
+
+        .console-output {
+            background: var(--dark); border: 1px solid var(--border); padding: 10px;
+            min-height: 40px; overflow-y: auto; font-size: 0.85rem; color: var(--amber);
+            border-radius: 6px;
+        }
+
+        #stateScreen { display:none; width: 90%; max-width: 450px; font-family: var(--sans); text-align:center; margin-top: 24px; }
+        #stateScreen .glyph { font-size: 44px; margin-bottom: 14px; }
+        #stateScreen .title { font-family:'Share Tech Mono',monospace; font-size:13px; letter-spacing:.1em; margin-bottom:10px; }
+        #stateScreen .title.ok { color: var(--green); }
+        #stateScreen .title.err { color: var(--red); }
+        #stateScreen p { font-size: 14px; color: var(--text); line-height:1.6; margin: 0 0 16px; }
+    </style>
+</head>
+<body>
+
+    <div class="terminal-header">
+        <span>WATCHTOWER // PICKUP SPOT</span>
+        <a href="index.html">&#8592; HOME</a>
+    </div>
+
+    <p class="friendly-sub" id="introText">Take a photo of exactly where you'll leave this for pickup — a safe, visible spot the driver can find.</p>
+
+    <div class="viewscreen-container" id="viewscreen">
+        <video id="webcam" autoplay playsinline></video>
+        <img id="capturedImg" alt="Captured photo">
+        <div class="reticle"></div>
+    </div>
+
+    <div class="controls" id="controls">
+        <button class="btn" id="capture-btn">Photograph Pickup Spot</button>
+        <button class="btn secondary" id="retake-btn" style="display:none">Retake Photo</button>
+        <button class="btn" id="submit-btn" style="display:none">Save This Spot</button>
+        <div class="console-output" id="console">SYSTEM READY. AWAITING BOUNTY...</div>
+    </div>
+
+    <div id="stateScreen">
+        <div class="glyph" id="stateGlyph">✅</div>
+        <div class="title ok" id="stateTitle">// PICKUP SPOT SAVED</div>
+        <p id="stateText"></p>
+        <a class="btn secondary" href="index.html" style="display:inline-block;text-decoration:none;width:90%;max-width:450px;box-sizing:border-box;">Back to Home</a>
+    </div>
+
+    <canvas id="snapshot" style="display:none;"></canvas>
+
+    <script>
+        const SUPABASE_URL  = "https://eypovuxuddiqgncjdpkq.supabase.co";
+        const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5cG92dXh1ZGRpcWduY2pkcGtxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MzU1NDgsImV4cCI6MjA5ODUxMTU0OH0.JLSmCx7bZe7yIxxdXZwCWrLeyV1zAoPTXbSP24IckBY";
+        const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+        const params = new URLSearchParams(location.search);
+        const bountyId = params.get('bounty');
+
+        const video = document.getElementById('webcam');
+        const capturedImg = document.getElementById('capturedImg');
+        const canvas = document.getElementById('snapshot');
+        const captureBtn = document.getElementById('capture-btn');
+        const retakeBtn = document.getElementById('retake-btn');
+        const submitBtn = document.getElementById('submit-btn');
+        const consoleLog = document.getElementById('console');
+        const viewscreen = document.getElementById('viewscreen');
+        const controls = document.getElementById('controls');
+        const introText = document.getElementById('introText');
+        const stateScreen = document.getElementById('stateScreen');
+        const stateGlyph = document.getElementById('stateGlyph');
+        const stateTitle = document.getElementById('stateTitle');
+        const stateText = document.getElementById('stateText');
+
+        let capturedBlob = null;
+
+        function printLog(msg) {
+            consoleLog.innerHTML += `<br>&gt; ${msg}`;
+            consoleLog.scrollTop = consoleLog.scrollHeight;
+        }
+
+        function showDeadEnd(title, text) {
+            viewscreen.style.display = 'none';
+            controls.style.display = 'none';
+            introText.style.display = 'none';
+            stateGlyph.textContent = '⚠️';
+            stateTitle.textContent = title;
+            stateTitle.className = 'title err';
+            stateText.textContent = text;
+            stateScreen.style.display = 'block';
+        }
+
+        function showSuccess(text) {
+            viewscreen.style.display = 'none';
+            controls.style.display = 'none';
+            introText.style.display = 'none';
+            stateGlyph.textContent = '✅';
+            stateTitle.textContent = '// PICKUP SPOT SAVED';
+            stateTitle.className = 'title ok';
+            stateText.textContent = text;
+            stateScreen.style.display = 'block';
+        }
+
+        // Same one-shot GPS pattern as the scanner -- but here a fix is the
+        // entire point of the page, so we ask again rather than silently
+        // continuing without one.
+        function getGeolocation() {
+            return new Promise((resolve) => {
+                const noFix = { lat: null, lng: null, accuracy: null };
+                if (!navigator.geolocation) { resolve(noFix); return; }
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => resolve({
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude,
+                        accuracy: pos.coords.accuracy
+                    }),
+                    () => resolve(noFix),
+                    { timeout: 10000, enableHighAccuracy: true, maximumAge: 0 }
+                );
+            });
+        }
+
+        async function initCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { exact: "environment" } }, audio: false
+                });
+                video.srcObject = stream;
+                printLog("CAMERA READY.");
+            } catch (err) {
+                printLog("BACK CAMERA UNAVAILABLE. TRYING DEFAULT...");
+                navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+                    .then(stream => { video.srcObject = stream; })
+                    .catch(e => printLog("CAMERA ACCESS DENIED. CHECK PERMISSIONS."));
+            }
+        }
+
+        captureBtn.addEventListener('click', () => {
+            if (video.style.display === 'none') return;
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob((blob) => {
+                capturedBlob = blob;
+                capturedImg.src = URL.createObjectURL(blob);
+            }, 'image/jpeg', 0.85);
+
+            video.style.display = 'none';
+            capturedImg.style.display = 'block';
+            captureBtn.style.display = 'none';
+            retakeBtn.style.display = 'block';
+            submitBtn.style.display = 'block';
+            printLog("PHOTO CAPTURED.");
+        });
+
+        retakeBtn.addEventListener('click', () => {
+            video.style.display = 'block';
+            capturedImg.style.display = 'none';
+            captureBtn.style.display = 'block';
+            retakeBtn.style.display = 'none';
+            submitBtn.style.display = 'none';
+            capturedBlob = null;
+            printLog("RETAKING.");
+        });
+
+        submitBtn.addEventListener('click', async () => {
+            if (!capturedBlob) return;
+            submitBtn.setAttribute('disabled', 'true');
+            submitBtn.textContent = 'Getting location...';
+            printLog("REQUESTING GPS FIX...");
+
+            const { lat, lng, accuracy } = await getGeolocation();
+            if (lat == null || lng == null) {
+                submitBtn.removeAttribute('disabled');
+                submitBtn.textContent = 'Save This Spot';
+                printLog("NO GPS FIX. LOCATION ACCESS MAY BE OFF.");
+                alert("We couldn't get your location. Please enable location access for this site and try again — the driver needs it to find this spot.");
+                return;
+            }
+
+            submitBtn.textContent = 'Uploading photo...';
+            printLog(`GPS FIX ±${Math.round(accuracy)}M. UPLOADING...`);
+
+            const path = bountyId + '/pickup.jpg';
+            const { error: uploadError } = await db.storage
+                .from('pickup-photos')
+                .upload(path, capturedBlob, { contentType: 'image/jpeg', upsert: true });
+
+            if (uploadError) {
+                submitBtn.removeAttribute('disabled');
+                submitBtn.textContent = 'Save This Spot';
+                printLog("UPLOAD FAILED: " + uploadError.message);
+                alert("Could not upload the photo. Try again.");
+                return;
+            }
+
+            submitBtn.textContent = 'Saving...';
+            const { data: updated, error: updateError } = await db.from('scans')
+                .update({
+                    bounty_status: 'open',
+                    pickup_photo_url: path,
+                    pickup_lat: lat,
+                    pickup_lng: lng,
+                    pickup_photo_at: new Date().toISOString(),
+                })
+                .eq('id', bountyId)
+                .is('bounty_status', null)
+                .select();
+
+            if (updateError) {
+                submitBtn.removeAttribute('disabled');
+                submitBtn.textContent = 'Save This Spot';
+                printLog("SAVE FAILED: " + updateError.message);
+                alert("Photo uploaded, but we couldn't save it to your bounty. Try tapping Save again.");
+                return;
+            }
+
+            if (!updated || updated.length === 0) {
+                // Either already submitted once, or the bounty moved on somehow.
+                printLog("NO ROWS UPDATED -- ALREADY SAVED OR BOUNTY CHANGED.");
+                showSuccess("This pickup spot looks like it's already saved. Watchtower will collect from here.");
+                return;
+            }
+
+            printLog("PICKUP SPOT SAVED. BOUNTY IS NOW LIVE.");
+            showSuccess("Pickup spot saved. Watchtower will collect from here.");
+        });
+
+        (async function init() {
+            if (!bountyId) {
+                showDeadEnd('// NO BOUNTY FOUND', "This link is missing its bounty. Go back and log a haul worth $25 or more to start a pickup.");
+                return;
+            }
+
+            const { data: { session } } = await db.auth.getSession();
+            if (!session) {
+                showDeadEnd('// SIGN IN NEEDED', "You'll need to be signed in to save a pickup spot. Log in, then reopen this link.");
+                return;
+            }
+
+            const { data: bounty, error } = await db.from('scans').select('id, bounty_status').eq('id', bountyId).maybeSingle();
+            if (error || !bounty) {
+                showDeadEnd('// BOUNTY NOT FOUND', "We couldn't find that bounty on your account. It may belong to a different login, or the link may be wrong.");
+                return;
+            }
+            if (bounty.bounty_status !== null) {
+                showSuccess("This pickup spot is already saved. Watchtower will collect from here.");
+                return;
+            }
+
+            printLog("BOUNTY FOUND. AWAITING PHOTO.");
+            initCamera();
+        })();
+    </script>
+</body>
+</html>

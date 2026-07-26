@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Watchtower — Driver Board</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600;700&display=swap');
+
+        :root {
+            --black: #080c0f;
+            --dark: #0d1318;
+            --panel: #111820;
+            --panel2: #161f28;
+            --border: #1e2d3a;
+            --green: #00ff88;
+            --green-dim: #00cc6a;
+            --green-glow: rgba(0,255,136,0.10);
+            --amber: #ffaa00;
+            --blue: #00aaff;
+            --red: #ff4455;
+            --muted: #5a7a8a;
+            --text: #c8d8e8;
+            --sans: 'Inter', sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; padding: 0 0 40px;
+            background-color: var(--black);
+            color: #fff;
+            font-family: var(--sans);
+            min-height: 100vh;
+        }
+
+        .terminal-header {
+            width: 100%; padding: 14px 18px; background: var(--dark);
+            border-bottom: 1px solid var(--border); text-align: center;
+            color: var(--green); text-shadow: 0 0 5px var(--green-dim);
+            letter-spacing: 2px; font-size: 13px; display:flex; align-items:center; justify-content:space-between;
+            font-family: 'Share Tech Mono', monospace; position: sticky; top: 0; z-index: 10;
+        }
+        .terminal-header a { color: var(--muted); text-decoration:none; font-size:11px; }
+
+        .wrap { max-width: 520px; margin: 0 auto; padding: 18px 16px; }
+
+        .friendly-sub { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 20px; }
+
+        .sh {
+            font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--green);
+            letter-spacing: .12em; text-transform: uppercase; margin: 22px 0 10px;
+        }
+        .sh:first-of-type { margin-top: 0; }
+
+        .card {
+            background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+            padding: 14px; margin-bottom: 10px;
+        }
+        .card.mine { border-color: var(--blue); }
+        .card-top { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom: 8px; }
+        .card-title { font-size: 15px; font-weight: 600; color: #fff; }
+        .card-value { font-family: 'Share Tech Mono', monospace; font-size: 16px; color: var(--green); white-space: nowrap; }
+        .card-sub { font-size: 12px; color: var(--muted); margin-bottom: 10px; line-height: 1.5; }
+        .card-photo { width: 100%; border-radius: 8px; margin-bottom: 10px; display:block; }
+
+        .btn {
+            width: 100%; background: var(--panel2); border: 1px solid var(--green); color: var(--green);
+            padding: 12px; font-family: 'Share Tech Mono', monospace; font-size: 13px; font-weight: bold;
+            cursor: pointer; text-transform: uppercase; letter-spacing: 1px; border-radius: 6px;
+        }
+        .btn:active { background: var(--green); color: var(--black); }
+        .btn[disabled] { opacity: .5; pointer-events: none; }
+        .btn.complete { border-color: var(--blue); color: var(--blue); }
+        .btn.complete:active { background: var(--blue); color: var(--black); }
+        .btn.nav { border-color: var(--border); color: var(--muted); margin-top: 8px; }
+
+        .empty { font-size: 13px; color: var(--muted); font-style: italic; padding: 6px 0 16px; }
+
+        .toast {
+            position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+            background: var(--panel); border: 1px solid var(--green); color: var(--text);
+            padding: 12px 18px; border-radius: 8px; font-size: 13px; max-width: 90%;
+            display: none; z-index: 100; text-align: center;
+        }
+        .toast.err { border-color: var(--red); }
+        .toast.show { display: block; }
+
+        #stateScreen { display:none; text-align:center; margin-top: 30px; }
+        #stateScreen p { font-size: 14px; color: var(--text); line-height: 1.6; }
+        #stateScreen a { color: var(--green); }
+    </style>
+</head>
+<body>
+
+    <div class="terminal-header">
+        <span>WATCHTOWER // DRIVER BOARD</span>
+        <a href="index.html">&#8592; HOME</a>
+    </div>
+
+    <div class="wrap" id="board" style="display:none">
+        <p class="friendly-sub">Open bounties are first come, first served. Claim one, go collect it, then mark it complete.</p>
+
+        <div class="sh">Open Bounties</div>
+        <div id="openList"></div>
+
+        <div class="sh">My Claimed Bounties</div>
+        <div id="mineList"></div>
+    </div>
+
+    <div class="wrap" id="stateScreen">
+        <p id="stateText"></p>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const SUPABASE_URL  = "https://eypovuxuddiqgncjdpkq.supabase.co";
+        const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5cG92dXh1ZGRpcWduY2pkcGtxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MzU1NDgsImV4cCI6MjA5ODUxMTU0OH0.JLSmCx7bZe7yIxxdXZwCWrLeyV1zAoPTXbSP24IckBY";
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+        let currentUserId = null;
+        const board = document.getElementById('board');
+        const stateScreen = document.getElementById('stateScreen');
+        const stateText = document.getElementById('stateText');
+        const openList = document.getElementById('openList');
+        const mineList = document.getElementById('mineList');
+
+        function showToast(msg, isErr) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast show' + (isErr ? ' err' : '');
+            setTimeout(() => { t.className = 'toast'; }, 4000);
+        }
+
+        function showDeadEnd(text) {
+            board.style.display = 'none';
+            stateText.innerHTML = text;
+            stateScreen.style.display = 'block';
+        }
+
+        // General area only -- never the exact spot -- before a driver has
+        // committed to the job. ~1.1km precision at this latitude.
+        function roundCoord(n) {
+            return Math.round(Number(n) * 100) / 100;
+        }
+
+        function fmtMoney(n) {
+            return n == null ? '—' : '$' + n;
+        }
+
+        async function claimBounty(id, btn) {
+            btn.disabled = true;
+            btn.textContent = 'CLAIMING…';
+
+            const { data, error } = await sb.from('scans')
+                .update({ bounty_status: 'claimed', claimed_by: currentUserId, claimed_at: new Date().toISOString() })
+                .eq('id', id)
+                .eq('bounty_status', 'open')
+                .select();
+
+            if (error) {
+                btn.disabled = false;
+                btn.textContent = 'CLAIM';
+                showToast('Claim failed: ' + error.message, true);
+                return;
+            }
+
+            if (!data || data.length === 0) {
+                btn.disabled = false;
+                btn.textContent = 'CLAIM';
+                // The database won't say WHY an update matched nothing, so ask
+                // a second, honest question rather than guessing in the message.
+                const { data: driverRow } = await sb.from('drivers').select('verification_status').eq('user_id', currentUserId).maybeSingle();
+                if (!driverRow || driverRow.verification_status !== 'verified') {
+                    showToast("Your driver account isn't verified yet — contact an operator.", true);
+                } else {
+                    showToast('Too slow — another driver already claimed this one.', true);
+                }
+                await loadBounties();
+                return;
+            }
+
+            showToast('Bounty claimed ✓');
+            await loadBounties();
+        }
+
+        async function completeBounty(id, btn) {
+            btn.disabled = true;
+            btn.textContent = 'COMPLETING…';
+
+            const { data, error } = await sb.from('scans')
+                .update({ bounty_status: 'completed', completed_at: new Date().toISOString() })
+                .eq('id', id)
+                .eq('bounty_status', 'claimed')
+                .eq('claimed_by', currentUserId)
+                .select();
+
+            if (error) {
+                btn.disabled = false;
+                btn.textContent = 'COMPLETE';
+                showToast('Complete failed: ' + error.message, true);
+                return;
+            }
+
+            if (!data || data.length === 0) {
+                btn.disabled = false;
+                btn.textContent = 'COMPLETE';
+                showToast("Could not complete — this bounty's status may have changed.", true);
+                await loadBounties();
+                return;
+            }
+
+            showToast('Bounty completed ✓');
+            await loadBounties();
+        }
+
+        async function signedPhotoUrl(path) {
+            if (!path) return null;
+            const { data, error } = await sb.storage.from('pickup-photos').createSignedUrl(path, 3600);
+            if (error) return null;
+            return data.signedUrl;
+        }
+
+        function renderOpen(rows) {
+            if (!rows.length) {
+                openList.innerHTML = '<div class="empty">No open bounties right now.</div>';
+                return;
+            }
+            openList.innerHTML = rows.map((r) => `
+                <div class="card" data-id="${r.id}">
+                    <div class="card-top">
+                        <div class="card-title">${r.summary || 'Recyclable material scan'}</div>
+                        <div class="card-value">${fmtMoney(r.est_high)}</div>
+                    </div>
+                    <div class="card-sub">General area: ${r.pickup_lat != null ? roundCoord(r.pickup_lat) + ', ' + roundCoord(r.pickup_lng) : 'unknown'}</div>
+                    <button class="btn claim-btn">CLAIM</button>
+                </div>
+            `).join('');
+            openList.querySelectorAll('.claim-btn').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const id = btn.closest('.card').dataset.id;
+                    claimBounty(id, btn);
+                });
+            });
+        }
+
+        async function renderMine(rows) {
+            if (!rows.length) {
+                mineList.innerHTML = '<div class="empty">You have no bounties in progress.</div>';
+                return;
+            }
+            const cards = await Promise.all(rows.map(async (r) => {
+                const photoUrl = await signedPhotoUrl(r.pickup_photo_url);
+                const hasCoords = r.pickup_lat != null && r.pickup_lng != null;
+                return `
+                    <div class="card mine" data-id="${r.id}">
+                        <div class="card-top">
+                            <div class="card-title">${r.summary || 'Recyclable material scan'}</div>
+                            <div class="card-value">${fmtMoney(r.est_high)}</div>
+                        </div>
+                        <div class="card-sub">${hasCoords ? 'Exact spot: ' + r.pickup_lat + ', ' + r.pickup_lng : 'No pickup coordinates on file'}</div>
+                        ${photoUrl ? `<img class="card-photo" src="${photoUrl}" alt="Pickup spot photo">` : ''}
+                        <button class="btn complete complete-btn">COMPLETE</button>
+                        ${hasCoords ? `<button class="btn nav" onclick="window.open('https://maps.google.com/?q=${r.pickup_lat},${r.pickup_lng}','_blank')">🧭 NAVIGATE</button>` : ''}
+                    </div>
+                `;
+            }));
+            mineList.innerHTML = cards.join('');
+            mineList.querySelectorAll('.complete-btn').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const id = btn.closest('.card').dataset.id;
+                    completeBounty(id, btn);
+                });
+            });
+        }
+
+        async function loadBounties() {
+            const { data, error } = await sb.from('scans')
+                .select('id, summary, est_low, est_high, pickup_lat, pickup_lng, pickup_photo_url, bounty_status, claimed_by, created_at')
+                .in('bounty_status', ['open', 'claimed'])
+                .order('created_at', { ascending: true });
+
+            if (error) {
+                showToast('Failed to load bounty board: ' + error.message, true);
+                return;
+            }
+
+            const open = (data || []).filter((r) => r.bounty_status === 'open');
+            const mine = (data || []).filter((r) => r.bounty_status === 'claimed' && r.claimed_by === currentUserId);
+
+            renderOpen(open);
+            await renderMine(mine);
+        }
+
+        (async function init() {
+            const { data: { session } } = await sb.auth.getSession();
+            if (!session) {
+                showDeadEnd('You need to be signed in to see the driver board. <a href="index.html">Log in</a>, then reopen this page.');
+                return;
+            }
+            currentUserId = session.user.id;
+            board.style.display = 'block';
+            await loadBounties();
+            setInterval(loadBounties, 15000);
+        })();
+    </script>
+</body>
+</html>
