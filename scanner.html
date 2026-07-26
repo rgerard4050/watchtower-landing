@@ -364,6 +364,12 @@
                 lat, lng,
                 location_accuracy_m: accuracy,
                 accepted: true,
+                // Locks a single number at accept time -- the high estimate,
+                // same figure already shown everywhere downstream (queue,
+                // dispatch, map). No separate resident confirm-tap: an AI
+                // estimate isn't made more "agreed" by a second tap when no
+                // other party has seen it yet.
+                accepted_value: lastScan.estimated_value_high ?? null,
                 bounty_created: bountyCreated,
                 bounty_status: null
             }).select();

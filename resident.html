@@ -110,6 +110,7 @@ async function loadAccount(){
   if(data){
     currentResidentId = data.id;
     document.getElementById('walletId').textContent = data.wallet_id || '&mdash;';
+    document.getElementById('wtwrBalance').textContent = (Number(data.wtwr_balance) || 0).toFixed(2);
     document.getElementById('subBadge').textContent = data.subscriber ? 'DRIVEWAY SUBSCRIBER' : 'FREE ACCOUNT';
   }
 }
