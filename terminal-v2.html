@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Watchtower Terminal v2</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="operator-auth.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600;700&display=swap');
+:root{
+  --black:#080c0f;--dark:#0d1318;--panel:#111820;--panel2:#161f28;--border:#1e2d3a;
+  --green:#00ff88;--green-dim:#00cc6a;--green-glow:rgba(0,255,136,0.10);
+  --amber:#ffaa00;--blue:#00aaff;--red:#ff4455;--muted:#5a7a8a;--text:#c8d8e8;
+  --mono:'Share Tech Mono',monospace;--sans:'Inter',sans-serif;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--black);color:#fff;font-family:var(--sans);min-height:100vh;}
+header{background:rgba(8,12,15,0.98);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;}
+.logo{font-family:var(--mono);font-size:12px;color:var(--green);letter-spacing:.12em;}
+.node-stat{font-family:var(--mono);font-size:11px;color:var(--muted);}
+.node-stat b{color:var(--green);}
+
+nav{display:flex;background:var(--dark);border-bottom:1px solid var(--border);}
+.tab-btn{flex:1;background:transparent;border:none;color:var(--muted);padding:12px 4px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;}
+.tab-btn.active{color:var(--green);border-bottom-color:var(--green);}
+
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+#map{height:calc(100vh - 122px);width:100%;background:var(--dark);}
+.leaflet-popup-content-wrapper{background:var(--panel);color:var(--text);border:1px solid var(--border);}
+.leaflet-popup-tip{background:var(--panel);}
+.popup-title{font-weight:700;color:#fff;margin-bottom:4px;}
+.popup-sub{font-size:12px;color:var(--muted);}
+.popup-tag{display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:.08em;padding:2px 7px;border-radius:10px;margin-top:4px;}
+.popup-tag.wtwr{background:var(--green-glow);color:var(--green);border:1px solid rgba(0,255,136,.3);}
+.popup-tag.no-wtwr{background:rgba(90,122,138,.15);color:var(--muted);border:1px solid var(--border);}
+
+.map-legend{position:absolute;top:70px;left:10px;z-index:400;background:rgba(8,12,15,0.92);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:var(--mono);font-size:10px;color:var(--muted);}
+.map-legend div{display:flex;align-items:center;gap:6px;margin:3px 0;}
+.dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.dot.node{background:var(--blue);}
+.dot.bounty{background:var(--green);}
+
+.scroll{max-width:560px;margin:0 auto;padding:14px 14px 60px;}
+.sh{font-family:var(--mono);font-size:11px;color:var(--green);letter-spacing:.12em;text-transform:uppercase;margin:16px 0 8px;}
+.sh:first-child{margin-top:0;}
+.empty{font-size:13px;color:var(--muted);font-style:italic;padding:8px 0 16px;}
+
+.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;}
+.card.mine{border-color:var(--blue);}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px;}
+.card-title{font-size:14px;font-weight:600;color:#fff;}
+.card-value{font-family:var(--mono);font-size:15px;color:var(--green);white-space:nowrap;}
+.card-sub{font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.5;}
+.pill{font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:3px;letter-spacing:.05em;}
+.pill.open{background:rgba(0,255,136,.1);color:var(--green);border:1px solid rgba(0,255,136,.3);}
+.pill.claimed{background:rgba(0,170,255,.1);color:var(--blue);border:1px solid rgba(0,170,255,.3);}
+
+.btn{width:100%;background:var(--panel2);border:1px solid var(--green);color:var(--green);padding:10px;font-family:var(--mono);font-size:12px;font-weight:bold;cursor:pointer;text-transform:uppercase;letter-spacing:.06em;border-radius:6px;margin-top:6px;}
+.btn:active{background:var(--green);color:var(--black);}
+.btn[disabled]{opacity:.5;pointer-events:none;}
+.btn.complete{border-color:var(--blue);color:var(--blue);}
+.btn.complete:active{background:var(--blue);color:var(--black);}
+
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--green);color:var(--text);padding:12px 18px;border-radius:8px;font-size:13px;max-width:90%;display:none;z-index:900;text-align:center;}
+.toast.err{border-color:var(--red);}
+.toast.show{display:block;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">WATCHTOWER // TERMINAL v2</div>
+  <div class="node-stat">NODES: <b id="nodeCount">—</b></div>
+</header>
+
+<nav>
+  <button class="tab-btn active" data-tab="map">Map</button>
+  <button class="tab-btn" data-tab="queue">Queue</button>
+  <button class="tab-btn" data-tab="dispatch">Dispatch</button>
+</nav>
+
+<div class="tab-content active" id="tab-map" style="position:relative">
+  <div class="map-legend">
+    <div><span class="dot node"></span>Business / node</div>
+    <div><span class="dot bounty"></span>Open bounty</div>
+  </div>
+  <div id="map"></div>
+</div>
+
+<div class="tab-content" id="tab-queue">
+  <div class="scroll">
+    <div class="sh">Open Bounties</div>
+    <div id="queueList"></div>
+  </div>
+</div>
+
+<div class="tab-content" id="tab-dispatch">
+  <div class="scroll">
+    <div class="sh">Open — Claimable</div>
+    <div id="dispatchOpenList"></div>
+    <div class="sh">Claimed — In Progress</div>
+    <div id="dispatchClaimedList"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let sb = null;
+let currentUserId = null;
+let map = null;
+let mapInitialized = false;
+
+function showToast(msg, isErr) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isErr ? ' err' : '');
+  setTimeout(() => { t.className = 'toast'; }, 4000);
+}
+function fmtMoney(n) { return n == null ? '—' : '$' + n; }
+function roundCoord(n) { return Math.round(Number(n) * 100) / 100; }
+function shortId(id) { return id ? id.slice(0, 8) + '…' : '—'; }
+
+// ---------- Tabs ----------
+document.querySelectorAll('.tab-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach((c) => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+
+    if (btn.dataset.tab === 'map') {
+      initMapIfNeeded();
+      setTimeout(() => { if (map) map.invalidateSize(); }, 50);
+      loadMapData();
+    }
+    if (btn.dataset.tab === 'queue') loadQueue();
+    if (btn.dataset.tab === 'dispatch') loadDispatch();
+  });
+});
+
+// ---------- Node count (real count, no fabrication) ----------
+async function loadNodeCount() {
+  const { count, error } = await sb.from('businesses').select('id', { count: 'exact', head: true });
+  document.getElementById('nodeCount').textContent = error ? '—' : (count ?? 0);
+}
+
+// ---------- MAP ----------
+function initMapIfNeeded() {
+  if (mapInitialized) return;
+  map = L.map('map').setView([29.1872, -82.1401], 12); // Ocala, FL
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors',
+    maxZoom: 19,
+  }).addTo(map);
+  mapInitialized = true;
+}
+
+const nodeIcon = L.divIcon({ className: '', html: '<div style="width:14px;height:14px;border-radius:50%;background:#00aaff;border:2px solid #fff;box-shadow:0 0 6px rgba(0,170,255,.6)"></div>', iconSize: [14,14] });
+const bountyIcon = L.divIcon({ className: '', html: '<div style="width:14px;height:14px;border-radius:50%;background:#00ff88;border:2px solid #fff;box-shadow:0 0 6px rgba(0,255,136,.6)"></div>', iconSize: [14,14] });
+
+let mapMarkers = [];
+
+async function loadMapData() {
+  mapMarkers.forEach((m) => map.removeLayer(m));
+  mapMarkers = [];
+
+  // Real businesses with real coordinates only -- no placeholder pins.
+  const { data: businesses, error: bizErr } = await sb.from('businesses').select('business_name, tier, lat, lng').not('lat', 'is', null).not('lng', 'is', null);
+  if (bizErr) { showToast('Failed to load node locations: ' + bizErr.message, true); }
+  (businesses || []).forEach((b) => {
+    const acceptsWtwr = b.tier != null;
+    const marker = L.marker([b.lat, b.lng], { icon: nodeIcon }).addTo(map);
+    marker.bindPopup(`
+      <div class="popup-title">${b.business_name}</div>
+      <span class="popup-tag ${acceptsWtwr ? 'wtwr' : 'no-wtwr'}">${acceptsWtwr ? 'ACCEPTS WTWR' : 'NOT A WTWR REDEMPTION SITE'}</span>
+    `);
+    mapMarkers.push(marker);
+  });
+
+  // Open bounties -- pickup-photo coords (real confirmed drop spot) when
+  // present, falling back to the original scan-time coords otherwise.
+  const { data: bounties, error: bErr } = await sb.from('scans')
+    .select('id, summary, est_high, lat, lng, pickup_lat, pickup_lng')
+    .eq('bounty_status', 'open');
+  if (bErr) { showToast('Failed to load bounty locations: ' + bErr.message, true); }
+  (bounties || []).forEach((s) => {
+    const lat = s.pickup_lat ?? s.lat;
+    const lng = s.pickup_lng ?? s.lng;
+    if (lat == null || lng == null) return;
+    const marker = L.marker([lat, lng], { icon: bountyIcon }).addTo(map);
+    marker.bindPopup(`
+      <div class="popup-title">${s.summary || 'Recyclable material scan'}</div>
+      <div class="popup-sub">Est. value: ${fmtMoney(s.est_high)}</div>
+      <div class="popup-sub">General area: ${roundCoord(lat)}, ${roundCoord(lng)}</div>
+    `);
+    mapMarkers.push(marker);
+  });
+
+  if (!businesses?.length && !bounties?.length) {
+    showToast('No located nodes or open bounties to show yet');
+  } else if (!businesses?.length) {
+    showToast('No located nodes yet -- showing open bounties only');
+  }
+}
+
+// ---------- QUEUE (real columns only, no invented weight/formula) ----------
+async function loadQueue() {
+  const el = document.getElementById('queueList');
+  const { data, error } = await sb.from('scans')
+    .select('id, summary, est_low, est_high, bounty_status, created_at')
+    .eq('bounty_status', 'open')
+    .order('created_at', { ascending: true });
+
+  if (error) { el.innerHTML = `<div class="empty">Failed to load queue: ${error.message}</div>`; return; }
+  if (!data || !data.length) { el.innerHTML = '<div class="empty">No open bounties right now.</div>'; return; }
+
+  el.innerHTML = data.map((s) => `
+    <div class="card">
+      <div class="card-top">
+        <div class="card-title">${s.summary || 'Recyclable material scan'}</div>
+        <div class="card-value">${fmtMoney(s.est_high)}</div>
+      </div>
+      <div class="card-sub">Low est: ${fmtMoney(s.est_low)} &middot; Logged: ${new Date(s.created_at).toLocaleString()}</div>
+      <span class="pill open">OPEN</span>
+    </div>
+  `).join('');
+}
+
+// ---------- DISPATCH -- reuses driver-board.html's exact claim/complete pattern ----------
+async function loadDispatch() {
+  const { data, error } = await sb.from('scans')
+    .select('id, summary, est_high, pickup_lat, pickup_lng, bounty_status, claimed_by, claimed_at')
+    .in('bounty_status', ['open', 'claimed'])
+    .order('created_at', { ascending: true });
+
+  if (error) { showToast('Failed to load dispatch: ' + error.message, true); return; }
+
+  const open = (data || []).filter((r) => r.bounty_status === 'open');
+  const claimed = (data || []).filter((r) => r.bounty_status === 'claimed');
+
+  const openEl = document.getElementById('dispatchOpenList');
+  openEl.innerHTML = open.length ? open.map((s) => `
+    <div class="card" data-id="${s.id}">
+      <div class="card-top">
+        <div class="card-title">${s.summary || 'Recyclable material scan'}</div>
+        <div class="card-value">${fmtMoney(s.est_high)}</div>
+      </div>
+      <span class="pill open">OPEN</span>
+      <button class="btn claim-btn">CLAIM</button>
+    </div>
+  `).join('') : '<div class="empty">No open bounties right now.</div>';
+
+  openEl.querySelectorAll('.claim-btn').forEach((btn) => {
+    btn.addEventListener('click', () => claimBounty(btn.closest('.card').dataset.id, btn));
+  });
+
+  const claimedEl = document.getElementById('dispatchClaimedList');
+  claimedEl.innerHTML = claimed.length ? claimed.map((s) => {
+    const isMine = s.claimed_by === currentUserId;
+    return `
+      <div class="card mine" data-id="${s.id}">
+        <div class="card-top">
+          <div class="card-title">${s.summary || 'Recyclable material scan'}</div>
+          <div class="card-value">${fmtMoney(s.est_high)}</div>
+        </div>
+        <div class="card-sub">Claimed by: ${shortId(s.claimed_by)}${isMine ? ' (you)' : ''} &middot; ${s.claimed_at ? new Date(s.claimed_at).toLocaleString() : '—'}</div>
+        <span class="pill claimed">CLAIMED</span>
+        ${isMine ? '<button class="btn complete complete-btn">COMPLETE</button>' : ''}
+      </div>
+    `;
+  }).join('') : '<div class="empty">Nothing claimed right now.</div>';
+
+  claimedEl.querySelectorAll('.complete-btn').forEach((btn) => {
+    btn.addEventListener('click', () => completeBounty(btn.closest('.card').dataset.id, btn));
+  });
+}
+
+async function claimBounty(id, btn) {
+  btn.disabled = true;
+  btn.textContent = 'CLAIMING…';
+
+  const { data, error } = await sb.from('scans')
+    .update({ bounty_status: 'claimed', claimed_by: currentUserId, claimed_at: new Date().toISOString() })
+    .eq('id', id)
+    .eq('bounty_status', 'open')
+    .select();
+
+  if (error) {
+    btn.disabled = false; btn.textContent = 'CLAIM';
+    showToast('Claim failed: ' + error.message, true);
+    return;
+  }
+  if (!data || data.length === 0) {
+    btn.disabled = false; btn.textContent = 'CLAIM';
+    const { data: driverRow } = await sb.from('drivers').select('verification_status').eq('user_id', currentUserId).maybeSingle();
+    if (!driverRow || driverRow.verification_status !== 'verified') {
+      showToast("Not claimable from this session -- not a verified driver.", true);
+    } else {
+      showToast('Too slow -- another driver already claimed this one.', true);
+    }
+    await loadDispatch();
+    return;
+  }
+  showToast('Bounty claimed ✓');
+  await loadDispatch();
+}
+
+async function completeBounty(id, btn) {
+  btn.disabled = true;
+  btn.textContent = 'COMPLETING…';
+
+  const { data, error } = await sb.from('scans')
+    .update({ bounty_status: 'completed', completed_at: new Date().toISOString() })
+    .eq('id', id)
+    .eq('bounty_status', 'claimed')
+    .eq('claimed_by', currentUserId)
+    .select();
+
+  if (error) {
+    btn.disabled = false; btn.textContent = 'COMPLETE';
+    showToast('Complete failed: ' + error.message, true);
+    return;
+  }
+  if (!data || data.length === 0) {
+    btn.disabled = false; btn.textContent = 'COMPLETE';
+    showToast("Could not complete -- status may have changed.", true);
+    await loadDispatch();
+    return;
+  }
+  showToast('Bounty completed ✓');
+  await loadDispatch();
+}
+
+// ---------- Init ----------
+(async function init() {
+  const isOperator = await window.watchtowerOperatorReady;
+  if (!isOperator) return; // operator-auth.js already redirects to login
+
+  sb = window.watchtowerAuth;
+  const { data: { user } } = await sb.auth.getUser();
+  currentUserId = user ? user.id : null;
+
+  await loadNodeCount();
+  initMapIfNeeded();
+  await loadMapData();
+})();
+</script>
+</body>
+</html>
