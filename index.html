@@ -2,14 +2,16 @@
 <html lang="en">
 <head>
   <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#00ff88">
-<link rel="apple-touch-icon" href="/icon-1.png">
+<meta name="theme-color" content="#060a0d">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Watchtower">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Watchtower Protocol — Ocala's Commodity Network</title>
+<script src="/pwa.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -343,38 +345,35 @@ async function createResident(subscriber) {
     return;
   }
 
-  // Repeat signup (same email, case-insensitive) updates the existing row
-  // instead of creating a duplicate. wallet_id is preserved on update --
-  // only a first-time signup ever generates a new one, so a resident's
-  // WTWR balance/history never gets disconnected from a reissued wallet.
-  // subscriber is guarded the same way: this path may only turn it true or
-  // leave it as-is, never set an existing subscriber back to false.
-  const { data: existing } = await sb.from('residents').select('id, wallet_id, subscriber').eq('email', email).maybeSingle();
-  let walletId, error;
-  if (existing) {
-    walletId = existing.wallet_id;
-    const nextSubscriber = !!existing.subscriber || !!subscriber;
-    ({ error } = await sb.from('residents').update({ name, address, zip, subscriber: nextSubscriber }).eq('id', existing.id));
-  } else {
-    walletId = 'WTWR-'+Math.random().toString(36).substr(2,6).toUpperCase()+'-'+(zip||'FL');
-    ({ error } = await sb.from('residents').insert({ name, email, address, zip, wallet_id: walletId, subscriber: !!subscriber }));
-    if (error && error.code === '23505') {
-      // Two signups for this email raced between the select above and this
-      // insert. The unique constraint caught it -- fall back to updating
-      // that row instead of surfacing a raw duplicate-key error.
-      const { data: racedRow } = await sb.from('residents').select('id, wallet_id, subscriber').eq('email', email).maybeSingle();
-      if (racedRow) {
-        walletId = racedRow.wallet_id;
-        const nextSubscriber = !!racedRow.subscriber || !!subscriber;
-        ({ error } = await sb.from('residents').update({ name, address, zip, subscriber: nextSubscriber }).eq('id', racedRow.id));
-      }
-    }
-  }
-  if (error) console.error(error);
-
+  // The residents row is created server-side by the on_auth_user_created_resident
+  // trigger, from the name/address/zip passed as signUp metadata above. The
+  // client no longer inserts or selects residents here -- doing so required the
+  // table to be readable by anon, which exposed every resident's name, email,
+  // home address and Stripe customer id to anyone holding the publishable key.
+  //
+  // wallet_id is only ever generated on first insert, so a resident's WTWR
+  // history is never disconnected by a repeat signup.
   const inNow = !!auth.session;
+  let walletId = null;
+
+  if (inNow) {
+    // Signed in already (no email confirmation step), so the scoped
+    // "residents select own row" policy lets us read our own wallet id back.
+    const { data: mine } = await sb.from('residents')
+      .select('wallet_id').eq('user_id', auth.user.id).maybeSingle();
+    walletId = mine && mine.wallet_id;
+  }
+
+  if (subscriber) {
+    // Subscriber is a paid upgrade and is set by the Stripe checkout flow
+    // below, not by this form -- the client must not be able to grant it.
+    console.info('[signup] subscriber requested; confirmed on Stripe checkout');
+  }
+
   document.getElementById('emailSuccessAddr').textContent =
-    (existing?"Welcome back, you're already signed up! ":'')+'Wallet ID: '+walletId+(subscriber?' (Driveway subscriber - $4.99/mo)':'')+(inNow?'':'  -  Check your email to confirm.');
+    (walletId ? 'Wallet ID: ' + walletId : 'Your Wallet ID is in your account once you sign in.')
+    + (subscriber ? ' (Driveway subscriber - $4.99/mo)' : '')
+    + (inNow ? '' : '  -  Check your email to confirm.');
   document.getElementById('emailForm').style.display='none';
   document.getElementById('emailSuccess').classList.add('show');
   if (subscriber && !document.getElementById('stripeNote')) {
@@ -502,10 +501,12 @@ function formatExp(el){let v=el.value.replace(/\D/g,'');if(v.length>=2)v=v.subst
 
   window.enterBusiness=function(){ location.href='business.html'; };
   try{
-    sb.from('residents').select('*',{count:'exact',head:true}).then(function(r){
+    // Via RPC, not a table count: residents is no longer readable by anon, and
+    // this definer function exposes the count without exposing any rows.
+    sb.rpc('resident_signup_count').then(function(r){
       var el=document.getElementById('signupCount');
       if(!el)return;
-      el.textContent=(!r.error && typeof r.count==='number')?r.count:'0';
+      el.textContent=(!r.error && typeof r.data==='number')?r.data:'0';
     });
   }catch(e){}
 })();

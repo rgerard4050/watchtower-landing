@@ -1,12 +1,22 @@
 {
+  "id": "/",
   "name": "Watchtower Protocol",
   "short_name": "Watchtower",
   "description": "Ocala's commodity-backed recycling network. Get paid to recycle.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#060a0d",
   "theme_color": "#060a0d",
+  "categories": ["utilities", "business", "productivity"],
   "icons": [
-    { "src": "/icon-1.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-1.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Scan an item", "short_name": "Scan", "url": "/scanner.html", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "My account", "short_name": "Account", "url": "/resident.html", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
   ]
 }

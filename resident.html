@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Watchtower — My Account</title>
 <meta name="theme-color" content="#060a0d">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Watchtower">
+<script src="/pwa.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -109,7 +115,7 @@ async function loadAccount(){
     });
 
   const email = session.user.email;
-  const { data, error } = await sb.from('residents').select('*').eq('email', email).maybeSingle();
+  const { data, error } = await sb.from('residents').select('*').eq('user_id', session.user.id).maybeSingle();
 
   document.getElementById('loadingState').style.display = 'none';
   document.getElementById('accountView').style.display = 'block';
@@ -124,10 +130,10 @@ async function loadAccount(){
   }
 }
 
-// Live-bound, real-time WTWR balance (replaces the static set that used to
-// live in loadAccount()). Matches by email, same as RLS on scans, since
-// residents has no auth_id/user_id column yet -- worth a real column later
-// so this isn't email-fragile long-term.
+// Live-bound, real-time WTWR balance. Keyed on residents.user_id -> auth.users.id,
+// which is also what the "residents select own row" RLS policy matches on, so the
+// query and the policy agree. This replaces the old email match, which was
+// case-fragile and broke if a resident ever changed their email.
 async function loadWtwrBalance() {
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return;
@@ -135,8 +141,8 @@ async function loadWtwrBalance() {
   const { data: resident } = await sb
     .from('residents')
     .select('id, wtwr_balance')
-    .eq('email', user.email.toLowerCase())
-    .single();
+    .eq('user_id', user.id)
+    .maybeSingle();
 
   if (!resident) return;
 

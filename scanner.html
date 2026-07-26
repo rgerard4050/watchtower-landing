@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Watchtower Scanner</title>
+    <meta name="theme-color" content="#060a0d">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Watchtower">
+    <script src="/pwa.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600;700&display=swap');
@@ -173,7 +180,7 @@
             try {
                 const { data: { session } } = await db.auth.getSession();
                 if (!session) return;
-                const { data } = await db.from('residents').select('id').eq('email', session.user.email).maybeSingle();
+                const { data } = await db.from('residents').select('id').eq('user_id', session.user.id).maybeSingle();
                 if (data) currentResidentId = data.id;
             } catch (e) {
                 // not logged in, or lookup failed — scan can still be logged without a resident_id
