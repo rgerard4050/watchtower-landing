@@ -227,16 +227,21 @@
                 openList.innerHTML = '<div class="empty">No open bounties right now.</div>';
                 return;
             }
-            openList.innerHTML = rows.map((r) => `
+            openList.innerHTML = rows.map((r) => {
+                const ready = !!r.pickup_photo_url;
+                return `
                 <div class="card" data-id="${r.id}">
                     <div class="card-top">
                         <div class="card-title">${r.summary || 'Recyclable material scan'}</div>
                         <div class="card-value">${fmtMoney(r.est_high)}</div>
                     </div>
                     <div class="card-sub">General area: ${r.pickup_lat != null ? roundCoord(r.pickup_lat) + ', ' + roundCoord(r.pickup_lng) : 'unknown'}</div>
-                    <button class="btn claim-btn">CLAIM</button>
+                    ${ready
+                        ? '<button class="btn claim-btn">CLAIM</button>'
+                        : '<button class="btn" disabled>AWAITING PICKUP PHOTO</button>'}
                 </div>
-            `).join('');
+            `;
+            }).join('');
             openList.querySelectorAll('.claim-btn').forEach((btn) => {
                 btn.addEventListener('click', () => {
                     const id = btn.closest('.card').dataset.id;

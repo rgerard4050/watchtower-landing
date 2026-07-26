@@ -213,14 +213,19 @@ async function loadMapData() {
 async function loadQueue() {
   const el = document.getElementById('queueList');
   const { data, error } = await sb.from('scans')
-    .select('id, summary, est_low, est_high, bounty_status, created_at')
+    .select('id, summary, est_low, est_high, bounty_status, created_at, pickup_geo_flag, pickup_geo_distance_m, pickup_time_flag, pickup_ai_flag, pickup_ai_note')
     .eq('bounty_status', 'open')
     .order('created_at', { ascending: true });
 
   if (error) { el.innerHTML = `<div class="empty">Failed to load queue: ${error.message}</div>`; return; }
   if (!data || !data.length) { el.innerHTML = '<div class="empty">No open bounties right now.</div>'; return; }
 
-  el.innerHTML = data.map((s) => `
+  el.innerHTML = data.map((s) => {
+    const flags = [];
+    if (s.pickup_geo_flag) flags.push(`GEO MISMATCH (${Math.round(s.pickup_geo_distance_m)}m)`);
+    if (s.pickup_time_flag) flags.push('STALE/MISSING PHOTO TIMESTAMP');
+    if (s.pickup_ai_flag) flags.push('AI: MAY NOT BE STAGED MATERIAL' + (s.pickup_ai_note ? ' -- ' + s.pickup_ai_note : ''));
+    return `
     <div class="card">
       <div class="card-top">
         <div class="card-title">${s.summary || 'Recyclable material scan'}</div>
@@ -228,14 +233,16 @@ async function loadQueue() {
       </div>
       <div class="card-sub">Low est: ${fmtMoney(s.est_low)} &middot; Logged: ${new Date(s.created_at).toLocaleString()}</div>
       <span class="pill open">OPEN</span>
+      ${flags.map((f) => `<div class="card-sub" style="color:var(--amber);margin-top:6px;">&#9888; ${f}</div>`).join('')}
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 // ---------- DISPATCH -- reuses driver-board.html's exact claim/complete pattern ----------
 async function loadDispatch() {
   const { data, error } = await sb.from('scans')
-    .select('id, summary, est_high, pickup_lat, pickup_lng, bounty_status, claimed_by, claimed_at')
+    .select('id, summary, est_high, pickup_lat, pickup_lng, pickup_photo_url, bounty_status, claimed_by, claimed_at')
     .in('bounty_status', ['open', 'claimed'])
     .order('created_at', { ascending: true });
 
@@ -245,16 +252,21 @@ async function loadDispatch() {
   const claimed = (data || []).filter((r) => r.bounty_status === 'claimed');
 
   const openEl = document.getElementById('dispatchOpenList');
-  openEl.innerHTML = open.length ? open.map((s) => `
+  openEl.innerHTML = open.length ? open.map((s) => {
+    const ready = !!s.pickup_photo_url;
+    return `
     <div class="card" data-id="${s.id}">
       <div class="card-top">
         <div class="card-title">${s.summary || 'Recyclable material scan'}</div>
         <div class="card-value">${fmtMoney(s.est_high)}</div>
       </div>
       <span class="pill open">OPEN</span>
-      <button class="btn claim-btn">CLAIM</button>
+      ${ready
+        ? '<button class="btn claim-btn">CLAIM</button>'
+        : '<button class="btn" disabled>AWAITING PICKUP PHOTO</button>'}
     </div>
-  `).join('') : '<div class="empty">No open bounties right now.</div>';
+  `;
+  }).join('') : '<div class="empty">No open bounties right now.</div>';
 
   openEl.querySelectorAll('.claim-btn').forEach((btn) => {
     btn.addEventListener('click', () => claimBounty(btn.closest('.card').dataset.id, btn));
