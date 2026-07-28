@@ -1212,35 +1212,35 @@ function mapLink(lat,lng){
 // Assign-to-dispatch was removed here: drivers self-claim directly on
 // scans now (RLS-enforced, see is_verified_driver()). Cancel remains --
 // it's a separate operator safety valve, not the removed assign step.
+//
+// Phase 3 consolidation: this used to write scans.bounty_status directly,
+// a second implementation of the same transition job.html/the job RPCs
+// already own. Now calls cancel_job(), which mirrors the scan status
+// itself (so nothing downstream of scans.bounty_status breaks) and, unlike
+// the old direct write, actually records the cancellation as a real
+// job_events row (actor, previous status, reason) instead of leaving no
+// audit trail.
 async function cancelBounty(id){
-  if(!confirm('Cancel this bounty? The resident will no longer be expecting a pickup.'))return;
-  const { data, error } = await sb.from('scans')
-    .update({bounty_status:'cancelled'})
-    .eq('id',id).in('bounty_status',['open','claimed']).select('id');
+  const reason = prompt('Cancel this bounty -- why? (the resident will no longer be expecting a pickup)');
+  if(reason===null)return;
+  const { data: jobRow, error: findErr } = await sb.from('jobs').select('id').eq('scan_id', id).neq('status','CANCELLED').maybeSingle();
+  if(findErr || !jobRow){toast('No job found for this bounty',true);return;}
+  const { error } = await sb.rpc('cancel_job', { p_job_id: jobRow.id, p_reason: reason || null });
   if(error){console.error(error);toast('Cancel failed: '+error.message,true);return;}
-  if(!data||!data.length){toast('Bounty was already resolved',true);}
   await Promise.all([refreshBounties(), refreshBountyStops()]);
   renderBounties(); renderDispatch(); updateBadges();
-  if(data&&data.length)toast('Bounty cancelled');
+  toast('Bounty cancelled');
 }
 
+// Dead/unreachable in practice (renderBountyStops()'s list is always
+// empty -- nothing ever writes dispatch_stops.scan_id, confirmed during
+// the Phase 3 audit), but removing the duplicate scans-mutation logic
+// here too rather than leaving it as residue that could get reactivated
+// later without anyone remembering it bypasses job.html entirely.
 async function completeBountyStop(stopId, scanId){
-  if(!confirm('Mark this bounty pickup collected?'))return;
-  // scans RLS only lets the operator who claimed it complete it.
-  const { data, error } = await sb.from('scans')
-    .update({bounty_status:'completed', completed_at:new Date().toISOString()})
-    .eq('id',scanId).eq('bounty_status','claimed').select('id');
-  if(error){console.error(error);toast('Could not complete: '+error.message,true);return;}
-  if(!data||!data.length){toast('Only the operator who claimed this bounty can complete it',true);return;}
-
-  const { error:stopErr } = await sb.from('dispatch_stops')
-    .update({status:'COMPLETED', completed_at:new Date().toISOString().slice(0,19)})
-    .eq('id',stopId);
-  if(stopErr){console.error(stopErr);toast('Bounty completed, but stop status failed to update',true);}
-
-  await Promise.all([refreshBounties(), refreshBountyStops()]);
-  renderBounties(); renderDispatch(); updateBadges();
-  if(!stopErr)toast('Bounty pickup collected ✓');
+  const { data: jobRow } = await sb.from('jobs').select('id').eq('scan_id', scanId).neq('status','CANCELLED').maybeSingle();
+  if(jobRow){ window.location.href = 'job.html?job='+jobRow.id; return; }
+  toast('No job found for this bounty pickup',true);
 }
 
 // ═══════════════════ CASHIER ═══════════════════

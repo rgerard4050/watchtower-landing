@@ -648,8 +648,8 @@
       </div>
     </div>
 
-    <button class="claim-btn" id="claimBtn" onclick="claimBounty()">⚡ CLAIM THIS BOUNTY</button>
-    <button class="claim-btn" id="completeBtn" style="display:none" onclick="completeBounty()">✅ MARK COMPLETE</button>
+    <button class="claim-btn" id="claimBtn">⚡ CLAIM THIS BOUNTY</button>
+    <button class="claim-btn" id="completeBtn" style="display:none">✅ MARK COMPLETE</button>
     <button class="claim-btn nav-btn" id="navBtn" style="display:none" onclick="navigate()">🧭 NAVIGATE</button>
     <button class="close-btn" onclick="closeSheet()">CLOSE</button>
   </div>
@@ -894,7 +894,12 @@ function openSheet(id) {
   document.getElementById('bountySheet').classList.add('open');
 }
 
-function openBountySheet(id) {
+// Claiming, status transitions, scanning, intake, and passport creation
+// all live in job.html now (Phase 3 consolidation) -- this sheet is a
+// summary + a "View Job" link, not a second implementation of any of
+// that. job.html itself shows the correct next action for whoever opens
+// it, so this no longer branches on claimedByMe for what action to offer.
+async function openBountySheet(id) {
   const bounty = bounties.find((item) => item.id === id);
   if (!bounty) return;
   activeBounty = bounty;
@@ -925,27 +930,27 @@ function openBountySheet(id) {
   payoutBox.className = 'payout-box';
   payoutAmt.className = 'payout-amount';
 
-  if (bounty.claimedByMe) {
-    statusEl.textContent = 'CLAIMED BY YOU';
-    statusEl.className = 'sheet-status mine';
-    claimBtn.style.display = 'none';
-    completeBtn.style.display = 'block';
-    completeBtn.disabled = false;
-    completeBtn.textContent = '✅ MARK COMPLETE';
-  } else {
-    statusEl.textContent = 'AVAILABLE';
-    statusEl.className = 'sheet-status available';
-    claimBtn.style.display = 'block';
-    claimBtn.textContent = '⚡ CLAIM THIS BOUNTY';
-    claimBtn.className = 'claim-btn';
-    claimBtn.disabled = false;
-    claimBtn.onclick = claimBounty;
-    completeBtn.style.display = 'none';
-  }
+  statusEl.textContent = bounty.claimedByMe ? 'CLAIMED BY YOU' : 'AVAILABLE';
+  statusEl.className = 'sheet-status ' + (bounty.claimedByMe ? 'mine' : 'available');
+  completeBtn.style.display = 'none';
+  claimBtn.style.display = 'block';
+  claimBtn.className = 'claim-btn';
+  claimBtn.disabled = true;
+  claimBtn.textContent = 'LOADING…';
   navBtn.style.display = bounty.hasCoordinates ? 'block' : 'none';
 
   document.getElementById('backdrop').classList.add('open');
   document.getElementById('bountySheet').classList.add('open');
+
+  const { data: jobRow } = await sb.from('jobs').select('id').eq('scan_id', bounty.id).neq('status', 'CANCELLED').maybeSingle();
+  claimBtn.disabled = false;
+  if (jobRow) {
+    claimBtn.textContent = '➜ VIEW JOB';
+    claimBtn.onclick = () => { window.location.href = 'job.html?job=' + jobRow.id; };
+  } else {
+    claimBtn.textContent = 'NO JOB FOUND';
+    claimBtn.disabled = true;
+  }
 }
 
 function closeSheet() {
@@ -953,81 +958,6 @@ function closeSheet() {
   document.getElementById('bountySheet').classList.remove('open');
   activeStop = null;
   activeBounty = null;
-}
-
-async function claimBounty() {
-  if (!activeBounty) return;
-  if (!currentOperatorId) { showToast('Not signed in as an operator'); return; }
-
-  const claimBtn = document.getElementById('claimBtn');
-  claimBtn.disabled = true;
-  claimBtn.textContent = 'CLAIMING…';
-
-  // Conditional update: only touches the row if it is STILL 'open' at the
-  // instant this runs. .select() is required -- Supabase does not error on
-  // a zero-row update, it just returns an empty array, which is how we
-  // detect that someone else already claimed it first.
-  const { data, error } = await sb
-    .from('scans')
-    .update({ bounty_status: 'claimed', claimed_by: currentOperatorId, claimed_at: new Date().toISOString() })
-    .eq('id', activeBounty.id)
-    .eq('bounty_status', 'open')
-    .select();
-
-  if (error) {
-    claimBtn.disabled = false;
-    claimBtn.textContent = '⚡ CLAIM THIS BOUNTY';
-    showToast('Claim failed: ' + error.message);
-    return;
-  }
-
-  if (!data || data.length === 0) {
-    showToast('Already claimed by another driver');
-    closeSheet();
-    await loadBounties();
-    return;
-  }
-
-  showToast('Bounty claimed ✓');
-  closeSheet();
-  await loadBounties();
-}
-
-async function completeBounty() {
-  if (!activeBounty) return;
-  if (!currentOperatorId) { showToast('Not signed in as an operator'); return; }
-
-  const completeBtn = document.getElementById('completeBtn');
-  completeBtn.disabled = true;
-  completeBtn.textContent = 'COMPLETING…';
-
-  // Same pattern as claimBounty(): only succeeds while this bounty is still
-  // 'claimed' by ME. .select() + empty-result check, not error-only.
-  const { data, error } = await sb
-    .from('scans')
-    .update({ bounty_status: 'completed', completed_at: new Date().toISOString() })
-    .eq('id', activeBounty.id)
-    .eq('bounty_status', 'claimed')
-    .eq('claimed_by', currentOperatorId)
-    .select();
-
-  if (error) {
-    completeBtn.disabled = false;
-    completeBtn.textContent = '✅ MARK COMPLETE';
-    showToast('Complete failed: ' + error.message);
-    return;
-  }
-
-  if (!data || data.length === 0) {
-    showToast('Could not complete — status may have changed');
-    closeSheet();
-    await loadBounties();
-    return;
-  }
-
-  showToast('Bounty completed ✓');
-  closeSheet();
-  await loadBounties();
 }
 
 function navigate() {

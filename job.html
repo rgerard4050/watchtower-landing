@@ -219,6 +219,11 @@
             if (jobParam) {
                 const { data } = await sb.from('jobs').select('*').eq('id', jobParam).maybeSingle();
                 job = data;
+                // job.html?job=<id> is a real link target now -- every
+                // consolidated page (driver-board, terminal, terminal-v2,
+                // dispatch) points here. A bad/stale id should say so, not
+                // silently fall back to the map with no explanation.
+                if (!job) showToast('Job #' + jobParam + ' not found.', true);
             } else {
                 const { data } = await sb.from('jobs').select('*').eq('driver_id', currentUserId)
                     .not('status', 'in', '(COMPLETED,CANCELLED)').order('created_at', { ascending: false }).limit(1).maybeSingle();

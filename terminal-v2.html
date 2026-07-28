@@ -252,10 +252,12 @@ async function loadQueue() {
   }).join('');
 }
 
-// ---------- DISPATCH -- reuses driver-board.html's exact claim/complete pattern ----------
+// ---------- DISPATCH -- claiming/status transitions live in job.html now
+// (Phase 3 consolidation). This tab is a read-only summary + a "View Job"
+// link per row, not a second implementation of claim/complete.
 async function loadDispatch() {
   const { data, error } = await sb.from('scans')
-    .select('id, summary, est_high, pickup_lat, pickup_lng, pickup_photo_url, bounty_status, claimed_by, claimed_at')
+    .select('id, summary, est_high, pickup_lat, pickup_lng, pickup_photo_url, bounty_status, claimed_by, claimed_at, jobs(id)')
     .in('bounty_status', ['open', 'claimed'])
     .order('created_at', { ascending: true });
 
@@ -264,26 +266,24 @@ async function loadDispatch() {
   const open = (data || []).filter((r) => r.bounty_status === 'open');
   const claimed = (data || []).filter((r) => r.bounty_status === 'claimed');
 
+  const jobLink = (s) => {
+    const jobId = s.jobs && s.jobs.length ? s.jobs[0].id : null;
+    return jobId
+      ? `<a class="btn" style="display:block;text-align:center;text-decoration:none" href="job.html?job=${jobId}">VIEW JOB</a>`
+      : '<button class="btn" disabled>NO JOB FOUND</button>';
+  };
+
   const openEl = document.getElementById('dispatchOpenList');
-  openEl.innerHTML = open.length ? open.map((s) => {
-    const ready = !!s.pickup_photo_url;
-    return `
+  openEl.innerHTML = open.length ? open.map((s) => `
     <div class="card" data-id="${s.id}">
       <div class="card-top">
         <div class="card-title">${s.summary || 'Recyclable material scan'}</div>
         <div class="card-value">${fmtMoney(s.est_high)}</div>
       </div>
       <span class="pill open">OPEN</span>
-      ${ready
-        ? '<button class="btn claim-btn">CLAIM</button>'
-        : '<button class="btn" disabled>AWAITING PICKUP PHOTO</button>'}
+      ${jobLink(s)}
     </div>
-  `;
-  }).join('') : '<div class="empty">No open bounties right now.</div>';
-
-  openEl.querySelectorAll('.claim-btn').forEach((btn) => {
-    btn.addEventListener('click', () => claimBounty(btn.closest('.card').dataset.id, btn));
-  });
+  `).join('') : '<div class="empty">No open bounties right now.</div>';
 
   const claimedEl = document.getElementById('dispatchClaimedList');
   claimedEl.innerHTML = claimed.length ? claimed.map((s) => {
@@ -296,14 +296,10 @@ async function loadDispatch() {
         </div>
         <div class="card-sub">Claimed by: ${shortId(s.claimed_by)}${isMine ? ' (you)' : ''} &middot; ${s.claimed_at ? new Date(s.claimed_at).toLocaleString() : '—'}</div>
         <span class="pill claimed">CLAIMED</span>
-        ${isMine ? '<button class="btn complete complete-btn">COMPLETE</button>' : ''}
+        ${jobLink(s)}
       </div>
     `;
   }).join('') : '<div class="empty">Nothing claimed right now.</div>';
-
-  claimedEl.querySelectorAll('.complete-btn').forEach((btn) => {
-    btn.addEventListener('click', () => completeBounty(btn.closest('.card').dataset.id, btn));
-  });
 }
 
 // ---------- PAYOUTS -- operator-reviewed, no automatic transfer ----------
@@ -353,62 +349,6 @@ async function payDriver(id, btn) {
     btn.disabled = false; btn.textContent = 'PAY';
     showToast('Payout failed: ' + err.message, true);
   }
-}
-
-async function claimBounty(id, btn) {
-  btn.disabled = true;
-  btn.textContent = 'CLAIMING…';
-
-  const { data, error } = await sb.from('scans')
-    .update({ bounty_status: 'claimed', claimed_by: currentUserId, claimed_at: new Date().toISOString() })
-    .eq('id', id)
-    .eq('bounty_status', 'open')
-    .select();
-
-  if (error) {
-    btn.disabled = false; btn.textContent = 'CLAIM';
-    showToast('Claim failed: ' + error.message, true);
-    return;
-  }
-  if (!data || data.length === 0) {
-    btn.disabled = false; btn.textContent = 'CLAIM';
-    const { data: driverRow } = await sb.from('drivers').select('verification_status').eq('user_id', currentUserId).maybeSingle();
-    if (!driverRow || driverRow.verification_status !== 'verified') {
-      showToast("Not claimable from this session -- not a verified driver.", true);
-    } else {
-      showToast('Too slow -- another driver already claimed this one.', true);
-    }
-    await loadDispatch();
-    return;
-  }
-  showToast('Bounty claimed ✓');
-  await loadDispatch();
-}
-
-async function completeBounty(id, btn) {
-  btn.disabled = true;
-  btn.textContent = 'COMPLETING…';
-
-  const { data, error } = await sb.from('scans')
-    .update({ bounty_status: 'completed', completed_at: new Date().toISOString() })
-    .eq('id', id)
-    .eq('bounty_status', 'claimed')
-    .eq('claimed_by', currentUserId)
-    .select();
-
-  if (error) {
-    btn.disabled = false; btn.textContent = 'COMPLETE';
-    showToast('Complete failed: ' + error.message, true);
-    return;
-  }
-  if (!data || data.length === 0) {
-    btn.disabled = false; btn.textContent = 'COMPLETE';
-    showToast("Could not complete -- status may have changed.", true);
-    await loadDispatch();
-    return;
-  }
-  showToast('Bounty completed ✓');
-  await loadDispatch();
 }
 
 // ---------- Init ----------

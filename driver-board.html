@@ -99,13 +99,10 @@
     </div>
 
     <div class="wrap" id="board" style="display:none">
-        <p class="friendly-sub">Open bounties are first come, first served. Claim one, go collect it, then mark it complete.</p>
+        <p class="friendly-sub">Claiming, status updates, scanning, and passport creation all happen in one place now.</p>
 
-        <div class="sh">Open Bounties</div>
-        <div id="openList"></div>
-
-        <div class="sh">My Claimed Bounties</div>
-        <div id="mineList"></div>
+        <div class="sh">Pickup Workflow</div>
+        <div id="jobLinkCard" class="card"></div>
 
         <div class="sh">Payouts</div>
         <div id="connectStatus" class="card"></div>
@@ -130,8 +127,7 @@
         const payoutList = document.getElementById('payoutList');
         const stateScreen = document.getElementById('stateScreen');
         const stateText = document.getElementById('stateText');
-        const openList = document.getElementById('openList');
-        const mineList = document.getElementById('mineList');
+        const jobLinkCard = document.getElementById('jobLinkCard');
 
         function showToast(msg, isErr) {
             const t = document.getElementById('toast');
@@ -146,145 +142,36 @@
             stateScreen.style.display = 'block';
         }
 
-        // General area only -- never the exact spot -- before a driver has
-        // committed to the job. ~1.1km precision at this latitude.
-        function roundCoord(n) {
-            return Math.round(Number(n) * 100) / 100;
-        }
-
         function fmtMoney(n) {
             return n == null ? '—' : '$' + n;
         }
 
-        async function claimBounty(id, btn) {
-            btn.disabled = true;
-            btn.textContent = 'CLAIMING…';
+        // Claiming, status transitions, scanning, intake, and passport
+        // creation all live in job.html now (Phase 3 consolidation) --
+        // this is a read-only summary + a link in, not a second
+        // implementation of any of that.
+        async function loadJobLink() {
+            const { data: activeJob } = await sb.from('jobs')
+                .select('id, status')
+                .eq('driver_id', currentUserId)
+                .not('status', 'in', '(COMPLETED,CANCELLED)')
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
 
-            const { data, error } = await sb.from('scans')
-                .update({ bounty_status: 'claimed', claimed_by: currentUserId, claimed_at: new Date().toISOString() })
-                .eq('id', id)
-                .eq('bounty_status', 'open')
-                .select();
-
-            if (error) {
-                btn.disabled = false;
-                btn.textContent = 'CLAIM';
-                showToast('Claim failed: ' + error.message, true);
-                return;
-            }
-
-            if (!data || data.length === 0) {
-                btn.disabled = false;
-                btn.textContent = 'CLAIM';
-                // The database won't say WHY an update matched nothing, so ask
-                // a second, honest question rather than guessing in the message.
-                const { data: driverRow } = await sb.from('drivers').select('verification_status').eq('user_id', currentUserId).maybeSingle();
-                if (!driverRow || driverRow.verification_status !== 'verified') {
-                    showToast("Your driver account isn't verified yet — contact an operator.", true);
-                } else {
-                    showToast('Too slow — another driver already claimed this one.', true);
-                }
-                await loadBounties();
-                return;
-            }
-
-            showToast('Bounty claimed ✓');
-            await loadBounties();
-        }
-
-        async function completeBounty(id, btn) {
-            btn.disabled = true;
-            btn.textContent = 'COMPLETING…';
-
-            const { data, error } = await sb.from('scans')
-                .update({ bounty_status: 'completed', completed_at: new Date().toISOString() })
-                .eq('id', id)
-                .eq('bounty_status', 'claimed')
-                .eq('claimed_by', currentUserId)
-                .select();
-
-            if (error) {
-                btn.disabled = false;
-                btn.textContent = 'COMPLETE';
-                showToast('Complete failed: ' + error.message, true);
-                return;
-            }
-
-            if (!data || data.length === 0) {
-                btn.disabled = false;
-                btn.textContent = 'COMPLETE';
-                showToast("Could not complete — this bounty's status may have changed.", true);
-                await loadBounties();
-                return;
-            }
-
-            showToast('Bounty completed ✓');
-            await loadBounties();
-        }
-
-        async function signedPhotoUrl(path) {
-            if (!path) return null;
-            const { data, error } = await sb.storage.from('pickup-photos').createSignedUrl(path, 3600);
-            if (error) return null;
-            return data.signedUrl;
-        }
-
-        function renderOpen(rows) {
-            if (!rows.length) {
-                openList.innerHTML = '<div class="empty">No open bounties right now.</div>';
-                return;
-            }
-            openList.innerHTML = rows.map((r) => {
-                const ready = !!r.pickup_photo_url;
-                return `
-                <div class="card" data-id="${r.id}">
-                    <div class="card-top">
-                        <div class="card-title">${r.summary || 'Recyclable material scan'}</div>
-                        <div class="card-value">${fmtMoney(r.est_high)}</div>
-                    </div>
-                    <div class="card-sub">General area: ${r.pickup_lat != null ? roundCoord(r.pickup_lat) + ', ' + roundCoord(r.pickup_lng) : 'unknown'}</div>
-                    ${ready
-                        ? '<button class="btn claim-btn">CLAIM</button>'
-                        : '<button class="btn" disabled>AWAITING PICKUP PHOTO</button>'}
-                </div>
-            `;
-            }).join('');
-            openList.querySelectorAll('.claim-btn').forEach((btn) => {
-                btn.addEventListener('click', () => {
-                    const id = btn.closest('.card').dataset.id;
-                    claimBounty(id, btn);
-                });
-            });
-        }
-
-        async function renderMine(rows) {
-            if (!rows.length) {
-                mineList.innerHTML = '<div class="empty">You have no bounties in progress.</div>';
-                return;
-            }
-            const cards = await Promise.all(rows.map(async (r) => {
-                const photoUrl = await signedPhotoUrl(r.pickup_photo_url);
-                const hasCoords = r.pickup_lat != null && r.pickup_lng != null;
-                return `
-                    <div class="card mine" data-id="${r.id}">
-                        <div class="card-top">
-                            <div class="card-title">${r.summary || 'Recyclable material scan'}</div>
-                            <div class="card-value">${fmtMoney(r.est_high)}</div>
-                        </div>
-                        <div class="card-sub">${hasCoords ? 'Exact spot: ' + r.pickup_lat + ', ' + r.pickup_lng : 'No pickup coordinates on file'}</div>
-                        ${photoUrl ? `<img class="card-photo" src="${photoUrl}" alt="Pickup spot photo">` : ''}
-                        <button class="btn complete complete-btn">COMPLETE</button>
-                        ${hasCoords ? `<button class="btn nav" onclick="window.open('https://maps.google.com/?q=${r.pickup_lat},${r.pickup_lng}','_blank')">🧭 NAVIGATE</button>` : ''}
-                    </div>
+            if (activeJob) {
+                jobLinkCard.innerHTML = `
+                    <div class="card-sub" style="margin-bottom:10px">You have a job in progress — status: ${activeJob.status}.</div>
+                    <a class="btn" style="display:block;text-align:center;text-decoration:none" href="job.html?job=${activeJob.id}">CONTINUE JOB</a>
                 `;
-            }));
-            mineList.innerHTML = cards.join('');
-            mineList.querySelectorAll('.complete-btn').forEach((btn) => {
-                btn.addEventListener('click', () => {
-                    const id = btn.closest('.card').dataset.id;
-                    completeBounty(id, btn);
-                });
-            });
+                return;
+            }
+
+            const { count } = await sb.from('scans').select('id', { count: 'exact', head: true }).eq('bounty_status', 'open');
+            jobLinkCard.innerHTML = `
+                <div class="card-sub" style="margin-bottom:10px">${count || 0} open bount${count === 1 ? 'y' : 'ies'} right now.</div>
+                <a class="btn" style="display:block;text-align:center;text-decoration:none" href="job.html">OPEN JOB BOARD</a>
+            `;
         }
 
         async function startConnectOnboarding() {
@@ -365,36 +252,19 @@
             }
         }
 
-        async function loadBounties() {
-            const { data, error } = await sb.from('scans')
-                .select('id, summary, est_low, est_high, pickup_lat, pickup_lng, pickup_photo_url, bounty_status, claimed_by, created_at')
-                .in('bounty_status', ['open', 'claimed'])
-                .order('created_at', { ascending: true });
-
-            if (error) {
-                showToast('Failed to load bounty board: ' + error.message, true);
-                return;
-            }
-
-            const open = (data || []).filter((r) => r.bounty_status === 'open');
-            const mine = (data || []).filter((r) => r.bounty_status === 'claimed' && r.claimed_by === currentUserId);
-
-            renderOpen(open);
-            await renderMine(mine);
-        }
-
         (async function init() {
             const { data: { session } } = await sb.auth.getSession();
             if (!session) {
-                showDeadEnd('You need to be signed in to see the driver board. <a href="index.html">Log in</a>, then reopen this page.');
+                const next = encodeURIComponent(window.location.href);
+                showDeadEnd(`You need to be signed in to see the driver board. <a href="index.html?next=${next}">Log in</a>, then you'll land back here.`);
                 return;
             }
             currentUserId = session.user.id;
             currentAccessToken = session.access_token;
             board.style.display = 'block';
             await handleConnectReturnIfPresent();
-            await Promise.all([loadBounties(), loadConnectStatus(), loadPayoutHistory()]);
-            setInterval(() => { loadBounties(); loadPayoutHistory(); }, 15000);
+            await Promise.all([loadJobLink(), loadConnectStatus(), loadPayoutHistory()]);
+            setInterval(() => { loadJobLink(); loadPayoutHistory(); }, 15000);
         })();
     </script>
 </body>
