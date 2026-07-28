@@ -486,7 +486,59 @@ async function loadPassportProfile(passportId) {
     ? manifests.map((m) => `<li class="flex items-center justify-between border-b border-slate-800/60 pb-2"><a href="./manifest.html" class="text-cyan-400 hover:underline">${m.manifest_id || ('#' + m.id)}</a><span class="text-xs text-slate-500">${m.status} · ${fmtDateTime(m.created_at)}</span></li>`).join('')
     : '<li class="text-slate-500">Not yet linked to a manifest.</li>';
 
+  await loadPassportMarketplaceSection(passportId);
+
   panel.classList.remove('hidden');
+}
+
+// Passports created via the driver Job workflow (job.html) can bridge into
+// the marketplace once their job reaches PASSPORT, via the
+// create_listing_from_job() RPC -- same action job.html itself exposes.
+// Passports from the older manual intake/passport flow have no associated
+// job row at all, so this section stays a no-op for them.
+async function loadPassportMarketplaceSection(passportId) {
+  const el = document.getElementById('profileMarketplaceSection');
+  if (!el) return;
+
+  const { data: job } = await sb.from('jobs').select('id, status').eq('passport_id', passportId).maybeSingle();
+  if (!job) {
+    el.innerHTML = '<p class="text-slate-500">Not created via the driver Job workflow -- no marketplace bridge available here.</p>';
+    return;
+  }
+
+  if (job.status === 'PASSPORT') {
+    el.innerHTML = `<button id="createListingBtn" class="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-300 hover:bg-emerald-500/20">Create Marketplace Listing</button><p id="createListingStatus" class="mt-2 text-xs text-slate-500"></p>`;
+    document.getElementById('createListingBtn').addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      const statusEl = document.getElementById('createListingStatus');
+      btn.disabled = true; btn.textContent = 'Creating…';
+      const { error } = await sb.rpc('create_listing_from_job', { p_job_id: job.id });
+      if (error) {
+        statusEl.textContent = error.message;
+        btn.disabled = false; btn.textContent = 'Create Marketplace Listing';
+        return;
+      }
+      await loadPassportMarketplaceSection(passportId);
+    });
+    return;
+  }
+
+  if (job.status === 'MARKETPLACE') {
+    const { data: listing } = await sb.from('material_listings')
+      .select('id, material_type, grade, available_weight, status')
+      .eq('passport_id', passportId).neq('status', 'CLOSED').maybeSingle();
+    el.innerHTML = listing
+      ? `<div class="grid gap-2 text-sm sm:grid-cols-2">
+          <div><p class="text-xs text-slate-500">Listing ID</p><p class="mt-1">#${listing.id}</p></div>
+          <div><p class="text-xs text-slate-500">Passport ID</p><p class="mt-1">#${passportId}</p></div>
+          <div><p class="text-xs text-slate-500">Material</p><p class="mt-1">${listing.material_type || '—'}${listing.grade ? ' · ' + listing.grade : ''} (${listing.available_weight} lb)</p></div>
+          <div><p class="text-xs text-slate-500">Status</p><p class="mt-1">${listing.status}</p></div>
+        </div>`
+      : '<p class="text-slate-500">Job shows MARKETPLACE but no listing was found.</p>';
+    return;
+  }
+
+  el.innerHTML = `<p class="text-slate-500">Job is at ${job.status} -- reaches PASSPORT before a listing can be created here.</p>`;
 }
 
 async function loadReconcileData() {

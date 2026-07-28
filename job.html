@@ -236,7 +236,7 @@
 
             mapView.style.display = 'none';
             jobView.style.display = 'block';
-            renderJobCard(job);
+            await renderJobCard(job);
         }
 
         function setJobUrl(jobId) {
@@ -245,7 +245,7 @@
             history.replaceState(null, '', url);
         }
 
-        function renderJobCard(job) {
+        async function renderJobCard(job) {
             lastAiGrade = job.ai_grade || null;
             const label = STATE_LABELS[job.status] || job.status;
 
@@ -276,7 +276,11 @@
             } else if (job.status === 'INTAKE') {
                 actionHtml = `<button class="btn" id="actionBtn">Generate Passport</button>`;
             } else if (job.status === 'PASSPORT') {
-                actionHtml = `<div class="card-sub">Passport generated. Marketplace listing is coming in a later phase.</div>`;
+                actionHtml = `
+                    <div class="card-sub">Passport #${job.passport_id} generated.</div>
+                    <button class="btn" id="actionBtn">Create Marketplace Listing</button>`;
+            } else if (job.status === 'MARKETPLACE') {
+                actionHtml = `<div id="listingResult" class="card-sub">Loading listing…</div>`;
             } else {
                 actionHtml = `<div class="card-sub">This job is ${label.toLowerCase()}.</div>`;
             }
@@ -302,10 +306,27 @@
             });
 
             const btn = document.getElementById('actionBtn');
-            if (!btn) return;
-            btn.addEventListener('click', () => handleAction(job, btn));
+            if (btn) btn.addEventListener('click', () => handleAction(job, btn));
 
             if (job.status === 'ARRIVED') startCamera();
+            if (job.status === 'MARKETPLACE') await renderListingResult(job);
+        }
+
+        async function renderListingResult(job) {
+            const el = document.getElementById('listingResult');
+            if (!el) return;
+            const { data: listing, error } = await sb.from('material_listings')
+                .select('id, material_type, grade, available_weight, status')
+                .eq('passport_id', job.passport_id).neq('status', 'CLOSED').maybeSingle();
+            if (error || !listing) {
+                el.innerHTML = 'Could not load the listing for this job.';
+                return;
+            }
+            el.innerHTML = `
+                <div class="card-sub">Listing ID: ${listing.id}</div>
+                <div class="card-sub">Passport ID: ${job.passport_id}</div>
+                <div class="card-sub">Material: ${listing.material_type || '—'}${listing.grade ? ' · ' + listing.grade : ''} (${listing.available_weight} lb)</div>
+                <div class="card-sub">Status: ${listing.status}</div>`;
         }
 
         async function handleAction(job, btn) {
@@ -328,6 +349,8 @@
                     await callRpc('job_create_intake', { p_job_id: job.id, p_weight_lb: weight, p_price_per_lb: price });
                 } else if (job.status === 'INTAKE') {
                     await callRpc('job_create_passport', { p_job_id: job.id });
+                } else if (job.status === 'PASSPORT') {
+                    await callRpc('create_listing_from_job', { p_job_id: job.id });
                 }
             } finally {
                 btn.disabled = false;
