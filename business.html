@@ -1,261 +1,755 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Watchtower | Node Registration</title>
-    <meta name="theme-color" content="#060a0d">
-    <link rel="manifest" href="/manifest.json">
-    <link rel="apple-touch-icon" href="/icon-192.png">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="Watchtower">
-    <script src="/pwa.js" defer></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Watchtower | For Business</title>
+<meta name="theme-color" content="#060a0d">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Watchtower">
+<script src="/pwa.js" defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--black:#060a0d;--panel:#0e1820;--panel2:#131f28;--border:#1a2a38;--green:#00ff88;--green-dim:#00cc6a;--green-glow:rgba(0,255,136,0.10);--amber:#ffaa00;--red:#ff4455;--text:#c8d8e8;--muted:#5a7a8a;--mono:'Share Tech Mono',monospace;--sans:'Inter',sans-serif;}
+body{background:var(--black);color:var(--text);font-family:var(--sans);min-height:100vh;font-size:16px;line-height:1.6;}
+a{color:var(--green);text-decoration:underline;text-decoration-color:rgba(0,255,136,0.35);text-underline-offset:3px;transition:text-decoration-color .15s ease,color .15s ease;}
+a:hover{text-decoration-color:var(--green);color:#fff;}
 
-    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+nav{position:sticky;top:0;background:rgba(6,10,13,.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;justify-content:space-between;align-items:center;z-index:100;gap:10px;flex-wrap:wrap;}
+.nav-logo{font-family:var(--mono);font-size:13px;color:var(--green);letter-spacing:.14em;display:flex;align-items:center;gap:8px;text-decoration:none;}
+.pulse{width:7px;height:7px;background:var(--green);border-radius:50%;animation:blink 2s infinite;flex-shrink:0;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.nav-links{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end;}
+.nav-links a{color:var(--muted);text-decoration:none;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;}
+.nav-links a:hover{color:var(--green);}
+.nav-links button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 14px;border-radius:6px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;cursor:pointer;text-transform:uppercase;}
+.nav-links button:hover{border-color:var(--green);color:var(--green);}
 
-    <style>
-        :root {
-            --black: #080c0f;
-            --dark: #0d1318;
-            --panel: #111820;
-            --border: #1e2d3a;
-            --green: #00ff88;
-            --green-glow: rgba(0,255,136,0.10);
-            --amber: #ffaa00;
-        }
+.wrap{max-width:720px;margin:0 auto;padding:32px 18px 80px;}
+section{margin-bottom:44px;}
+h1{font-size:clamp(28px,6vw,40px);font-weight:800;color:#fff;line-height:1.25;margin-bottom:14px;}
+h1 span{color:var(--green);}
+h2{font-family:var(--mono);font-size:13px;color:var(--green);letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;}
+.lede{font-size:18px;color:var(--text);margin-bottom:10px;}
+.sub{font-size:15px;color:var(--muted);line-height:1.7;}
 
-        body {
-            background-color: var(--black);
-            color: #fff;
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            padding: 2rem;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
+.angle-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px;}
+@media (max-width:560px){.angle-grid{grid-template-columns:1fr;}}
+.angle-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;}
+.angle-card .t{font-weight:700;color:#fff;font-size:14px;margin-bottom:4px;}
+.angle-card .d{font-size:13px;color:var(--muted);line-height:1.5;}
 
-        h2 {
-            font-family: 'Share Tech Mono', monospace;
-            color: var(--green);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-top: 0;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 10px;
-        }
+.model-box{background:var(--panel2);border:1px dashed var(--border);border-radius:14px;padding:20px;margin-top:16px;}
+.model-tag{display:inline-block;font-family:var(--mono);font-size:10px;color:var(--amber);letter-spacing:.1em;text-transform:uppercase;background:rgba(255,170,0,.08);border:1px solid rgba(255,170,0,.3);padding:3px 8px;border-radius:6px;margin-bottom:10px;}
+.model-box p{font-size:14px;line-height:1.65;color:var(--text);}
+.model-box p+p{margin-top:10px;}
 
-        #formwrap {
-            background: var(--panel);
-            border: 1px solid var(--border);
-            padding: 2rem;
-            width: 100%;
-            max-width: 500px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            transition: all 0.3s ease;
-        }
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px;}
+@media (max-width:700px){.pricing-grid{grid-template-columns:1fr;}}
+.tier-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px;display:flex;flex-direction:column;}
+.tier-card.featured{border-color:var(--green);box-shadow:0 0 0 1px var(--green),0 0 24px var(--green-glow);position:relative;}
+.tier-card.featured::before{content:"MOST POPULAR";position:absolute;top:-11px;left:16px;background:var(--green);color:#000;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.08em;padding:3px 8px;border-radius:5px;}
+.tier-name{font-family:var(--mono);font-size:14px;color:#fff;letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px;}
+.tier-price{font-size:26px;font-weight:800;color:var(--green);}
+.tier-price small{font-size:13px;color:var(--muted);font-weight:500;}
+.tier-annual{font-size:12px;color:var(--muted);margin-top:2px;margin-bottom:14px;}
+.tier-pick{margin-top:auto;background:transparent;border:1px solid var(--border);color:var(--text);padding:10px;border-radius:8px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;}
+.tier-card.featured .tier-pick{border-color:var(--green);color:var(--green);}
+.tier-pick:hover{border-color:var(--green);color:var(--green);}
 
-        #formwrap.submitted {
-            border-color: var(--green);
-            box-shadow: 0 0 20px var(--green-glow);
-        }
+.addon-row{display:flex;gap:12px;margin-top:14px;flex-wrap:wrap;}
+.addon-chip{background:var(--panel2);border:1px solid var(--border);border-radius:20px;padding:8px 14px;font-size:13px;color:var(--muted);}
+.addon-chip b{color:var(--text);}
 
-        .input-group {
-            margin-bottom: 15px;
-        }
+.form-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px;}
+.input-group{margin-bottom:14px;}
+label{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+input[type=text],input[type=email],input[type=password],input[type=tel],textarea{width:100%;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:12px;border-radius:8px;font-family:var(--sans);font-size:15px;outline:none;}
+input:focus,textarea:focus{border-color:var(--green);}
+.segmented{display:flex;gap:8px;flex-wrap:wrap;}
+.seg-btn{flex:1;min-width:100px;background:var(--panel2);border:1px solid var(--border);color:var(--muted);padding:10px;border-radius:8px;font-family:var(--mono);font-size:12px;cursor:pointer;text-align:center;}
+.seg-btn.active{border-color:var(--green);color:var(--green);background:var(--green-glow);}
+.checkbox-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:14px;color:var(--text);}
+.checkbox-row input{width:auto;}
+.submit-btn{width:100%;background:var(--green);color:#000;border:none;padding:14px;border-radius:8px;font-family:var(--mono);font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;margin-top:6px;}
+.submit-btn:disabled{opacity:.6;cursor:default;}
+.msg{margin-top:12px;font-size:13px;min-height:16px;}
+.msg.error{color:var(--red);}
+.msg.ok{color:var(--green);}
 
-        label {
-            display: block;
-            font-family: 'Share Tech Mono', monospace;
-            color: var(--amber);
-            margin-bottom: 5px;
-            font-size: 0.9rem;
-        }
+.contact-line{font-size:14px;color:var(--muted);margin-top:30px;text-align:center;}
 
-        input, select, textarea {
-            width: 100%;
-            padding: 12px;
-            background: var(--dark);
-            border: 1px solid var(--border);
-            color: var(--green);
-            font-family: 'Share Tech Mono', monospace;
-            box-sizing: border-box;
-        }
+.banner{background:var(--panel2);border:1px solid var(--green);border-radius:10px;padding:14px 16px;font-size:14px;margin-bottom:24px;}
+.banner.cancelled{border-color:var(--red);}
 
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: var(--green);
-            box-shadow: 0 0 10px var(--green-glow);
-        }
+/* ===== WORKSPACE ===== */
+#workspaceView{display:none;}
+.ws-header{margin-bottom:20px;}
+.ws-hello{font-size:22px;font-weight:800;color:#fff;}
+.ws-tier{display:inline-block;background:var(--panel2);border:1px solid var(--green);border-radius:20px;padding:5px 14px;font-family:var(--mono);font-size:11px;color:var(--green);letter-spacing:.08em;margin-top:8px;}
 
-        button {
-            width: 100%;
-            background: var(--black);
-            border: 1px solid var(--green);
-            color: var(--green);
-            padding: 15px;
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 1.1rem;
-            font-weight: bold;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-top: 10px;
-            transition: all 0.2s ease;
-        }
+.tab-bar{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--border);margin-bottom:22px;scrollbar-width:none;}
+.tab-bar::-webkit-scrollbar{display:none;}
+.tab-btn{flex-shrink:0;background:transparent;border:none;color:var(--muted);padding:10px 14px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;}
+.tab-btn.active{color:var(--green);border-bottom-color:var(--green);}
 
-        button:hover {
-            background: var(--green);
-            color: var(--black);
-        }
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
 
-        .auth-notice {
-            margin-top: 15px;
-            font-size: 0.8rem;
-            color: #888;
-            text-align: center;
-        }
-    </style>
+.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.stat{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;}
+.stat .v{font-family:var(--mono);font-size:22px;color:var(--green);font-weight:700;}
+.stat .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:4px;}
+
+.empty-state{background:var(--panel2);border:1px dashed var(--border);border-radius:12px;padding:18px;font-size:14px;color:var(--muted);line-height:1.6;margin-top:10px;}
+.empty-state strong{color:var(--text);}
+
+.stub-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px;}
+.stub-card h3{font-size:16px;color:#fff;margin-bottom:8px;}
+.stub-card p{font-size:14px;color:var(--muted);line-height:1.6;}
+.stub-tag{display:inline-block;font-family:var(--mono);font-size:10px;color:var(--amber);letter-spacing:.08em;text-transform:uppercase;background:rgba(255,170,0,.08);border:1px solid rgba(255,170,0,.3);padding:3px 8px;border-radius:6px;margin-bottom:12px;}
+
+.rdm-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px;}
+.rdm-card h3{font-size:15px;color:#fff;margin-bottom:14px;}
+#rdmScanner{width:100%;max-width:320px;margin:0 auto 12px;border-radius:10px;overflow:hidden;background:#000;}
+#rdmScanner:empty{display:none;}
+.scan-btn{width:100%;background:transparent;border:1px solid var(--border);color:var(--text);padding:12px;border-radius:8px;font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;}
+.scan-btn:hover{border-color:var(--green);color:var(--green);}
+.scan-btn.scanning{border-color:var(--red);color:var(--red);}
+textarea#rdmManualCode{width:100%;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:12px;border-radius:8px;font-family:var(--sans);font-size:14px;outline:none;resize:vertical;}
+input[type=number]{width:100%;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:12px;border-radius:8px;font-family:var(--sans);font-size:15px;outline:none;}
+input[type=number]:focus,textarea#rdmManualCode:focus{border-color:var(--green);}
+
+.toggle-btn{background:var(--panel2);border:1px solid var(--border);color:var(--muted);padding:10px 16px;border-radius:20px;font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;}
+.toggle-btn.on{border-color:var(--green);color:var(--green);background:var(--green-glow);}
+
+.stepper{display:flex;align-items:center;gap:14px;}
+.stepper button{width:40px;height:40px;border-radius:8px;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:18px;cursor:pointer;}
+.stepper button:hover{border-color:var(--green);color:var(--green);}
+.stepper span{font-family:var(--mono);font-size:18px;color:var(--green);min-width:60px;text-align:center;}
+
+.log-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:14px;}
+.log-row:last-child{border-bottom:none;}
+.log-row .amt{font-family:var(--mono);color:var(--green);font-weight:700;}
+.log-row .when{color:var(--muted);font-size:12px;}
+</style>
 </head>
 <body>
 
-    <div style="position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(8,12,15,0.96);border-bottom:1px solid #1e2d3a;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
-        <a href="index.html" style="font-family:'Share Tech Mono', monospace;font-size:12px;color:#00ff88;text-decoration:none;letter-spacing:0.12em;text-transform:uppercase;">◈ WATCHTOWER</a>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
-            <a href="resident.html" style="font-family:'Share Tech Mono', monospace;font-size:10px;color:#5a7a8a;text-decoration:none;letter-spacing:0.08em;text-transform:uppercase;">Residents</a>
-            <a href="terminal.html" style="font-family:'Share Tech Mono', monospace;font-size:10px;color:#5a7a8a;text-decoration:none;letter-spacing:0.08em;text-transform:uppercase;">Operators</a>
-            <a href="learn.html" style="font-family:'Share Tech Mono', monospace;font-size:10px;color:#5a7a8a;text-decoration:none;letter-spacing:0.08em;text-transform:uppercase;">Learn</a>
+<nav>
+  <a class="nav-logo" href="index.html"><div class="pulse"></div>WATCHTOWER</a>
+  <div class="nav-links" id="navLinksLoggedOut">
+    <a href="index.html">Home</a>
+    <a href="resident.html">Resident</a>
+    <a href="terminal.html">Operators</a>
+    <a href="learn.html">Learn</a>
+  </div>
+  <div class="nav-links" id="navLinksWorkspace" style="display:none;">
+    <a href="index.html">Home</a>
+    <a href="resident.html">Resident</a>
+    <a href="learn.html">Learn</a>
+    <button id="signOutBtn">Sign Out</button>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <!-- ============ LOGGED-OUT PITCH ============ -->
+  <div id="pitchView">
+
+    <div id="checkoutBanner"></div>
+
+    <section>
+      <h1>You're paying to throw away <span>money.</span></h1>
+      <p class="lede">Right now, waste removal is a bill. With Watchtower it becomes a line of credit and a stream of customers walking through your door to spend it.</p>
+      <p class="sub">Every business in Ocala currently pays someone to haul material away — a line on the accounts payable side. Watchtower flips it: the same material becomes revenue, and the credits residents earn get spent at your register.</p>
+
+      <div class="angle-grid">
+        <div class="angle-card"><div class="t">AP &rarr; AR flip</div><div class="d">The removal fee you already pay becomes material value on your ledger instead.</div></div>
+        <div class="angle-card"><div class="t">Foot traffic, no ad spend</div><div class="d">Residents holding WTWR credits need somewhere to spend them. That's your register.</div></div>
+        <div class="angle-card"><div class="t">Backroom reclaimed</div><div class="d">A weekly service rep clears staging space that was storing material waiting for pickup.</div></div>
+        <div class="angle-card"><div class="t">Dead stock moves</div><div class="d">Product headed for return or write-off can be discounted against WTWR credits instead of eaten as a loss.</div></div>
+        <div class="angle-card"><div class="t">Carbon / ESG reporting</div><div class="d">Documented diversion tonnage you can show your own customers.</div></div>
+        <div class="angle-card"><div class="t">Referral network</div><div class="d">Partners who bring in other partners earn credit.</div></div>
+        <div class="angle-card"><div class="t">Employee education</div><div class="d">Staff training on sorting, included with every tier.</div></div>
+        <div class="angle-card"><div class="t">Smart node placement</div><div class="d">A discreet, out-of-the-way collection point — not an eyesore at the front of your store.</div></div>
+      </div>
+
+      <div class="model-box">
+        <span class="model-tag">Illustration, not a case study</span>
+        <p><strong>What this looks like in practice:</strong> we don't have partner data yet, so nothing below is a real result — it's a model of the mechanics.</p>
+        <p>A shop generating ~200 lbs of cardboard a week currently pays for removal. Under Signal, that same material offsets part of that removal cost and starts generating WTWR credit-driven visits instead — real numbers here will replace this once our first partners are live.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Pricing</h2>
+      <div class="pricing-grid">
+        <div class="tier-card">
+          <div class="tier-name">Signal</div>
+          <div class="tier-price">$49<small>/mo</small></div>
+          <div class="tier-annual">or $490/yr</div>
+          <button class="tier-pick" data-tier="Signal" onclick="pickTier(this)">Choose Signal</button>
         </div>
+        <div class="tier-card featured">
+          <div class="tier-name">Enforcer</div>
+          <div class="tier-price">$99<small>/mo</small></div>
+          <div class="tier-annual">or $990/yr</div>
+          <button class="tier-pick" data-tier="Enforcer" onclick="pickTier(this)">Choose Enforcer</button>
+        </div>
+        <div class="tier-card">
+          <div class="tier-name">Sentinel</div>
+          <div class="tier-price">$199<small>/mo</small></div>
+          <div class="tier-annual">or $1,990/yr</div>
+          <button class="tier-pick" data-tier="Sentinel" onclick="pickTier(this)">Choose Sentinel</button>
+        </div>
+      </div>
+      <div class="addon-row">
+        <div class="addon-chip"><b>Ad — Boost</b> +$25/mo, on top of any tier</div>
+        <div class="addon-chip"><b>Ad — Featured</b> +$75/mo, on top of any tier</div>
+      </div>
+    </section>
+
+    <section id="signupSection">
+      <h2>Initialize Node</h2>
+      <div class="form-card">
+        <div class="input-group">
+          <label>Business Name</label>
+          <input type="text" id="biz" placeholder="Ocala Hardware Co." required>
+        </div>
+        <div class="input-group">
+          <label>Contact Name</label>
+          <input type="text" id="contact" placeholder="Primary Operator" required>
+        </div>
+        <div class="input-group">
+          <label>Node Email (Login ID)</label>
+          <input type="email" id="email" placeholder="you@yourbusiness.com" required>
+        </div>
+        <div class="input-group">
+          <label>Node Passkey</label>
+          <input type="password" id="password" placeholder="Min. 6 characters" required>
+        </div>
+        <div class="input-group">
+          <label>Contact Phone</label>
+          <input type="tel" id="phone" placeholder="(352) 555-0199">
+        </div>
+
+        <div class="input-group">
+          <label>Tier</label>
+          <div class="segmented" id="tierSeg">
+            <button type="button" class="seg-btn active" data-tier="Signal" onclick="setTier(this)">Signal</button>
+            <button type="button" class="seg-btn" data-tier="Enforcer" onclick="setTier(this)">Enforcer</button>
+            <button type="button" class="seg-btn" data-tier="Sentinel" onclick="setTier(this)">Sentinel</button>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>Billing</label>
+          <div class="segmented" id="intervalSeg">
+            <button type="button" class="seg-btn active" data-interval="monthly" onclick="setInterval_(this)">Monthly</button>
+            <button type="button" class="seg-btn" data-interval="annual" onclick="setInterval_(this)">Annual (save 2mo)</button>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>Ad Add-ons (optional)</label>
+          <div class="checkbox-row"><input type="checkbox" id="addonBoost"> <label for="addonBoost" style="margin:0;text-transform:none;">Boost — $25/mo</label></div>
+          <div class="checkbox-row"><input type="checkbox" id="addonFeatured"> <label for="addonFeatured" style="margin:0;text-transform:none;">Featured — $75/mo</label></div>
+        </div>
+
+        <div class="input-group">
+          <label>Notes</label>
+          <textarea id="notes" rows="3" placeholder="Anything about your material streams or logistics we should know."></textarea>
+        </div>
+
+        <button class="submit-btn" id="submitBtn" onclick="handleSubmit()">Provision Node &amp; Continue to Payment</button>
+        <div class="msg" id="formMsg"></div>
+      </div>
+    </section>
+
+    <p class="contact-line">Questions? <a href="mailto:contact.watchtowerer@gmail.com">contact.watchtowerer@gmail.com</a></p>
+  </div>
+
+  <!-- ============ LOGGED-IN WORKSPACE ============ -->
+  <div id="workspaceView">
+    <div id="loadingState" style="text-align:center;padding:60px 0;color:var(--muted);font-family:var(--mono);font-size:13px;">LOADING NODE&hellip;</div>
+    <div id="workspaceBody" style="display:none;">
+      <div class="ws-header">
+        <div class="ws-hello">Welcome back, <span id="wsBizName" style="color:var(--green);"></span></div>
+        <div class="ws-tier" id="wsTier"></div>
+      </div>
+
+      <div class="tab-bar" id="tabBar">
+        <button class="tab-btn active" data-tab="overview">Overview</button>
+        <button class="tab-btn" data-tab="redemptions">Redemptions</button>
+        <button class="tab-btn" data-tab="pickups">Pickups</button>
+        <button class="tab-btn" data-tab="streams">My Streams</button>
+        <button class="tab-btn" data-tab="marketing">Marketing</button>
+        <button class="tab-btn" data-tab="support">Support</button>
+        <button class="tab-btn" data-tab="billing">Billing</button>
+      </div>
+
+      <div class="tab-panel active" data-panel="overview">
+        <div class="stat-row">
+          <div class="stat"><div class="v" id="statWtwr">&mdash;</div><div class="l">WTWR Redeemed</div></div>
+          <div class="stat"><div class="v" id="statOffset">&mdash;</div><div class="l">AP&rarr;AR Flip Value</div></div>
+        </div>
+        <div id="overviewEmpty" class="empty-state" style="display:none;">
+          <strong>Your first redemption will activate this dashboard.</strong> No business has redeemed WTWR credit here yet — these numbers update automatically the moment it happens.
+        </div>
+        <div class="empty-state">
+          <strong>Material diverted:</strong> not shown yet. Sharing intake/diversion data with business accounts needs an operator sign-off on data access before this can be wired up honestly.
+        </div>
+      </div>
+
+      <div class="tab-panel" data-panel="redemptions">
+        <div class="stat-row" style="grid-template-columns:1fr;">
+          <div class="stat"><div class="v" id="rdmAllTimeTotal">&mdash;</div><div class="l">All-Time WTWR Redeemed</div></div>
+        </div>
+
+        <div class="rdm-card">
+          <h3>Redeem a Customer's Code</h3>
+          <div id="rdmScanner"></div>
+          <button class="scan-btn" id="rdmScanToggle" onclick="toggleScanner()">Start Camera Scan</button>
+
+          <div class="input-group" style="margin-top:16px;">
+            <label>Or Paste Code Manually</label>
+            <textarea id="rdmManualCode" rows="2" placeholder="If the scan fails, ask the customer to read you the code from their app"></textarea>
+          </div>
+          <div class="input-group">
+            <label>WTWR Amount to Redeem</label>
+            <input type="number" id="rdmAmount" min="0.01" step="0.01" placeholder="e.g. 25.00">
+          </div>
+          <button class="submit-btn" id="rdmSubmitBtn" onclick="submitRedemption()">Redeem</button>
+          <div class="msg" id="rdmMsg"></div>
+        </div>
+
+        <div class="rdm-card">
+          <h3>Redemption Settings</h3>
+          <div class="input-group">
+            <label>Accepting WTWR Right Now</label>
+            <button class="toggle-btn" id="acceptingToggle" onclick="toggleAccepting()">&mdash;</button>
+          </div>
+          <div class="input-group">
+            <label>Multiplier (1.00&ndash;3.00&times;)</label>
+            <div class="stepper">
+              <button type="button" onclick="adjustMultiplier(-0.1)">&minus;</button>
+              <span id="multiplierValue">1.00&times;</span>
+              <button type="button" onclick="adjustMultiplier(0.1)">+</button>
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Monthly Redemption Cap (WTWR, blank = uncapped)</label>
+            <input type="number" id="capInput" min="0.01" step="0.01" placeholder="e.g. 500">
+          </div>
+          <button class="submit-btn" onclick="saveRedemptionSettings()">Save Settings</button>
+          <div class="msg" id="settingsMsg"></div>
+        </div>
+
+        <div class="rdm-card">
+          <h3>Recent Redemptions</h3>
+          <div id="rdmLog"></div>
+          <div class="empty-state" id="rdmLogEmpty" style="display:none;">
+            <strong>No redemptions yet.</strong> This list fills in the moment a customer redeems WTWR at your register.
+          </div>
+        </div>
+      </div>
+      <div class="tab-panel" data-panel="pickups">
+        <div class="stub-card"><span class="stub-tag">Not built yet</span>
+        <h3>Pickups</h3>
+        <p>Upcoming pickup schedule, history, and a way to request an extra a-la-carte pickup. Coming in the next build pass.</p></div>
+      </div>
+      <div class="tab-panel" data-panel="streams">
+        <div class="stub-card"><span class="stub-tag">Not built yet</span>
+        <h3>My Streams</h3>
+        <p>Edit the material types your business generates (cardboard, metals, plastics, e-waste, etc.) — this drives routing and payout. Coming in the next build pass.</p></div>
+      </div>
+      <div class="tab-panel" data-panel="marketing">
+        <div class="stub-card"><span class="stub-tag">Not built yet</span>
+        <h3>Marketing</h3>
+        <p>Ad creative uploads for Boost/Featured holders, where your ads currently appear, and your referral link + credit earned. Coming in the next build pass.</p></div>
+      </div>
+      <div class="tab-panel" data-panel="support">
+        <div class="stub-card"><span class="stub-tag">Not built yet</span>
+        <h3>Support</h3>
+        <p>One intake for maintenance/service tickets, suggestions, complaints, and staff education requests, with status tracking. Coming in the next build pass.</p></div>
+      </div>
+      <div class="tab-panel" data-panel="billing">
+        <div class="stub-card"><span class="stub-tag">Not built yet</span>
+        <h3>Billing</h3>
+        <p>Current tier, renewal date, upgrade/downgrade and monthly/annual switching via the Stripe Customer Portal, ad add-ons, and invoice history. Coming in the next build pass.</p></div>
+      </div>
     </div>
+  </div>
 
-    <div id="formwrap" style="margin-top:72px;">
-        <h2>Initialize Node</h2>
-        
-        <div class="input-group">
-            <label>Business Name</label>
-            <input type="text" id="biz" placeholder="Ocala Asset Security" required>
-        </div>
+</div>
 
-        <div class="input-group">
-            <label>Contact Name</label>
-            <input type="text" id="name" placeholder="Primary Operator" required>
-        </div>
+<script>
+const SUPABASE_URL = 'https://eypovuxuddiqgncjdpkq.supabase.co';
+const SUPABASE_ANON = 'sb_publishable_ZlykauNc-3YY80w6nxzsKw_Z2lgAgU1';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-        <div class="input-group">
-            <label>Node Email (Login ID)</label>
-            <input type="email" id="email" placeholder="admin@ocala-business.com" required>
-        </div>
+let selectedTier = 'Signal';
+let selectedInterval = 'monthly';
+let currentBusinessId = null;
+let currentMultiplier = 1.00;
+let currentAccepting = true;
+let scannerRunning = false;
+let html5QrCode = null;
 
-        <div class="input-group">
-            <label>Node Passkey</label>
-            <input type="password" id="password" placeholder="Min. 6 characters" required>
-        </div>
+function setTier(btn){
+  document.querySelectorAll('#tierSeg .seg-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedTier = btn.dataset.tier;
+}
+function setInterval_(btn){
+  document.querySelectorAll('#intervalSeg .seg-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedInterval = btn.dataset.interval;
+}
+function pickTier(btn){
+  const seg = document.querySelector(`#tierSeg .seg-btn[data-tier="${btn.dataset.tier}"]`);
+  if (seg) setTier(seg);
+  document.getElementById('signupSection').scrollIntoView({behavior:'smooth'});
+}
 
-        <div class="input-group">
-            <label>Contact Phone</label>
-            <input type="text" id="phone" placeholder="(352) 555-0199">
-        </div>
+async function handleSubmit(){
+  const bizName = document.getElementById('biz').value.trim();
+  const contactName = document.getElementById('contact').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const phone = document.getElementById('phone').value.trim();
+  const notes = document.getElementById('notes').value.trim();
+  const btn = document.getElementById('submitBtn');
+  const msg = document.getElementById('formMsg');
 
-        <div class="input-group">
-            <label>Requested Tier</label>
-            <select id="ctier">
-                <option value="Signal">Signal - $1,000/yr</option>
-                <option value="Enforcer">Enforcer - $2,500/yr</option>
-                <option value="Sentinel">Sentinel - $5,000/yr</option>
-            </select>
-        </div>
+  msg.className = 'msg';
+  msg.textContent = '';
 
-        <div class="input-group">
-            <label>Operational Notes</label>
-            <textarea id="cnotes" rows="3" placeholder="Additional logistics details..."></textarea>
-        </div>
+  if (!bizName || !contactName || !email || !password) {
+    msg.className = 'msg error';
+    msg.textContent = 'Business name, contact name, email, and passkey are required.';
+    return;
+  }
+  if (password.length < 6) {
+    msg.className = 'msg error';
+    msg.textContent = 'Passkey must be at least 6 characters.';
+    return;
+  }
 
-        <button id="submit-btn" onclick="handleSubmit()">Provision Node</button>
-        <div class="auth-notice">Registered nodes will be routed to the secure dashboard.</div>
+  btn.disabled = true;
+  btn.textContent = 'Creating account…';
+
+  const { data: authData, error: authError } = await sb.auth.signUp({ email, password });
+  if (authError) {
+    msg.className = 'msg error';
+    msg.textContent = authError.message;
+    btn.disabled = false;
+    btn.textContent = 'Provision Node & Continue to Payment';
+    return;
+  }
+
+  if (!authData.user) {
+    msg.className = 'msg error';
+    msg.textContent = 'Account created — check your email to confirm, then sign back in.';
+    btn.disabled = false;
+    btn.textContent = 'Provision Node & Continue to Payment';
+    return;
+  }
+
+  btn.textContent = 'Linking ledger…';
+  const { error: dbError } = await sb.from('businesses').insert([{
+    auth_id: authData.user.id,
+    business_name: bizName,
+    contact_name: contactName,
+    email,
+    phone,
+    tier: selectedTier,
+    notes,
+  }]);
+
+  if (dbError) {
+    console.error('Ledger error:', dbError);
+    msg.className = 'msg error';
+    msg.textContent = 'Account created, but we could not save your business profile. Contact contact.watchtowerer@gmail.com.';
+    btn.disabled = false;
+    btn.textContent = 'Provision Node & Continue to Payment';
+    return;
+  }
+
+  btn.textContent = 'Redirecting to payment…';
+  const { data: sessionData } = await sb.auth.getSession();
+  const accessToken = sessionData && sessionData.session ? sessionData.session.access_token : null;
+
+  const addons = [];
+  if (document.getElementById('addonBoost').checked) addons.push('boost');
+  if (document.getElementById('addonFeatured').checked) addons.push('featured');
+
+  try {
+    const res = await fetch('/api/create-business-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token: accessToken, tier: selectedTier, interval: selectedInterval, addons }),
+    });
+    const out = await res.json();
+    if (!res.ok || !out.url) {
+      throw new Error(out.error || 'Checkout could not be started.');
+    }
+    window.location.href = out.url;
+  } catch (err) {
+    console.error('Checkout error:', err);
+    msg.className = 'msg error';
+    msg.textContent = 'Your node is set up, but payment setup failed. Contact contact.watchtowerer@gmail.com and we will get billing sorted manually.';
+    btn.disabled = false;
+    btn.textContent = 'Provision Node & Continue to Payment';
+  }
+}
+
+function showCheckoutBanner(status){
+  const el = document.getElementById('checkoutBanner');
+  if (!el) return;
+  if (status === 'success') {
+    el.innerHTML = '<div class="banner">Payment received — sign in to reach your workspace.</div>';
+  } else if (status === 'cancelled') {
+    el.innerHTML = '<div class="banner cancelled">Checkout was cancelled. Your node is saved — pick a tier below whenever you\'re ready.</div>';
+  }
+}
+
+function initTabs(){
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelector(`.tab-panel[data-panel="${btn.dataset.tab}"]`).classList.add('active');
+    });
+  });
+}
+
+function signOut(){
+  sb.auth.signOut().then(() => { window.location.href = 'business.html'; });
+}
+
+// ===== Redemptions tab =====
+
+function toggleScanner(){
+  const btn = document.getElementById('rdmScanToggle');
+  if (scannerRunning) {
+    html5QrCode.stop().then(() => {
+      html5QrCode.clear();
+      scannerRunning = false;
+      btn.textContent = 'Start Camera Scan';
+      btn.classList.remove('scanning');
+    }).catch(() => {});
+    return;
+  }
+
+  if (!html5QrCode) html5QrCode = new Html5Qrcode('rdmScanner');
+
+  html5QrCode.start(
+    { facingMode: 'environment' },
+    { fps: 10, qrbox: 220 },
+    (decodedText) => {
+      document.getElementById('rdmManualCode').value = decodedText;
+      toggleScanner();
+    },
+    () => {}
+  ).then(() => {
+    scannerRunning = true;
+    btn.textContent = 'Stop Camera';
+    btn.classList.add('scanning');
+  }).catch((err) => {
+    console.error('Camera scan failed to start:', err);
+    const msg = document.getElementById('rdmMsg');
+    msg.className = 'msg error';
+    msg.textContent = 'Could not access the camera. Paste the code manually instead.';
+  });
+}
+
+async function submitRedemption(){
+  const code = document.getElementById('rdmManualCode').value.trim();
+  const amount = parseFloat(document.getElementById('rdmAmount').value);
+  const msg = document.getElementById('rdmMsg');
+  msg.className = 'msg';
+  msg.textContent = '';
+
+  if (!code) {
+    msg.className = 'msg error';
+    msg.textContent = 'Scan or paste a redemption code first.';
+    return;
+  }
+  if (!amount || amount <= 0) {
+    msg.className = 'msg error';
+    msg.textContent = 'Enter a WTWR amount greater than zero.';
+    return;
+  }
+
+  const btn = document.getElementById('rdmSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Processing…';
+
+  const { data, error } = await sb.rpc('redeem_wtwr', {
+    p_token: code,
+    p_business_id: currentBusinessId,
+    p_amount: amount,
+  });
+
+  btn.disabled = false;
+  btn.textContent = 'Redeem';
+
+  if (error) {
+    msg.className = 'msg error';
+    msg.textContent = error.message || 'Redemption failed.';
+    return;
+  }
+
+  msg.className = 'msg ok';
+  msg.textContent = `Redeemed ${amount.toFixed(2)} WTWR ($${(amount / 100).toFixed(2)}).`;
+  document.getElementById('rdmManualCode').value = '';
+  document.getElementById('rdmAmount').value = '';
+
+  await refreshRedemptionData();
+}
+
+function renderAcceptingToggle(){
+  const btn = document.getElementById('acceptingToggle');
+  btn.textContent = currentAccepting ? 'Accepting — tap to pause' : 'Paused — tap to resume';
+  btn.classList.toggle('on', currentAccepting);
+}
+
+async function toggleAccepting(){
+  currentAccepting = !currentAccepting;
+  renderAcceptingToggle();
+
+  const { error } = await sb.from('businesses').update({ accepting_wtwr: currentAccepting }).eq('id', currentBusinessId);
+  const msg = document.getElementById('settingsMsg');
+  if (error) {
+    currentAccepting = !currentAccepting;
+    renderAcceptingToggle();
+    msg.className = 'msg error';
+    msg.textContent = 'Could not save — try again.';
+    return;
+  }
+  msg.className = 'msg ok';
+  msg.textContent = currentAccepting ? 'Now accepting WTWR redemptions.' : 'Paused — redemptions will be rejected until you resume.';
+}
+
+function renderMultiplier(){
+  document.getElementById('multiplierValue').textContent = currentMultiplier.toFixed(2) + '×';
+}
+
+function adjustMultiplier(delta){
+  const next = Math.round((currentMultiplier + delta) * 100) / 100;
+  currentMultiplier = Math.min(3.00, Math.max(1.00, next));
+  renderMultiplier();
+}
+
+async function saveRedemptionSettings(){
+  const capRaw = document.getElementById('capInput').value.trim();
+  const cap = capRaw === '' ? null : parseFloat(capRaw);
+  const msg = document.getElementById('settingsMsg');
+
+  if (capRaw !== '' && (!Number.isFinite(cap) || cap <= 0)) {
+    msg.className = 'msg error';
+    msg.textContent = 'Monthly cap must be a positive number, or blank for uncapped.';
+    return;
+  }
+
+  const { error } = await sb.from('businesses')
+    .update({ multiplier: currentMultiplier, redemption_cap_monthly: cap })
+    .eq('id', currentBusinessId);
+
+  if (error) {
+    msg.className = 'msg error';
+    msg.textContent = error.message || 'Could not save settings.';
+    return;
+  }
+  msg.className = 'msg ok';
+  msg.textContent = 'Settings saved.';
+}
+
+async function refreshRedemptionData(){
+  const { data: business } = await sb.from('businesses').select('wtwr_redeemed').eq('id', currentBusinessId).maybeSingle();
+  if (business) {
+    document.getElementById('rdmAllTimeTotal').textContent = Number(business.wtwr_redeemed || 0).toFixed(2);
+    document.getElementById('statWtwr').textContent = Number(business.wtwr_redeemed || 0).toFixed(2);
+    document.getElementById('overviewEmpty').style.display = Number(business.wtwr_redeemed || 0) === 0 ? 'block' : 'none';
+  }
+
+  const { data: log } = await sb.from('redemptions')
+    .select('id, wtwr_amount, usd_value, created_at')
+    .eq('business_id', currentBusinessId)
+    .order('created_at', { ascending: false })
+    .limit(25);
+
+  const logEl = document.getElementById('rdmLog');
+  const emptyEl = document.getElementById('rdmLogEmpty');
+
+  if (!log || log.length === 0) {
+    logEl.innerHTML = '';
+    emptyEl.style.display = 'block';
+    return;
+  }
+
+  emptyEl.style.display = 'none';
+  logEl.innerHTML = log.map((r) => `
+    <div class="log-row">
+      <div><span class="amt">${Number(r.wtwr_amount).toFixed(2)} WTWR</span> ($${Number(r.usd_value).toFixed(2)})</div>
+      <div class="when">${new Date(r.created_at).toLocaleString()}</div>
     </div>
+  `).join('');
+}
 
-    <script>
-        // ==========================================
-        // SYSTEM PRE-LOADED WITH YOUR CREDENTIALS
-        // ==========================================
-        const supabaseUrl = 'https://eypovuxuddiqgncjdpkq.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5cG92dXh1ZGRpcWduY2pkcGtxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MzU1NDgsImV4cCI6MjA5ODUxMTU0OH0.JLSmCx7bZe7yIxxdXZwCWrLeyV1zAoPTXbSP24IckBY';
-        
-        // FIX: Renamed variable to 'supabaseClient' to avoid crashing the script
-        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+async function showWorkspace(business){
+  document.getElementById('pitchView').style.display = 'none';
+  document.getElementById('workspaceView').style.display = 'block';
+  document.getElementById('navLinksLoggedOut').style.display = 'none';
+  document.getElementById('navLinksWorkspace').style.display = 'flex';
+  document.getElementById('signOutBtn').addEventListener('click', signOut);
 
-        // ==========================================
-        // THE AUTH & DATABASE SUBMISSION LOGIC
-        // ==========================================
-        async function handleSubmit() {
-            const bizName = document.getElementById('biz').value.trim();
-            const contactName = document.getElementById('name').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            const phone = document.getElementById('phone').value.trim();
-            const tier = document.getElementById('ctier').value;
-            const notes = document.getElementById('cnotes').value.trim();
-            const btn = document.getElementById('submit-btn');
-            const wrap = document.getElementById('formwrap');
+  document.getElementById('wsBizName').textContent = business.business_name;
+  document.getElementById('wsTier').textContent = (business.tier || 'UNASSIGNED').toUpperCase() + ' TIER';
 
-            // 1. Basic Validation
-            if (!bizName || !email || !password) {
-                alert('CRITICAL: Business Name, Email, and Passkey are required.');
-                return;
-            }
+  const wtwr = Number(business.wtwr_redeemed || 0);
+  const offset = Number(business.disposal_cost_saved || 0);
+  document.getElementById('statWtwr').textContent = wtwr.toFixed(2);
+  document.getElementById('statOffset').textContent = '$' + offset.toFixed(2);
+  document.getElementById('overviewEmpty').style.display = wtwr === 0 ? 'block' : 'none';
 
-            // 2. Password Length Check (Supabase requires 6 chars)
-            if (password.length < 6) {
-                alert('CRITICAL: Node Passkey must be at least 6 characters long.');
-                return;
-            }
+  currentBusinessId = business.id;
+  currentMultiplier = Number(business.multiplier || 1.00);
+  currentAccepting = business.accepting_wtwr !== false;
+  document.getElementById('rdmAllTimeTotal').textContent = wtwr.toFixed(2);
+  document.getElementById('capInput').value = business.redemption_cap_monthly != null ? business.redemption_cap_monthly : '';
+  renderAcceptingToggle();
+  renderMultiplier();
+  refreshRedemptionData();
 
-            btn.innerText = "AUTHENTICATING...";
-            btn.style.pointerEvents = "none";
+  initTabs();
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('workspaceBody').style.display = 'block';
+}
 
-            // 3. Register User in Auth
-            const { data: authData, error: authError } = await supabaseClient.auth.signUp({
-                email: email,
-                password: password,
-            });
+async function initPage(){
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('checkout')) showCheckoutBanner(params.get('checkout'));
 
-            if (authError) {
-                alert(`AUTH ERROR: ${authError.message}`);
-                btn.innerText = "Provision Node";
-                btn.style.pointerEvents = "auto";
-                return;
-            }
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
 
-            // 4. Inject into businesses table
-            if (authData.user) {
-                btn.innerText = "LINKING LEDGER...";
+  const { data: business } = await sb.from('businesses').select('*').eq('auth_id', session.user.id).maybeSingle();
+  if (!business) return;
 
-                const { error: dbError } = await supabaseClient.from('businesses').insert([{
-                    auth_id: authData.user.id,
-                    business_name: bizName, 
-                    tier: tier
-                }]);
+  showWorkspace(business);
+}
 
-                if (dbError) {
-                    console.error("Ledger Error:", dbError);
-                    alert("Auth successful, but failed to write ledger data. Check console.");
-                    btn.innerText = "Provision Node";
-                    btn.style.pointerEvents = "auto";
-                    return;
-                }
-
-                // 5. Success Route
-                btn.innerText = "NODE SECURED. REROUTING...";
-                wrap.classList.add('submitted'); 
-                
-                setTimeout(() => {
-                    window.location.href = 'dashboard.html';
-                }, 1500);
-            }
-        }
-    </script>
+initPage();
+</script>
 </body>
 </html>

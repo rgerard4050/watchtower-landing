@@ -12,6 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="Watchtower">
 <script src="/pwa.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -47,6 +48,12 @@ nav button{background:transparent;border:1px solid var(--border);color:var(--mut
 
 .info-note{background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:20px;font-size:13px;color:var(--muted);line-height:1.6;}
 .info-note strong{color:var(--text);}
+
+.qr-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:12px;text-align:center;}
+.qr-card h3{font-family:var(--mono);font-size:12px;color:var(--green);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;}
+.qr-canvas-wrap{display:inline-block;background:#fff;border-radius:10px;padding:10px;line-height:0;}
+.qr-refresh-note{font-size:12px;color:var(--muted);margin-top:10px;}
+.qr-error{font-size:13px;color:#ff8080;margin-top:10px;display:none;}
 </style>
 </head>
 <body>
@@ -72,6 +79,13 @@ nav button{background:transparent;border:1px solid var(--border);color:var(--mut
     <div class="stat-row">
       <div class="stat"><div class="v" id="walletId">&mdash;</div><div class="l">Wallet ID</div></div>
       <div class="stat"><div class="v" id="wtwrBalance">0.00</div><div class="l">WTWR Balance</div></div>
+    </div>
+
+    <div class="qr-card">
+      <h3>Redeem WTWR In-Store</h3>
+      <div class="qr-canvas-wrap"><canvas id="walletQr"></canvas></div>
+      <div class="qr-refresh-note">Show this to a partner business at checkout. Refreshes automatically every 90 seconds — a screenshot won't work.</div>
+      <div class="qr-error" id="qrError">Could not load your redemption code. Try refreshing the page.</div>
     </div>
 
     <a class="action-card" href="scanner.html">
@@ -165,6 +179,32 @@ function signOut(){
   sb.auth.signOut().then(()=>{ location.href = 'index.html'; });
 }
 
+// Wallet QR: encodes a signed, ~2-min-expiry token minted server-side by
+// mint_wallet_token() (SECURITY DEFINER, resolves resident_id from
+// auth.uid() itself -- this page never sees or sends a resident id).
+// Regenerated on load and on a 90s interval so a screenshot goes stale
+// before it's useful.
+async function refreshWalletQr(){
+  const canvas = document.getElementById('walletQr');
+  const errEl = document.getElementById('qrError');
+  if (!canvas) return;
+
+  const { data: token, error } = await sb.rpc('mint_wallet_token');
+  if (error || !token) {
+    console.error('mint_wallet_token failed:', error);
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+
+  QRCode.toCanvas(canvas, token, { width: 220, margin: 1 }, (qrErr) => {
+    if (qrErr) {
+      console.error('QR render failed:', qrErr);
+      errEl.style.display = 'block';
+    }
+  });
+}
+
 let currentResidentId = null;
 
 async function requestPickup(){
@@ -184,6 +224,8 @@ async function requestPickup(){
 
 loadAccount();
 loadWtwrBalance();
+refreshWalletQr();
+setInterval(refreshWalletQr, 90000);
 </script>
 </body>
 </html>
