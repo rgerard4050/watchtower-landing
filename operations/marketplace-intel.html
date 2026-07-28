@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Watchtower Marketplace Intelligence</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../operator-auth.js"></script>
+  </head>
+  <body class="min-h-screen bg-slate-950 text-slate-100">
+    <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <header class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p class="text-xs uppercase tracking-[0.3em] text-amber-400">Operations</p>
+            <h1 class="mt-2 text-3xl font-bold tracking-tight">MARKETPLACE INTELLIGENCE</h1>
+            <p class="mt-2 text-sm text-slate-400">Aging listings, unpublished inventory, and buyer demand — visibility only. Listing create/publish/price stays in Marketplace; accept_offer()/complete_transaction() are unchanged.</p>
+          </div>
+          <div class="flex flex-col items-start gap-2 md:items-end">
+            <button id="refreshBtn" class="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:border-emerald-400 hover:text-emerald-300">↻ Refresh</button>
+            <div class="flex gap-3">
+              <a href="./command.html" class="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:border-amber-400 hover:text-amber-300">Command Center</a>
+              <a href="./marketplace.html" class="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:border-amber-400 hover:text-amber-300">Marketplace</a>
+              <a href="../marketplace.html" target="_blank" class="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:border-amber-400 hover:text-amber-300">Buyer View ↗</a>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="mt-6 space-y-6">
+        <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 shadow-2xl shadow-black/20">
+          <h2 class="text-lg font-semibold">Aging Listings</h2>
+          <p class="mt-1 text-xs text-slate-500">AVAILABLE 14+ days with zero offers.</p>
+          <div class="mt-4 overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-slate-800 text-left text-xs uppercase tracking-wide text-slate-500">
+                  <th class="pb-2 pr-4">Listing</th><th class="pb-2 pr-4">Material</th><th class="pb-2 pr-4">Qty</th><th class="pb-2 pr-4">Age</th><th class="pb-2 pr-4">Offers</th><th class="pb-2 pr-4"></th>
+                </tr>
+              </thead>
+              <tbody id="agingTable"><tr><td colspan="6" class="py-4 text-slate-500">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 shadow-2xl shadow-black/20">
+          <h2 class="text-lg font-semibold">Inactive Inventory</h2>
+          <p class="mt-1 text-xs text-slate-500">DRAFT 7+ days, never published.</p>
+          <div class="mt-4 overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-slate-800 text-left text-xs uppercase tracking-wide text-slate-500">
+                  <th class="pb-2 pr-4">Listing</th><th class="pb-2 pr-4">Material</th><th class="pb-2 pr-4">Qty</th><th class="pb-2 pr-4">Created</th><th class="pb-2 pr-4"></th>
+                </tr>
+              </thead>
+              <tbody id="inactiveTable"><tr><td colspan="5" class="py-4 text-slate-500">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="grid gap-6 lg:grid-cols-2">
+          <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 shadow-2xl shadow-black/20">
+            <h2 class="text-lg font-semibold">Demand by Material</h2>
+            <p class="mt-1 text-xs text-slate-500">Active (non-CLOSED) listings and offer volume per material.</p>
+            <div class="mt-4 overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-slate-800 text-left text-xs uppercase tracking-wide text-slate-500">
+                    <th class="pb-2 pr-4">Material</th><th class="pb-2 pr-4">Listings</th><th class="pb-2 pr-4">Offers</th><th class="pb-2 pr-4">Last Offer</th>
+                  </tr>
+                </thead>
+                <tbody id="demandTable"><tr><td colspan="4" class="py-4 text-slate-500">Loading…</td></tr></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 shadow-2xl shadow-black/20">
+            <h2 class="text-lg font-semibold">Buyer Activity</h2>
+            <p class="mt-1 text-xs text-slate-500">Offer volume and acceptance per buyer.</p>
+            <div class="mt-4 overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-slate-800 text-left text-xs uppercase tracking-wide text-slate-500">
+                    <th class="pb-2 pr-4">Buyer</th><th class="pb-2 pr-4">Type</th><th class="pb-2 pr-4">Offers</th><th class="pb-2 pr-4">Accepted</th><th class="pb-2 pr-4">Last Offer</th>
+                  </tr>
+                </thead>
+                <tbody id="buyerTable"><tr><td colspan="5" class="py-4 text-slate-500">Loading…</td></tr></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <script src="./marketplace-intel.js"></script>
+  </body>
+</html>

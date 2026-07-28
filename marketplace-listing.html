@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Watchtower — Listing Detail</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600;700&display=swap');
+        :root {
+            --black: #080c0f; --dark: #0d1318; --panel: #111820; --panel2: #161f28;
+            --border: #1e2d3a; --green: #00ff88; --green-dim: #00cc6a; --amber: #ffaa00;
+            --blue: #00aaff; --red: #ff4455; --muted: #5a7a8a; --text: #c8d8e8; --sans: 'Inter', sans-serif;
+        }
+        * { box-sizing: border-box; }
+        body { margin:0; padding:0 0 40px; background:var(--black); color:#fff; font-family:var(--sans); min-height:100vh; }
+        .terminal-header {
+            width:100%; padding:14px 18px; background:var(--dark); border-bottom:1px solid var(--border);
+            text-align:center; color:var(--green); text-shadow:0 0 5px var(--green-dim); letter-spacing:2px;
+            font-size:13px; display:flex; align-items:center; justify-content:space-between;
+            font-family:'Share Tech Mono', monospace; position:sticky; top:0; z-index:10;
+        }
+        .terminal-header a { color:var(--muted); text-decoration:none; font-size:11px; }
+        .wrap { max-width:640px; margin:0 auto; padding:18px 16px; }
+        .sh { font-family:'Share Tech Mono', monospace; font-size:11px; color:var(--green); letter-spacing:.12em; text-transform:uppercase; margin:20px 0 10px; }
+        .sh:first-of-type { margin-top:0; }
+        .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:10px; }
+        .card-top { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:8px; }
+        .card-title { font-size:20px; font-weight:600; color:#fff; }
+        .card-value { font-family:'Share Tech Mono', monospace; font-size:18px; color:var(--green); white-space:nowrap; }
+        .card-sub { font-size:13px; color:var(--muted); margin-bottom:6px; line-height:1.5; }
+        .verified-badge {
+            display:inline-block; font-family:'Share Tech Mono', monospace; font-size:11px; letter-spacing:.08em;
+            color:var(--black); background:var(--green); padding:4px 10px; border-radius:999px; margin-bottom:10px;
+        }
+        .field-row { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--border); font-size:13px; }
+        .field-row:last-child { border-bottom:none; }
+        .field-row .k { color:var(--muted); }
+        .field-row .v { color:#fff; text-align:right; }
+        .timeline-item { font-size:12px; color:var(--muted); padding:6px 0; border-bottom:1px solid var(--border); }
+        .timeline-item:last-child { border-bottom:none; }
+        .timeline-item .ev { color:var(--text); font-weight:600; }
+        .empty { font-size:13px; color:var(--muted); font-style:italic; padding:6px 0 16px; }
+    </style>
+</head>
+<body>
+
+    <div class="terminal-header">
+        <span>WATCHTOWER // LISTING</span>
+        <a href="marketplace.html">&#8592; MARKETPLACE</a>
+    </div>
+
+    <div class="wrap" id="content">
+        <div class="empty">Loading…</div>
+    </div>
+
+    <script>
+        const SUPABASE_URL  = "https://eypovuxuddiqgncjdpkq.supabase.co";
+        const SUPABASE_ANON = "sb_publishable_ZlykauNc-3YY80w6nxzsKw_Z2lgAgU1";
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+        const content = document.getElementById('content');
+
+        function fmtMoney(n) { return n == null ? 'Contact for price' : '$' + n; }
+        function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString() : '—'; }
+
+        async function load() {
+            const id = new URLSearchParams(window.location.search).get('id');
+            if (!id) {
+                content.innerHTML = '<div class="empty">No listing specified.</div>';
+                return;
+            }
+            const { data: l, error } = await sb.from('vw_marketplace_listing_detail').select('*').eq('listing_id', id).maybeSingle();
+            if (error || !l) {
+                content.innerHTML = '<div class="empty">This listing is not available — it may have sold or been removed. <a href="marketplace.html" style="color:var(--green)">Back to Marketplace</a></div>';
+                return;
+            }
+
+            const photos = l.evidence_photos || [];
+            const timeline = l.provenance_timeline || [];
+
+            content.innerHTML = `
+                <div class="card">
+                    ${l.is_verified ? '<span class="verified-badge">✓ WATCHTOWER VERIFIED</span>' : ''}
+                    <div class="card-top">
+                        <div class="card-title">${l.material_type || 'Recovered material'}${l.grade ? ' · ' + l.grade : ''}</div>
+                        <div class="card-value">${fmtMoney(l.asking_price)}</div>
+                    </div>
+                    <div class="card-sub">${l.available_weight} lb available · ${l.location_region || 'Location on request'}</div>
+                </div>
+
+                <div class="sh">Material Identity</div>
+                <div class="card">
+                    <div class="field-row"><span class="k">Passport ID</span><span class="v">${l.passport_public_id || '—'}</span></div>
+                    <div class="field-row"><span class="k">Manufacturer</span><span class="v">${l.manufacturer || '—'}</span></div>
+                    <div class="field-row"><span class="k">Model</span><span class="v">${l.model || '—'}</span></div>
+                    <div class="field-row"><span class="k">Serial</span><span class="v">${l.serial || '—'}</span></div>
+                    <div class="field-row"><span class="k">Asset Tag</span><span class="v">${l.asset_tag || '—'}</span></div>
+                    <div class="field-row"><span class="k">Disposition</span><span class="v">${l.disposition || '—'}</span></div>
+                </div>
+
+                <div class="sh">Verification Evidence</div>
+                <div class="card">
+                    ${photos.length
+                        ? `<div class="card-sub">${photos.length} verification photo${photos.length === 1 ? '' : 's'} on file (${photos.filter(p => p.verification_status === 'VERIFIED').length} verified). Full documentation available on request.</div>`
+                        + photos.map((p) => `<div class="field-row"><span class="k">${p.evidence_type || 'Evidence'}</span><span class="v">${p.verification_status || 'UNVERIFIED'} · ${fmtDate(p.uploaded_at)}</span></div>`).join('')
+                        : '<div class="card-sub">No evidence photos on file yet.</div>'}
+                </div>
+
+                <div class="sh">Provenance Timeline</div>
+                <div class="card">
+                    ${timeline.length
+                        ? timeline.map((t) => `<div class="timeline-item"><span class="ev">${t.event_type}</span> — ${new Date(t.created_at).toLocaleString()}</div>`).join('')
+                        : '<div class="card-sub">No timeline events on file.</div>'}
+                </div>
+
+                <div class="card-sub" style="margin-top:10px">To make an offer on this material, contact Watchtower directly — offers are coordinated by our team.</div>
+            `;
+        }
+
+        load();
+    </script>
+</body>
+</html>
