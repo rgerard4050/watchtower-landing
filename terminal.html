@@ -646,7 +646,7 @@ async function refreshBounties(){
   // Drivers self-claim directly on scans now (RLS-enforced) -- this tab is
   // read-only status for operators: open / claimed / completed, no action
   // except CANCEL, which is a separate cleanup valve, not the old assign step.
-  const { data, error } = await sb.from('scans').select('*, residents(name)')
+  const { data, error } = await sb.from('scans').select('*, residents(name), jobs(id)')
     .eq('bounty_created', true)
     .in('bounty_status', ['open','claimed','completed'])
     .order('created_at',{ascending:false});
@@ -1128,6 +1128,7 @@ function renderBounties(){
           <div class="q-row"><span class="q-key">Fix</span>${acc}</div>
         </div>
         <div class="card-footer">
+          ${viewJobLink(s)}
           <button class="btn-reject" onclick="cancelBounty('${s.id}')">CANCEL</button>
         </div>
       </div>`;
@@ -1151,6 +1152,7 @@ function renderBounties(){
           <div class="q-row"><span class="q-key">Why</span><span class="q-val">No GPS fix was captured at the scan. Contact the resident for a location — do not dispatch to their address on file.</span></div>
         </div>
         <div class="card-footer">
+          ${viewJobLink(s)}
           <button class="btn-reject" onclick="cancelBounty('${s.id}')">CANCEL BOUNTY</button>
         </div>
       </div>`;
@@ -1183,12 +1185,21 @@ function renderBounties(){
           <div class="q-row"><span class="q-key">Claimed at</span><span class="q-val">${s.claimed_at?fmtT(s.claimed_at):'—'}</span></div>
           ${s.bounty_status==='completed'?`<div class="q-row"><span class="q-key">Completed at</span><span class="q-val">${s.completed_at?fmtT(s.completed_at):'—'}</span></div>`:''}
         </div>
-        ${s.bounty_status==='claimed'?`<div class="card-footer"><button class="btn-reject" onclick="cancelBounty('${s.id}')">CANCEL</button></div>`:''}
+        <div class="card-footer">${viewJobLink(s)}${s.bounty_status==='claimed'?`<button class="btn-reject" onclick="cancelBounty('${s.id}')">CANCEL</button>`:''}</div>
       </div>`;
     }).join(''));
   }
 
   el.innerHTML=parts.join('');
+}
+
+function viewJobLink(s){
+  // s.jobs is a PostgREST embed (array) off the jobs.scan_id FK -- one
+  // active job per scan in practice, enforced by jobs_scan_id_active_uniq.
+  const jobId = s.jobs && s.jobs.length ? s.jobs[0].id : null;
+  if(!jobId) return '';
+  return `<a href="job.html?job=${jobId}" target="_blank" rel="noopener"
+    style="color:var(--green);font-family:var(--mono);font-size:9px;text-decoration:none">VIEW JOB →</a>`;
 }
 
 function mapLink(lat,lng){

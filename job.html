@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Watchtower — Job</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600;700&display=swap');
+        :root {
+            --black: #080c0f; --dark: #0d1318; --panel: #111820; --panel2: #161f28;
+            --border: #1e2d3a; --green: #00ff88; --green-dim: #00cc6a; --amber: #ffaa00;
+            --blue: #00aaff; --red: #ff4455; --muted: #5a7a8a; --text: #c8d8e8; --sans: 'Inter', sans-serif;
+        }
+        * { box-sizing: border-box; }
+        body { margin:0; padding:0 0 40px; background:var(--black); color:#fff; font-family:var(--sans); min-height:100vh; }
+        .terminal-header {
+            width:100%; padding:14px 18px; background:var(--dark); border-bottom:1px solid var(--border);
+            text-align:center; color:var(--green); text-shadow:0 0 5px var(--green-dim); letter-spacing:2px;
+            font-size:13px; display:flex; align-items:center; justify-content:space-between;
+            font-family:'Share Tech Mono', monospace; position:sticky; top:0; z-index:10;
+        }
+        .terminal-header a { color:var(--muted); text-decoration:none; font-size:11px; }
+        .wrap { max-width:520px; margin:0 auto; padding:18px 16px; }
+        #map { width:100%; height:280px; border-radius:10px; border:1px solid var(--border); margin-bottom:16px; }
+        .leaflet-popup-content-wrapper { background:var(--panel); color:var(--text); border:1px solid var(--border); }
+        .leaflet-popup-tip { background:var(--panel); }
+        .friendly-sub { font-size:14px; color:var(--muted); line-height:1.6; margin-bottom:16px; }
+        .sh { font-family:'Share Tech Mono', monospace; font-size:11px; color:var(--green); letter-spacing:.12em; text-transform:uppercase; margin:20px 0 10px; }
+        .sh:first-of-type { margin-top:0; }
+        .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:10px; }
+        .card.active { border-color:var(--green); }
+        .card-top { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:8px; }
+        .card-title { font-size:15px; font-weight:600; color:#fff; }
+        .card-value { font-family:'Share Tech Mono', monospace; font-size:16px; color:var(--green); white-space:nowrap; }
+        .card-sub { font-size:12px; color:var(--muted); margin-bottom:10px; line-height:1.5; }
+        .status-pill {
+            display:inline-block; font-family:'Share Tech Mono', monospace; font-size:11px; letter-spacing:.1em;
+            color:var(--black); background:var(--green); padding:4px 10px; border-radius:999px; margin-bottom:10px;
+        }
+        .btn {
+            width:100%; background:var(--panel2); border:1px solid var(--green); color:var(--green); padding:14px;
+            font-family:'Share Tech Mono', monospace; font-size:13px; font-weight:bold; cursor:pointer;
+            text-transform:uppercase; letter-spacing:1px; border-radius:6px; margin-top:8px;
+        }
+        .btn:active { background:var(--green); color:var(--black); }
+        .btn[disabled] { opacity:.5; pointer-events:none; }
+        .btn.secondary { border-color:var(--border); color:var(--muted); }
+        .empty { font-size:13px; color:var(--muted); font-style:italic; padding:6px 0 16px; }
+        #videoWrap { position:relative; width:100%; aspect-ratio:4/3; background:#000; border-radius:10px; overflow:hidden; margin-bottom:10px; }
+        #videoWrap video, #videoWrap img { width:100%; height:100%; object-fit:cover; display:block; }
+        input[type=number], input[type=text] {
+            width:100%; background:var(--panel2); border:1px solid var(--border); color:#fff; padding:10px;
+            border-radius:6px; font-family:var(--sans); font-size:14px; margin-bottom:10px;
+        }
+        label.field { display:block; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px; }
+        .toast {
+            position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:var(--panel);
+            border:1px solid var(--green); color:var(--text); padding:12px 18px; border-radius:8px; font-size:13px;
+            max-width:90%; display:none; z-index:100; text-align:center;
+        }
+        .toast.err { border-color:var(--red); }
+        .toast.show { display:block; }
+        #stateScreen { display:none; text-align:center; margin-top:30px; }
+        #stateScreen p { font-size:14px; color:var(--text); line-height:1.6; }
+        #stateScreen a { color:var(--green); }
+    </style>
+</head>
+<body>
+
+    <div class="terminal-header">
+        <span>WATCHTOWER // JOB</span>
+        <a href="index.html">&#8592; HOME</a>
+    </div>
+
+    <div class="wrap" id="mapView" style="display:none">
+        <p class="friendly-sub">No active job. Claim an open bounty below — it becomes your job and stays on this screen the whole way through.</p>
+        <div id="map"></div>
+        <div class="sh">Open Bounties</div>
+        <div id="openList"></div>
+    </div>
+
+    <div class="wrap" id="jobView" style="display:none">
+        <div id="jobCard"></div>
+    </div>
+
+    <div class="wrap" id="stateScreen">
+        <p id="stateText"></p>
+    </div>
+
+    <canvas id="snap" style="display:none;"></canvas>
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const SUPABASE_URL  = "https://eypovuxuddiqgncjdpkq.supabase.co";
+        const SUPABASE_ANON = "sb_publishable_ZlykauNc-3YY80w6nxzsKw_Z2lgAgU1";
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+        let currentUserId = null;
+        let map, mapInitialized = false;
+        let mapMarkers = [];
+        let mediaStream = null;
+        let capturedImageBase64 = null;
+        let lastAiGrade = null;
+
+        const mapView = document.getElementById('mapView');
+        const jobView = document.getElementById('jobView');
+        const jobCard = document.getElementById('jobCard');
+        const openList = document.getElementById('openList');
+        const stateScreen = document.getElementById('stateScreen');
+        const stateText = document.getElementById('stateText');
+
+        function showToast(msg, isErr) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast show' + (isErr ? ' err' : '');
+            setTimeout(() => { t.className = 'toast'; }, 4000);
+        }
+        function fmtMoney(n) { return n == null ? '—' : '$' + n; }
+        function roundCoord(n) { return Math.round(Number(n) * 100) / 100; }
+
+        function showDeadEnd(html) {
+            mapView.style.display = 'none';
+            jobView.style.display = 'none';
+            stateText.innerHTML = html;
+            stateScreen.style.display = 'block';
+        }
+
+        // ================= MAP (no active job state) =================
+        const nodeIcon = L.divIcon({ className:'', html:'<div style="width:14px;height:14px;border-radius:50%;background:#00aaff;border:2px solid #fff;box-shadow:0 0 6px rgba(0,170,255,.6)"></div>', iconSize:[14,14] });
+        const bountyIcon = L.divIcon({ className:'', html:'<div style="width:14px;height:14px;border-radius:50%;background:#00ff88;border:2px solid #fff;box-shadow:0 0 6px rgba(0,255,136,.6)"></div>', iconSize:[14,14] });
+
+        function initMapIfNeeded() {
+            if (mapInitialized) return;
+            map = L.map('map').setView([29.1872, -82.1401], 12); // Ocala, FL
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'&copy; OpenStreetMap contributors', maxZoom:19 }).addTo(map);
+            mapInitialized = true;
+        }
+
+        async function loadMapAndOpenBounties() {
+            initMapIfNeeded();
+            setTimeout(() => map.invalidateSize(), 50); // container was display:none until now
+            mapMarkers.forEach((m) => map.removeLayer(m));
+            mapMarkers = [];
+
+            const { data: businesses } = await sb.from('businesses').select('business_name, tier, lat, lng').not('lat', 'is', null).not('lng', 'is', null);
+            (businesses || []).forEach((b) => {
+                const marker = L.marker([b.lat, b.lng], { icon: nodeIcon }).addTo(map);
+                marker.bindPopup(`<b>${b.business_name}</b><br>${b.tier != null ? 'Accepts WTWR' : 'Not a WTWR site'}`);
+                mapMarkers.push(marker);
+            });
+
+            const { data: bounties, error } = await sb.from('scans')
+                .select('id, summary, est_high, lat, lng, pickup_lat, pickup_lng, pickup_photo_url')
+                .eq('bounty_status', 'open')
+                .order('created_at', { ascending: true });
+            if (error) { showToast('Failed to load open bounties: ' + error.message, true); return; }
+
+            (bounties || []).forEach((s) => {
+                const lat = s.pickup_lat ?? s.lat, lng = s.pickup_lng ?? s.lng;
+                if (lat == null || lng == null) return;
+                const marker = L.marker([lat, lng], { icon: bountyIcon }).addTo(map);
+                marker.bindPopup(`<b>${s.summary || 'Recyclable material scan'}</b><br>Est. ${fmtMoney(s.est_high)}`);
+                mapMarkers.push(marker);
+            });
+
+            renderOpenList(bounties || []);
+        }
+
+        function renderOpenList(rows) {
+            if (!rows.length) {
+                openList.innerHTML = '<div class="empty">No open bounties right now — the map above will update as new ones come in.</div>';
+                return;
+            }
+            openList.innerHTML = rows.map((r) => `
+                <div class="card" data-scan-id="${r.id}">
+                    <div class="card-top">
+                        <div class="card-title">${r.summary || 'Recyclable material scan'}</div>
+                        <div class="card-value">${fmtMoney(r.est_high)}</div>
+                    </div>
+                    <div class="card-sub">General area: ${r.pickup_lat != null ? roundCoord(r.pickup_lat) + ', ' + roundCoord(r.pickup_lng) : 'unknown'}</div>
+                    ${r.pickup_photo_url ? '<button class="btn claim-btn">CLAIM</button>' : '<button class="btn" disabled>AWAITING PICKUP PHOTO</button>'}
+                </div>
+            `).join('');
+            openList.querySelectorAll('.claim-btn').forEach((btn) => {
+                btn.addEventListener('click', () => claimByScanId(btn.closest('.card').dataset.scanId, btn));
+            });
+        }
+
+        async function claimByScanId(scanId, btn) {
+            btn.disabled = true; btn.textContent = 'CLAIMING…';
+            const { data: jobRow, error: findErr } = await sb.from('jobs').select('id').eq('scan_id', scanId).neq('status', 'CANCELLED').maybeSingle();
+            if (findErr || !jobRow) { showToast('Could not find a job for this bounty.', true); btn.disabled = false; btn.textContent = 'CLAIM'; return; }
+            await claimJob(jobRow.id);
+        }
+
+        async function claimJob(jobId) {
+            const { error } = await sb.rpc('claim_job', { p_job_id: jobId });
+            if (error) { showToast('Claim failed: ' + error.message, true); await loadMapAndOpenBounties(); return; }
+            showToast('Job claimed ✓');
+            setJobUrl(jobId);
+            await loadCurrentView();
+        }
+
+        // ================= ACTIVE JOB =================
+        const STATE_LABELS = {
+            PENDING: 'Waiting to be claimed', CLAIMED: 'Claimed', EN_ROUTE: 'On the way', ARRIVED: 'Arrived',
+            SCANNING: 'Scanning material', INTAKE: 'Logged at intake', PASSPORT: 'Passport generated',
+            MARKETPLACE: 'Listed for sale', COMPLETED: 'Completed', CANCELLED: 'Cancelled',
+        };
+
+        async function loadCurrentView() {
+            const params = new URLSearchParams(window.location.search);
+            const jobParam = params.get('job');
+
+            let job = null;
+            if (jobParam) {
+                const { data } = await sb.from('jobs').select('*').eq('id', jobParam).maybeSingle();
+                job = data;
+            } else {
+                const { data } = await sb.from('jobs').select('*').eq('driver_id', currentUserId)
+                    .not('status', 'in', '(COMPLETED,CANCELLED)').order('created_at', { ascending: false }).limit(1).maybeSingle();
+                job = data;
+            }
+
+            stopCamera();
+
+            if (!job) {
+                jobView.style.display = 'none';
+                mapView.style.display = 'block';
+                await loadMapAndOpenBounties();
+                return;
+            }
+
+            mapView.style.display = 'none';
+            jobView.style.display = 'block';
+            renderJobCard(job);
+        }
+
+        function setJobUrl(jobId) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('job', jobId);
+            history.replaceState(null, '', url);
+        }
+
+        function renderJobCard(job) {
+            lastAiGrade = job.ai_grade || null;
+            const label = STATE_LABELS[job.status] || job.status;
+
+            let actionHtml = '';
+            if (job.status === 'PENDING') {
+                actionHtml = `<button class="btn" id="actionBtn">Claim This Job</button>`;
+            } else if (job.status === 'CLAIMED') {
+                actionHtml = `<button class="btn" id="actionBtn">I'm On My Way</button>`;
+            } else if (job.status === 'EN_ROUTE') {
+                actionHtml = `<button class="btn" id="actionBtn">I've Arrived</button>`;
+            } else if (job.status === 'ARRIVED') {
+                actionHtml = `
+                    <div id="videoWrap"><video id="webcam" autoplay playsinline></video></div>
+                    <button class="btn" id="actionBtn">Scan Material</button>`;
+            } else if (job.status === 'SCANNING') {
+                const g = job.ai_grade || {};
+                const wMid = g.estimated_weight_lbs ? ((Number(g.estimated_weight_lbs.low)||0) + (Number(g.estimated_weight_lbs.high)||0)) / 2 : '';
+                const pMid = g.price_per_lb_usd ? ((Number(g.price_per_lb_usd.low)||0) + (Number(g.price_per_lb_usd.high)||0)) / 2 : '';
+                actionHtml = `
+                    <div class="card-sub">${g.material || 'Material'} · ${g.grade || ''} · confidence: ${g.confidence || 'unknown'}</div>
+                    ${g.contamination && g.contamination.length ? `<div class="card-sub" style="color:var(--amber)">Contamination: ${g.contamination.join(', ')}</div>` : ''}
+                    ${g.safety_flags && g.safety_flags.length ? `<div class="card-sub" style="color:var(--red)">⚠ ${g.safety_flags.join(', ')}</div>` : ''}
+                    <label class="field">Weight (lb)</label>
+                    <input type="number" step="0.1" min="0.1" id="weightInput" value="${wMid || ''}" placeholder="Enter weight">
+                    <label class="field">Price per lb ($)</label>
+                    <input type="number" step="0.01" min="0.01" id="priceInput" value="${pMid ? pMid.toFixed(2) : ''}" placeholder="Enter price/lb">
+                    <button class="btn" id="actionBtn">Confirm &amp; Log Intake</button>`;
+            } else if (job.status === 'INTAKE') {
+                actionHtml = `<button class="btn" id="actionBtn">Generate Passport</button>`;
+            } else if (job.status === 'PASSPORT') {
+                actionHtml = `<div class="card-sub">Passport generated. Marketplace listing is coming in a later phase.</div>`;
+            } else {
+                actionHtml = `<div class="card-sub">This job is ${label.toLowerCase()}.</div>`;
+            }
+
+            jobCard.innerHTML = `
+                <div class="card active">
+                    <span class="status-pill">${label}</span>
+                    <div class="card-top">
+                        <div class="card-title">Job #${job.id}</div>
+                    </div>
+                    ${actionHtml}
+                    <button class="btn secondary" id="backToMapBtn">${job.status === 'PENDING' ? 'Back to Map' : 'View Map'}</button>
+                </div>
+            `;
+
+            document.getElementById('backToMapBtn').addEventListener('click', () => {
+                const url = new URL(window.location.href);
+                url.searchParams.delete('job');
+                history.replaceState(null, '', url);
+                mapView.style.display = 'block';
+                jobView.style.display = 'none';
+                loadMapAndOpenBounties();
+            });
+
+            const btn = document.getElementById('actionBtn');
+            if (!btn) return;
+            btn.addEventListener('click', () => handleAction(job, btn));
+
+            if (job.status === 'ARRIVED') startCamera();
+        }
+
+        async function handleAction(job, btn) {
+            btn.disabled = true;
+            try {
+                if (job.status === 'PENDING') {
+                    await claimJob(job.id);
+                } else if (job.status === 'CLAIMED') {
+                    await callRpc('job_mark_en_route', { p_job_id: job.id });
+                } else if (job.status === 'EN_ROUTE') {
+                    await callRpc('job_mark_arrived', { p_job_id: job.id });
+                } else if (job.status === 'ARRIVED') {
+                    await captureAndGrade(job);
+                } else if (job.status === 'SCANNING') {
+                    const weight = Number(document.getElementById('weightInput').value);
+                    const price = Number(document.getElementById('priceInput').value);
+                    if (!weight || weight <= 0 || !price || price <= 0) {
+                        showToast('Enter a valid weight and price.', true); btn.disabled = false; return;
+                    }
+                    await callRpc('job_create_intake', { p_job_id: job.id, p_weight_lb: weight, p_price_per_lb: price });
+                } else if (job.status === 'INTAKE') {
+                    await callRpc('job_create_passport', { p_job_id: job.id });
+                }
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function callRpc(fn, args) {
+            const { error } = await sb.rpc(fn, args);
+            if (error) { showToast(error.message, true); return; }
+            await loadCurrentView();
+        }
+
+        // ================= CAMERA (ARRIVED -> SCANNING) =================
+        async function startCamera() {
+            const video = document.getElementById('webcam');
+            if (!video) return;
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: 'environment' } }, audio: false });
+            } catch (e) {
+                try { mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); }
+                catch (e2) { showToast('Camera access denied.', true); return; }
+            }
+            video.srcObject = mediaStream;
+        }
+
+        function stopCamera() {
+            if (mediaStream) { mediaStream.getTracks().forEach((t) => t.stop()); mediaStream = null; }
+        }
+
+        async function captureAndGrade(job) {
+            const video = document.getElementById('webcam');
+            const canvas = document.getElementById('snap');
+            if (!video || !video.videoWidth) { showToast('Camera not ready yet.', true); return; }
+            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            stopCamera();
+
+            showToast('Grading…');
+            try {
+                const res = await fetch('/api/grade', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imageBase64: dataUrl.split(',')[1], mediaType: 'image/jpeg' }),
+                });
+                const grade = await res.json();
+                if (grade.error) { showToast('Grade failed: ' + grade.error, true); return; }
+                await callRpc('job_record_scan', { p_job_id: job.id, p_ai_grade: grade });
+            } catch (e) {
+                showToast('Connection error while grading.', true);
+            }
+        }
+
+        // ================= INIT =================
+        (async function init() {
+            const { data: { session } } = await sb.auth.getSession();
+            if (!session) {
+                const next = encodeURIComponent(window.location.href);
+                showDeadEnd(`You need to be signed in to see your jobs. <a href="index.html?next=${next}">Log in</a>, then you'll land back here.`);
+                return;
+            }
+            currentUserId = session.user.id;
+            mapView.style.display = 'none';
+            jobView.style.display = 'none';
+            stateScreen.style.display = 'none';
+            await loadCurrentView();
+            setInterval(loadCurrentView, 20000);
+        })();
+    </script>
+</body>
+</html>
