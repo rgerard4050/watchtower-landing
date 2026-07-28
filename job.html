@@ -84,6 +84,7 @@
 
     <div class="wrap" id="jobView" style="display:none">
         <div id="jobCard"></div>
+        <div id="operatorDetail"></div>
     </div>
 
     <div class="wrap" id="stateScreen">
@@ -99,6 +100,7 @@
         const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
         let currentUserId = null;
+        let isOperator = false;
         let map, mapInitialized = false;
         let mapMarkers = [];
         let mediaStream = null;
@@ -315,6 +317,51 @@
 
             if (job.status === 'ARRIVED') startCamera();
             if (job.status === 'MARKETPLACE') await renderListingResult(job);
+
+            // Additive only -- operators see everything above unchanged,
+            // plus this read-only panel. No new buttons, no new RPC calls;
+            // "do not add driver mutation controls unless already
+            // supported by existing RPC rules" (Phase 4).
+            const operatorDetail = document.getElementById('operatorDetail');
+            if (isOperator) {
+                await renderOperatorDetail(job);
+            } else if (operatorDetail) {
+                operatorDetail.innerHTML = '';
+            }
+        }
+
+        // ================= OPERATOR-ONLY READ VIEW =================
+        async function renderOperatorDetail(job) {
+            const el = document.getElementById('operatorDetail');
+            if (!el) return;
+            el.innerHTML = '<div class="sh">Operator Detail</div><div class="card-sub">Loading…</div>';
+
+            const [{ data: dash }, { data: events }] = await Promise.all([
+                sb.from('vw_job_dashboard').select('*').eq('job_id', job.id).maybeSingle(),
+                sb.from('job_events').select('event_type, actor, notes, created_at').eq('job_id', job.id).order('created_at', { ascending: true }),
+            ]);
+
+            const timelineHtml = (events || []).map((e) => `
+                <div class="card-sub" style="margin-bottom:4px">
+                    <span style="color:var(--text)">${e.event_type}</span> — ${new Date(e.created_at).toLocaleString()}
+                    ${e.notes ? `<br><span style="color:var(--muted)">${e.notes}</span>` : ''}
+                </div>`).join('') || '<div class="card-sub">No events logged.</div>';
+
+            el.innerHTML = `
+                <div class="sh">Operator Detail</div>
+                <div class="card">
+                    <div class="card-sub"><b style="color:#fff">Driver:</b> ${dash?.driver_id ? dash.driver_id : 'Unassigned'}${dash?.driver_id ? ` (${dash.driver_verification_status || 'unverified'}, payouts ${dash.driver_payouts_enabled ? 'enabled' : 'not set up'})` : ''}</div>
+                    <div class="card-sub"><b style="color:#fff">Resident/Source:</b> ${dash?.resident_name || dash?.source_type || '—'}</div>
+                    <div class="card-sub"><b style="color:#fff">Scan:</b> ${dash?.scan_summary || '—'} (bounty status: ${dash?.scan_bounty_status || '—'})</div>
+                    <div class="card-sub"><b style="color:#fff">Intake:</b> ${dash?.intake_material ? `${dash.intake_material} · ${dash.intake_weight_lb} lb · $${dash.intake_gross_value}` : 'Not logged yet'}</div>
+                    <div class="card-sub"><b style="color:#fff">Passport:</b> ${dash?.passport_public_id ? `${dash.passport_public_id} (${dash.passport_status})` : 'Not generated yet'}</div>
+                    <div class="card-sub"><b style="color:#fff">Marketplace Listing:</b> ${dash?.listing_id ? `#${dash.listing_id} (${dash.listing_status})` : 'None'}</div>
+                    <div class="card-sub"><b style="color:#fff">Driver Payout:</b> ${dash?.payout_status || 'NONE'}</div>
+                    <div class="card-sub"><b style="color:#fff">WTWR Credit:</b> ${dash?.wtwr_credit_status || 'N/A'}</div>
+                </div>
+                <div class="sh">Timeline</div>
+                <div class="card">${timelineHtml}</div>
+            `;
         }
 
         async function renderListingResult(job) {
@@ -417,6 +464,13 @@
                 return;
             }
             currentUserId = session.user.id;
+            // Same operators-table check operator-auth.js uses. job.html is
+            // shared by drivers and operators (Phase 1 requirement: "operator
+            // can open any bounty and launch the Driver workflow"), so this
+            // can't gate the whole page like operator-auth.js does -- it only
+            // toggles the additive read-only panel below.
+            const { data: opRow } = await sb.from('operators').select('id').eq('id', currentUserId).maybeSingle();
+            isOperator = !!opRow;
             mapView.style.display = 'none';
             jobView.style.display = 'none';
             stateScreen.style.display = 'none';

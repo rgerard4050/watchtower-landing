@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Watchtower Jobs — Operator Command Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../operator-auth.js"></script>
+  </head>
+  <body class="min-h-screen bg-slate-950 text-slate-100">
+    <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <header class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p class="text-xs uppercase tracking-[0.3em] text-amber-400">Operations</p>
+            <h1 class="mt-2 text-3xl font-bold tracking-tight">JOBS</h1>
+            <p class="mt-2 text-sm text-slate-400">Observe, assign, assist, and resolve exceptions across the driver job pipeline. This view does not duplicate driver actions — every job links to the same job.html screen the driver uses.</p>
+          </div>
+          <div class="flex flex-col items-start gap-2 md:items-end">
+            <div class="flex gap-3">
+              <a href="./command.html" class="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:border-amber-400 hover:text-amber-300">Command Center</a>
+              <a href="./passport.html" class="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:border-amber-400 hover:text-amber-300">Passports</a>
+              <a href="./marketplace.html" class="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:border-amber-400 hover:text-amber-300">Marketplace</a>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="mt-6 space-y-6">
+        <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 shadow-2xl shadow-black/20">
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="text-lg font-semibold">Needs Attention</h2>
+            <button id="refreshBtn" class="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:border-emerald-400 hover:text-emerald-300">↻ Refresh</button>
+          </div>
+          <div id="exceptionsList" class="mt-4 space-y-2">
+            <div class="rounded-xl border border-slate-800 bg-slate-950/70 p-4 text-sm text-slate-500">Loading…</div>
+          </div>
+        </section>
+
+        <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 shadow-2xl shadow-black/20">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-lg font-semibold">All Jobs</h2>
+            <div class="flex flex-wrap items-center gap-3">
+              <label class="text-xs text-slate-400">Status
+                <select id="statusFilter" class="ml-2 rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-sm text-slate-100">
+                  <option value="ALL">All</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="CLAIMED">Claimed</option>
+                  <option value="EN_ROUTE">En Route</option>
+                  <option value="ARRIVED">Arrived</option>
+                  <option value="SCANNING">Scanning</option>
+                  <option value="INTAKE">Intake</option>
+                  <option value="PASSPORT">Passport</option>
+                  <option value="MARKETPLACE">Marketplace</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
+              </label>
+              <label class="text-xs text-slate-400">Sort
+                <select id="sortSelect" class="ml-2 rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-sm text-slate-100">
+                  <option value="newest">Newest</option>
+                  <option value="oldest">Oldest</option>
+                  <option value="status">Status priority</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div class="mt-4 overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-slate-800 text-left text-xs uppercase tracking-wide text-slate-500">
+                  <th class="pb-2 pr-4">Job</th>
+                  <th class="pb-2 pr-4">Status</th>
+                  <th class="pb-2 pr-4">Driver</th>
+                  <th class="pb-2 pr-4">Material</th>
+                  <th class="pb-2 pr-4">Resident / Source</th>
+                  <th class="pb-2 pr-4">Created</th>
+                  <th class="pb-2 pr-4">Last Event</th>
+                  <th class="pb-2 pr-4">Passport</th>
+                  <th class="pb-2 pr-4">Marketplace</th>
+                </tr>
+              </thead>
+              <tbody id="jobsTable">
+                <tr><td colspan="9" class="py-4 text-slate-500">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="mt-4 flex items-center justify-between text-xs text-slate-400">
+            <span id="pageLabel">Page 1</span>
+            <div class="flex gap-2">
+              <button id="prevPageBtn" class="rounded-lg border border-slate-700 px-3 py-1.5 disabled:opacity-40" disabled>← Prev</button>
+              <button id="nextPageBtn" class="rounded-lg border border-slate-700 px-3 py-1.5 disabled:opacity-40">Next →</button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./jobs.js"></script>
+  </body>
+</html>
