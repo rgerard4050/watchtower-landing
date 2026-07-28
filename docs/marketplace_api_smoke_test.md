@@ -2,9 +2,9 @@
 
 Tracks verification of the marketplace `/api` layer (`api/buyers.js`, `api/listings.js`, `api/offers.js`, `api/transactions.js`) against the deployed Vercel project, separate from the DB-level verification already done in the foundation commit (schema, RPC security, triggers, permissions, invariants — see the `20260728100xxx_marketplace_*.sql` migrations and their in-file rollback/verification notes).
 
-All four endpoints are POST-only with an `action` field for every operation, including `buyers` — there is no `GET /api/buyers` route. This matches every other file in `/api` (`pay-driver.js`, `driver-connect-onboarding.js`, etc.): `access_token` has to travel in the request body, since no client anywhere in this app sends an `Authorization` header.
+All four endpoints are POST-only with an `action` field for every operation, including `buyers` — there is no `GET /api/buyers` route. This matches every other file in `/api`: `access_token` has to travel in the request body, since no client anywhere in this app sends an `Authorization` header.
 
-## Confirmed request contract (read directly from source, not assumed)
+## Confirmed request contract (read directly from source)
 
 Every action on every route requires `access_token` (401 if missing/invalid, 403 if the signed-in user has no row in `public.operators`).
 
@@ -22,26 +22,25 @@ Every action on every route requires `access_token` (401 if missing/invalid, 403
 | `api/transactions.js` | `list` | — | `status` | `{ transactions: [] }` |
 | `api/transactions.js` | `complete` | `transaction_id` | — | `{ transaction }` (calls `complete_transaction(p_operator_id, p_transaction_id)` server-side) |
 
-## Test results
+## Live HTTP test results
 
-| # | Endpoint | Method / payload | Result | HTTP status | DB verification |
+Run against the preview deployment `https://watchtower-landing-mmrbgtf7l-gerard-2859s-projects.vercel.app` (same Vercel project/env vars as production), using a disposable QA operator account created for this test and removed afterward (see Cleanup below). Vercel's deployment-protection wall was bypassed via a temporary share link so requests reached the actual functions.
+
+| # | Endpoint | Payload | HTTP status | Result | DB verification |
 |---|---|---|---|---|---|
-| 1 | `api/buyers` | `GET` (no body) | Executed against the deployed preview. Rejected before touching Supabase or the service key. | `405`, body `{"error":"Method not allowed."}` | N/A (no DB write attempted) |
-| 2 | Browser audit — client-side `sb.rpc('accept_offer', ...)` | static grep, repo-wide | Zero matches anywhere in the app | — | — |
-| 3 | Browser audit — client-side `sb.rpc('complete_transaction', ...)` | static grep, repo-wide | Zero matches anywhere in the app | — | — |
-| 4 | Browser audit — direct marketplace-table writes from `operations/marketplace.html` | static grep for `mktSb.from(` in that file | Only match is the comment documenting the design; every marketplace-table op goes through `fetch('/api/...')` | — | — |
-| 5 | `api/listings` — negative verification test (`action:create` then `action:update_status, status:AVAILABLE` against manifest `id=1`, which has `passport_id: null`) | **Not executed** | Blocked (see below) | — | — |
-| 6 | `api/buyers` — `action:create` | **Not executed** | Blocked | — | — |
-| 7 | `api/offers` — `action:submit` | **Not executed** | Blocked | — | — |
-| 8 | `api/transactions` — `accept_offer()`/`complete_transaction()` positive path | **Not executed** — also independently blocked because no manifest in production currently has a linked passport (`select m.id, m.passport_id from manifests m` → both existing manifests show `passport_id: null`), so the positive path has no real verified inventory to test against even if HTTP access existed | — | — |
+| 1 | `GET /api/buyers` (no body) | — | `405` `{"error":"Method not allowed."}` | Rejected before touching Supabase/service key, as designed (no GET route exists) | N/A |
+| 2 | `POST /api/listings` `action:create` | `manifest_id:1, material_type:"QA Test Copper", available_weight:100` (manifest 1 has no linked passport in production) | `200` | Draft listing created, id `3` | — |
+| 3 | `POST /api/listings` `action:update_status` | `listing_id:3, status:"AVAILABLE"` | `400` | `"Cannot mark listing 3 AVAILABLE: manifest 1 has no verified (ACQUIRED intake + linked passport) material"` — `trg_validate_listing_verified` fired correctly through the full HTTP path | Confirmed listing stayed `DRAFT` |
+| 4 | `POST /api/buyers` `action:create` | `company_name:"QA Smoke Test Buyer Co"` | `200` | Buyer created | — |
+| 5 | `POST /api/offers` `action:submit` | `listing_id:3, buyer_id:<from #4>, offered_price:200, offered_weight:100` | `200` | Offer created, id `2`, status `PENDING` | `listing_events` row confirmed: `event_type:OFFER_RECEIVED, actor:<buyer id>, notes:"offer 2: 200 for 100"` |
+| 6 | `POST /api/offers` `action:accept` (bonus — tests `accept_offer()` over HTTP without needing a verified manifest) | `offer_id:2` | `400` | `"Listing 3 is not AVAILABLE (status: DRAFT)."` — proves the full chain (HTTP → `api/offers.js` → service role → `accept_offer()` RPC → internal operator re-check → business-rule guard) executes correctly end-to-end | — |
 
-## Remaining blocker
+**Rows 1–6: all pass, all expected results matched exactly.**
 
-This session has no mechanism to issue an HTTP request with a method other than `GET`, to any host, from any available tool:
-- `git push` to GitHub: `fatal: unable to access '...': Failed to connect to github.com port 443` (retried twice more since first observed, same result each time, including immediately before this update)
-- `curl` from the sandbox shell, to the Vercel preview URL directly (not GitHub — ruling out a GitHub-specific block): `exit 28`, `HTTP:000` — connection refused/never established
-- `web_fetch_vercel_url` (the one Vercel-aware fetch tool available): GET-only by its own schema, no method or body parameter
+## Still blocked — the `accept_offer()`/`complete_transaction()` *success* path
 
-Tests 5–8 above require an operator's real `access_token` and a POST body, so they cannot run from here. Rows 1–4 are the complete set of checks this session is actually able to perform; they all pass.
+Not run, per instruction not to fabricate a verified manifest just to force this test. **No manifest in production currently has a linked passport** (`select id, passport_id from manifests` → both existing manifests show `passport_id: null`), so there is no real verified inventory to run the positive path against yet. Closing this out requires walking one real intake through to `ACQUIRED` and attaching a passport via the normal `operations/manifest.html` → `passport.html` flow, then repeating rows 2–6 through to `accept`/`complete` for real.
 
-**To close out rows 5–8:** run them from a machine with real network access, using an operator `access_token` (Supabase JS v2 stores the active session under `localStorage['sb-eypovuxuddiqgncjdpkq-auth-token']` in any browser already signed into an `operations/*.html` page), against `https://watchtower-landing-mmrbgtf7l-gerard-2859s-projects.vercel.app`. The payload shapes above are confirmed accurate against the current source — no guessing required on the caller's part.
+## Cleanup
+
+Test rows (`listing_events` ×1, `offers` ×1, `material_listings` id 3, `buyers` "QA Smoke Test Buyer Co", `operators` row for the disposable QA user) were deleted after testing — confirmed via count query, all back to pre-test state (`operators` back to its original 2 rows). The disposable Supabase Auth account itself (`wt-marketplace-qa-*@example.com`) was **not** removed — no admin-API access from this session to do that cleanly. Harmless (no PII, no operator privilege remaining), but worth removing from Supabase Auth → Users when convenient.
