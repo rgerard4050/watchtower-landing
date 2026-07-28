@@ -23,6 +23,7 @@
             <div class="flex gap-3">
               <a href="./passport.html" class="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:border-amber-400 hover:text-amber-300">Passports</a>
               <a href="./manifest.html" class="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:border-amber-400 hover:text-amber-300">Manifest Intake</a>
+              <a href="./marketplace.html" class="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:border-amber-400 hover:text-amber-300">Marketplace</a>
               <a href="../intake.html" class="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:border-amber-400 hover:text-amber-300">Intake Log</a>
             </div>
           </div>
@@ -42,7 +43,7 @@
             <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
               <p class="text-xs uppercase tracking-wide text-slate-500">Estimated Network Value</p>
               <p class="mt-2 text-4xl font-bold text-amber-400" id="statValue">—</p>
-              <p class="mt-1 text-xs text-slate-500">Unrealized. No working sale-recording path exists yet.</p>
+              <p class="mt-1 text-xs text-slate-500">Unrealized. See Marketplace for listings and recorded transactions.</p>
             </div>
             <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
               <p class="text-xs uppercase tracking-wide text-slate-500">Today's Intake</p>
@@ -210,7 +211,7 @@
 
       const MISSION_PROGRESS = [
         ['Foundation',100], ['Intake',100], ['Material Passports',80], ['Dispatch',60],
-        ['Marketplace',20], ['Buyers',0], ['Revenue',0], ['AI Intelligence',0]
+        ['Marketplace',60], ['Buyers',40], ['Revenue',0], ['AI Intelligence',0]
       ];
       function renderMissionProgress(){
         document.getElementById('missionProgress').innerHTML = MISSION_PROGRESS.map(([label,pct])=>`
@@ -220,7 +221,7 @@
           </div>`).join('');
       }
 
-      const COMING_SOON = ['Material Map','Buyer Marketplace','Revenue Analytics','Opportunity Engine','AI Forecasting'];
+      const COMING_SOON = ['Material Map','Revenue Analytics','Opportunity Engine','AI Forecasting'];
       function renderComingSoon(){
         document.getElementById('comingSoonGrid').innerHTML = COMING_SOON.map(label=>`
           <div class="rounded-2xl border border-dashed border-slate-800 bg-slate-900/40 p-6 text-center opacity-60">

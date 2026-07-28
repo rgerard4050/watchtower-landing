@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Watchtower Operations — Marketplace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../operator-auth.js"></script>
+  </head>
+  <body class="min-h-screen bg-slate-950 text-slate-100">
+    <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <header class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p class="text-xs uppercase tracking-[0.3em] text-emerald-400">Operations</p>
+            <h1 class="mt-2 text-2xl font-semibold">Marketplace</h1>
+            <p class="mt-2 max-w-2xl text-sm text-slate-400">Verified inventory → listing → offer → transaction. Reads verified inventory directly; every listing/offer/buyer/transaction write goes through /api, never a direct table write.</p>
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <a href="./command.html" class="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-amber-400 hover:text-amber-300">Command Center</a>
+            <a href="./passport.html" class="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-emerald-400 hover:text-emerald-300">Passports</a>
+            <a href="./manifest.html" class="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-emerald-400 hover:text-emerald-300">Manifest Intake</a>
+          </div>
+        </div>
+      </header>
+
+      <main class="mt-8 space-y-8">
+        <!-- SECTION 1: VERIFIED INVENTORY -->
+        <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20">
+          <h2 class="text-lg font-semibold">Verified Inventory</h2>
+          <p class="mt-1 text-xs text-slate-500">Manifests with an ACQUIRED intake and a linked passport — the only manifests a listing can be published against.</p>
+          <div class="mt-4 overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-slate-800 text-left text-xs uppercase tracking-wide text-slate-500">
+                  <th class="pb-2 pr-4">Manifest</th>
+                  <th class="pb-2 pr-4">Description</th>
+                  <th class="pb-2 pr-4">Est. Weight</th>
+                  <th class="pb-2 pr-4">Status</th>
+                  <th class="pb-2"></th>
+                </tr>
+              </thead>
+              <tbody id="inventoryTable">
+                <tr><td colspan="5" class="py-4 text-slate-500">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="grid gap-8 lg:grid-cols-2">
+          <!-- SECTION 2: CREATE LISTING -->
+          <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20">
+            <h2 class="text-lg font-semibold">Create Listing</h2>
+            <p class="mt-1 text-xs text-slate-500">Created as DRAFT. Publish separately once ready.</p>
+            <form id="listingForm" class="mt-4 space-y-3">
+              <label class="block text-sm text-slate-300">
+                <span class="mb-1 block font-medium">Manifest</span>
+                <select id="listingManifestId" required class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-400">
+                  <option value="">Select a verified manifest</option>
+                </select>
+              </label>
+              <label class="block text-sm text-slate-300">
+                <span class="mb-1 block font-medium">Material Type</span>
+                <input id="listingMaterialType" required class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-400" />
+              </label>
+              <div class="grid grid-cols-2 gap-3">
+                <label class="block text-sm text-slate-300">
+                  <span class="mb-1 block font-medium">Grade</span>
+                  <input id="listingGrade" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-400" />
+                </label>
+                <label class="block text-sm text-slate-300">
+                  <span class="mb-1 block font-medium">Available Weight (lb)</span>
+                  <input id="listingWeight" type="number" step="0.01" min="0.01" required class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-400" />
+                </label>
+              </div>
+              <label class="block text-sm text-slate-300">
+                <span class="mb-1 block font-medium">Asking Price ($)</span>
+                <input id="listingAskingPrice" type="number" step="0.01" min="0" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-400" />
+              </label>
+              <button type="submit" class="w-full rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-300 hover:bg-emerald-500/20">Create Listing (Draft)</button>
+              <p id="listingFormStatus" class="text-xs text-slate-500"></p>
+            </form>
+          </section>
+
+          <!-- SECTION 3: SUBMIT OFFER -->
+          <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20">
+            <h2 class="text-lg font-semibold">Submit Offer</h2>
+            <p class="mt-1 text-xs text-slate-500">No buyer self-service yet — operator submits on the buyer's behalf.</p>
+            <form id="offerForm" class="mt-4 space-y-3">
+              <label class="block text-sm text-slate-300">
+                <span class="mb-1 block font-medium">Listing</span>
+                <select id="offerListingId" required class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400">
+                  <option value="">Select an AVAILABLE listing</option>
+                </select>
+              </label>
+              <label class="block text-sm text-slate-300">
+                <span class="mb-1 block font-medium">Buyer</span>
+                <select id="offerBuyerId" required class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400">
+                  <option value="">Select a buyer</option>
+                </select>
+              </label>
+              <div class="grid grid-cols-2 gap-3">
+                <label class="block text-sm text-slate-300">
+                  <span class="mb-1 block font-medium">Offered Price ($)</span>
+                  <input id="offerPrice" type="number" step="0.01" min="0.01" required class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400" />
+                </label>
+                <label class="block text-sm text-slate-300">
+                  <span class="mb-1 block font-medium">Offered Weight (lb)</span>
+                  <input id="offerWeight" type="number" step="0.01" min="0.01" required class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400" />
+                </label>
+              </div>
+              <button type="submit" class="w-full rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-300 hover:bg-cyan-500/20">Submit Offer</button>
+              <p id="offerFormStatus" class="text-xs text-slate-500"></p>
+            </form>
+          </section>
+        </div>
+
+        <!-- SECTION 4: LISTINGS -->
+        <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-semibold">Listings</h2>
+            <button id="refreshListingsBtn" class="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:border-slate-500">Refresh</button>
+          </div>
+          <div id="listingsList" class="mt-4 space-y-3">
+            <p class="text-sm text-slate-500">Loading…</p>
+          </div>
+        </section>
+
+        <div class="grid gap-8 lg:grid-cols-2">
+          <!-- SECTION 5: BUYERS -->
+          <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20">
+            <h2 class="text-lg font-semibold">Buyers</h2>
+            <form id="buyerForm" class="mt-4 space-y-3">
+              <input id="buyerCompanyName" placeholder="Company name" required class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-amber-400" />
+              <div class="grid grid-cols-2 gap-3">
+                <input id="buyerContactName" placeholder="Contact name" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-amber-400" />
+                <input id="buyerPhone" placeholder="Phone" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-amber-400" />
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <input id="buyerEmail" type="email" placeholder="Email" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-amber-400" />
+                <input id="buyerLocation" placeholder="Location" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-amber-400" />
+              </div>
+              <input id="buyerType" placeholder="Buyer type (e.g. smelter, exporter)" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-amber-400" />
+              <button type="submit" class="w-full rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-300 hover:bg-amber-500/20">Add Buyer</button>
+              <p id="buyerFormStatus" class="text-xs text-slate-500"></p>
+            </form>
+            <div id="buyersList" class="mt-4 space-y-2 text-sm"></div>
+          </section>
+
+          <!-- SECTION 6: TRANSACTIONS -->
+          <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20">
+            <h2 class="text-lg font-semibold">Transactions</h2>
+            <p class="mt-1 text-xs text-slate-500">Created automatically when an offer is accepted. Complete once payment/pickup is settled.</p>
+            <div id="transactionsList" class="mt-4 space-y-2 text-sm">
+              <p class="text-slate-500">Loading…</p>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const mktSb = window.supabase.createClient(
+        'https://eypovuxuddiqgncjdpkq.supabase.co',
+        'sb_publishable_ZlykauNc-3YY80w6nxzsKw_Z2lgAgU1'
+      );
+
+      function fmtMoney(n) { return '$' + (Number(n) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+      function fmtWeight(n) { return (Number(n) || 0).toLocaleString(undefined, { maximumFractionDigits: 1 }) + ' lb'; }
+
+      async function accessToken() {
+        const { data } = await mktSb.auth.getSession();
+        return data && data.session ? data.session.access_token : null;
+      }
+
+      // Every call to a marketplace table (listings, buyers, offers,
+      // transactions) goes through /api -- never mktSb.from(...). mktSb is
+      // only used above for the session token and below for reading
+      // manifests/intakes, which are not marketplace tables.
+      async function callApi(path, payload) {
+        const token = await accessToken();
+        const res = await fetch(path, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_token: token, ...payload }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Request failed.');
+        return data;
+      }
+
+      // ================= VERIFIED INVENTORY =================
+      // Direct read: manifests/intakes are existing tables, not marketplace
+      // tables, so this is a normal RLS-gated operator read like every
+      // other operations/*.html page.
+      let verifiedManifests = [];
+
+      async function loadInventory() {
+        const { data, error } = await mktSb
+          .from('manifests')
+          .select('id, manifest_id, description, estimated_weight, passport_id, intakes(lifecycle_status)')
+          .not('passport_id', 'is', null)
+          .order('created_at', { ascending: false });
+
+        const body = document.getElementById('inventoryTable');
+        if (error) { body.innerHTML = `<tr><td colspan="5" class="py-4 text-rose-400">${error.message}</td></tr>`; return; }
+
+        verifiedManifests = (data || []).filter((m) => m.intakes && m.intakes.lifecycle_status === 'ACQUIRED');
+
+        if (!verifiedManifests.length) {
+          body.innerHTML = '<tr><td colspan="5" class="py-4 text-slate-500">No verified (ACQUIRED + passported) manifests yet.</td></tr>';
+        } else {
+          body.innerHTML = verifiedManifests.map((m) => `
+            <tr class="border-b border-slate-800/60">
+              <td class="py-2 pr-4">${m.manifest_id}</td>
+              <td class="py-2 pr-4">${m.description || '—'}</td>
+              <td class="py-2 pr-4">${m.estimated_weight != null ? fmtWeight(m.estimated_weight) : '—'}</td>
+              <td class="py-2 pr-4 text-emerald-400">Verified</td>
+              <td class="py-2"><button class="use-manifest-btn text-xs text-emerald-300 hover:underline" data-id="${m.id}">Use for listing</button></td>
+            </tr>`).join('');
+        }
+
+        const select = document.getElementById('listingManifestId');
+        select.innerHTML = '<option value="">Select a verified manifest</option>' +
+          verifiedManifests.map((m) => `<option value="${m.id}">${m.manifest_id} — ${m.description || 'no description'}</option>`).join('');
+
+        body.querySelectorAll('.use-manifest-btn').forEach((btn) => {
+          btn.addEventListener('click', () => { select.value = btn.dataset.id; select.scrollIntoView({ behavior: 'smooth', block: 'center' }); });
+        });
+      }
+
+      // ================= CREATE LISTING =================
+      document.getElementById('listingForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const statusEl = document.getElementById('listingFormStatus');
+        statusEl.textContent = 'Creating…';
+        try {
+          await callApi('/api/listings.js', {
+            action: 'create',
+            manifest_id: Number(document.getElementById('listingManifestId').value),
+            material_type: document.getElementById('listingMaterialType').value.trim(),
+            grade: document.getElementById('listingGrade').value.trim() || null,
+            available_weight: Number(document.getElementById('listingWeight').value),
+            asking_price: document.getElementById('listingAskingPrice').value ? Number(document.getElementById('listingAskingPrice').value) : null,
+          });
+          statusEl.textContent = '✓ Listing created as DRAFT.';
+          document.getElementById('listingForm').reset();
+          loadListings();
+        } catch (err) {
+          statusEl.textContent = err.message;
+        }
+      });
+
+      // ================= LISTINGS =================
+      let currentListings = [];
+
+      async function loadListings() {
+        const listEl = document.getElementById('listingsList');
+        try {
+          const { listings } = await callApi('/api/listings.js', { action: 'list' });
+          currentListings = listings || [];
+
+          if (!currentListings.length) {
+            listEl.innerHTML = '<p class="text-sm text-slate-500">No listings yet.</p>';
+          } else {
+            listEl.innerHTML = currentListings.map((l) => `
+              <div class="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p class="font-semibold">${l.material_type}${l.grade ? ' · ' + l.grade : ''}</p>
+                    <p class="mt-1 text-xs text-slate-500">Manifest #${l.manifest_id} · ${fmtWeight(l.available_weight)} available${l.asking_price != null ? ' · Asking ' + fmtMoney(l.asking_price) : ''}</p>
+                  </div>
+                  <span class="rounded-full border border-slate-700 px-2 py-0.5 text-xs uppercase tracking-wide text-slate-400">${l.status}</span>
+                </div>
+                <div class="mt-3 flex flex-wrap gap-2">
+                  ${l.status === 'DRAFT' ? `<button class="publish-btn rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-300" data-id="${l.id}">Publish (AVAILABLE)</button>` : ''}
+                  ${l.status === 'AVAILABLE' || l.status === 'RESERVED' ? `<button class="close-btn rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300" data-id="${l.id}">Close</button>` : ''}
+                </div>
+                <div class="offers-for-listing mt-3 hidden" data-listing-id="${l.id}"></div>
+              </div>`).join('');
+          }
+        } catch (err) {
+          listEl.innerHTML = `<p class="text-sm text-rose-400">${err.message}</p>`;
+        }
+
+        const listingSelect = document.getElementById('offerListingId');
+        const available = currentListings.filter((l) => l.status === 'AVAILABLE');
+        listingSelect.innerHTML = '<option value="">Select an AVAILABLE listing</option>' +
+          available.map((l) => `<option value="${l.id}">#${l.id} — ${l.material_type} (${fmtWeight(l.available_weight)})</option>`).join('');
+
+        listEl.querySelectorAll('.publish-btn').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            btn.disabled = true;
+            try {
+              await callApi('/api/listings.js', { action: 'update_status', listing_id: Number(btn.dataset.id), status: 'AVAILABLE' });
+              loadListings();
+            } catch (err) {
+              alert(err.message);
+              btn.disabled = false;
+            }
+          });
+        });
+        listEl.querySelectorAll('.close-btn').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            btn.disabled = true;
+            try {
+              await callApi('/api/listings.js', { action: 'update_status', listing_id: Number(btn.dataset.id), status: 'CLOSED' });
+              loadListings();
+            } catch (err) {
+              alert(err.message);
+              btn.disabled = false;
+            }
+          });
+        });
+
+        loadOffersIntoListings();
+      }
+
+      async function loadOffersIntoListings() {
+        try {
+          const { offers } = await callApi('/api/offers.js', { action: 'list', status: 'PENDING' });
+          const byListing = {};
+          (offers || []).forEach((o) => { (byListing[o.listing_id] = byListing[o.listing_id] || []).push(o); });
+
+          document.querySelectorAll('.offers-for-listing').forEach((el) => {
+            const listingId = Number(el.dataset.listingId);
+            const pending = byListing[listingId] || [];
+            if (!pending.length) { el.classList.add('hidden'); return; }
+            el.classList.remove('hidden');
+            el.innerHTML = '<p class="text-xs uppercase tracking-wide text-slate-500 mb-2">Pending offers</p>' +
+              pending.map((o) => `
+                <div class="flex items-center justify-between rounded-lg border border-slate-800 px-3 py-2 text-xs">
+                  <span>${fmtMoney(o.offered_price)} for ${fmtWeight(o.offered_weight)}</span>
+                  <span class="flex gap-2">
+                    <button class="accept-offer-btn text-emerald-300 hover:underline" data-id="${o.id}">Accept</button>
+                    <button class="reject-offer-btn text-rose-300 hover:underline" data-id="${o.id}">Reject</button>
+                  </span>
+                </div>`).join('');
+          });
+
+          document.querySelectorAll('.accept-offer-btn').forEach((btn) => {
+            btn.addEventListener('click', async () => {
+              btn.disabled = true;
+              try {
+                await callApi('/api/offers.js', { action: 'accept', offer_id: Number(btn.dataset.id) });
+                loadListings();
+                loadTransactions();
+              } catch (err) {
+                alert(err.message);
+                btn.disabled = false;
+              }
+            });
+          });
+          document.querySelectorAll('.reject-offer-btn').forEach((btn) => {
+            btn.addEventListener('click', async () => {
+              btn.disabled = true;
+              try {
+                await callApi('/api/offers.js', { action: 'reject', offer_id: Number(btn.dataset.id) });
+                loadOffersIntoListings();
+              } catch (err) {
+                alert(err.message);
+                btn.disabled = false;
+              }
+            });
+          });
+        } catch (err) {
+          console.error('Could not load offers:', err.message);
+        }
+      }
+
+      document.getElementById('refreshListingsBtn').addEventListener('click', loadListings);
+
+      // ================= SUBMIT OFFER =================
+      document.getElementById('offerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const statusEl = document.getElementById('offerFormStatus');
+        statusEl.textContent = 'Submitting…';
+        try {
+          await callApi('/api/offers.js', {
+            action: 'submit',
+            listing_id: Number(document.getElementById('offerListingId').value),
+            buyer_id: document.getElementById('offerBuyerId').value,
+            offered_price: Number(document.getElementById('offerPrice').value),
+            offered_weight: Number(document.getElementById('offerWeight').value),
+          });
+          statusEl.textContent = '✓ Offer submitted.';
+          document.getElementById('offerForm').reset();
+          loadListings();
+        } catch (err) {
+          statusEl.textContent = err.message;
+        }
+      });
+
+      // ================= BUYERS =================
+      document.getElementById('buyerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const statusEl = document.getElementById('buyerFormStatus');
+        statusEl.textContent = 'Adding…';
+        try {
+          await callApi('/api/buyers.js', {
+            action: 'create',
+            company_name: document.getElementById('buyerCompanyName').value.trim(),
+            contact_name: document.getElementById('buyerContactName').value.trim() || null,
+            email: document.getElementById('buyerEmail').value.trim() || null,
+            phone: document.getElementById('buyerPhone').value.trim() || null,
+            location: document.getElementById('buyerLocation').value.trim() || null,
+            buyer_type: document.getElementById('buyerType').value.trim() || null,
+          });
+          statusEl.textContent = '✓ Buyer added.';
+          document.getElementById('buyerForm').reset();
+          loadBuyers();
+        } catch (err) {
+          statusEl.textContent = err.message;
+        }
+      });
+
+      async function loadBuyers() {
+        const listEl = document.getElementById('buyersList');
+        try {
+          const { buyers } = await callApi('/api/buyers.js', { action: 'list' });
+          const select = document.getElementById('offerBuyerId');
+          select.innerHTML = '<option value="">Select a buyer</option>' +
+            (buyers || []).map((b) => `<option value="${b.id}">${b.company_name}</option>`).join('');
+
+          listEl.innerHTML = (buyers || []).length
+            ? buyers.map((b) => `<div class="flex justify-between border-b border-slate-800/60 pb-1"><span>${b.company_name}</span><span class="text-slate-500">${b.location || ''}</span></div>`).join('')
+            : '<p class="text-slate-500">No buyers yet.</p>';
+        } catch (err) {
+          listEl.innerHTML = `<p class="text-rose-400">${err.message}</p>`;
+        }
+      }
+
+      // ================= TRANSACTIONS =================
+      async function loadTransactions() {
+        const listEl = document.getElementById('transactionsList');
+        try {
+          const { transactions } = await callApi('/api/transactions.js', { action: 'list' });
+          if (!transactions || !transactions.length) {
+            listEl.innerHTML = '<p class="text-slate-500">No transactions yet.</p>';
+            return;
+          }
+          listEl.innerHTML = transactions.map((t) => `
+            <div class="flex items-center justify-between rounded-lg border border-slate-800 px-3 py-2">
+              <span>#${t.id} · ${fmtMoney(t.final_price)} for ${fmtWeight(t.final_weight)}</span>
+              <span class="flex items-center gap-2">
+                <span class="rounded-full border border-slate-700 px-2 py-0.5 text-xs uppercase tracking-wide text-slate-400">${t.status}</span>
+                ${t.status === 'PENDING' ? `<button class="complete-tx-btn text-xs text-emerald-300 hover:underline" data-id="${t.id}">Complete</button>` : ''}
+              </span>
+            </div>`).join('');
+
+          listEl.querySelectorAll('.complete-tx-btn').forEach((btn) => {
+            btn.addEventListener('click', async () => {
+              btn.disabled = true;
+              try {
+                await callApi('/api/transactions.js', { action: 'complete', transaction_id: Number(btn.dataset.id) });
+                loadTransactions();
+                loadListings();
+              } catch (err) {
+                alert(err.message);
+                btn.disabled = false;
+              }
+            });
+          });
+        } catch (err) {
+          listEl.innerHTML = `<p class="text-rose-400">${err.message}</p>`;
+        }
+      }
+
+      window.addEventListener('load', async () => {
+        const isOperator = await window.watchtowerOperatorReady;
+        if (!isOperator) return;
+        await Promise.all([loadInventory(), loadBuyers(), loadListings(), loadTransactions()]);
+      });
+    </script>
+  </body>
+</html>
