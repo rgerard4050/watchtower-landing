@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watchtower Scanner</title>
+    <link rel="stylesheet" href="scanner.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="top-nav">
+            <div class="nav-left">
+                <span class="back-arrow">←</span>
+                <h1>WATCHTOWER // <span class="highlight">SCANNER</span></h1>
+            </div>
+            <div class="nav-right">
+                <span class="node-location">NODE: OCALA, FL</span>
+            </div>
+        </header>
+
+        <!-- Main Camera/Scanner Area -->
+        <main class="scanner-section">
+            <div class="viewscreen-header">viewscreen</div>
+            <div class="camera-container" id="camera-container">
+                <!-- Reticle elements -->
+                <div class="reticle top-left"></div>
+                <div class="reticle top-right"></div>
+                <div class="reticle bottom-left"></div>
+                <div class="reticle bottom-right"></div>
+                <div class="center-crosshair">
+                    <div class="ch-hor"></div>
+                    <div class="ch-ver"></div>
+                </div>
+                <!-- Scan Animation Line -->
+                <div class="scan-line" id="scan-line"></div>
+                
+                <!-- Overlay Results (hidden by default) -->
+                <div class="ai-overlay" id="ai-overlay">
+                    <div class="overlay-tag" id="overlay-tag">AI Identified</div>
+                </div>
+            </div>
+
+            <!-- Console Output -->
+            <div class="console-output">
+                <div class="console-header">console-output</div>
+                <div class="console-text" id="console-text">
+                    SYSTEM READY. AWAITING SCAN INPUT...
+                </div>
+            </div>
+        </main>
+
+        <!-- Stats & Bucket Progress -->
+        <section class="data-section">
+            <div class="bucket-container">
+                <div class="bucket-header">
+                    <span>Material Bucket</span>
+                    <span id="bucket-percentage">0%</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="progress-bar-fill"></div>
+                </div>
+                <div class="bucket-footer">
+                    <span id="bucket-status">Next Pickup Unlock: $25.00 minimum</span>
+                    <span id="current-value" class="highlight">$0.00</span>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-label">Materials Found</div>
+                    <div class="stat-value highlight" id="stat-materials">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">WTWR Earned</div>
+                    <div class="stat-value highlight" id="stat-wtwr">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Total Value ($)</div>
+                    <div class="stat-value highlight" id="stat-total-value">0.00</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Impact (lbs)</div>
+                    <div class="stat-value highlight" id="stat-impact">0</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Action Area -->
+        <footer class="action-section">
+            <div id="bounty-alert" class="bounty-alert hidden">
+                <h3>BOUNTY READY</h3>
+                <p>You have enough verified material for pickup.</p>
+            </div>
+            
+            <button id="btn-scan" class="btn-primary">Execute Optical Scan</button>
+            <button id="btn-request" class="btn-primary hidden">REQUEST DRIVER</button>
+            <button id="btn-reset" class="btn-secondary">Reset Demo</button>
+        </footer>
+    </div>
+    <script src="scanner.js"></script>
+</body>
+</html>
