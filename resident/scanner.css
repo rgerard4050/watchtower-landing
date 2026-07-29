@@ -32,13 +32,14 @@ body {
     width: 100%;
     max-width: 400px;
     height: 100vh;
-    max-height: 850px;
+    max-height: 932px;
     background-color: var(--bg-main);
     display: flex;
     flex-direction: column;
     position: relative;
-    border-radius: 0;
-    overflow: hidden;
+    /* FIX: Changed overflow to allow vertical scrolling so the bottom isn't cut off */
+    overflow-y: auto; 
+    overflow-x: hidden;
     box-shadow: 0 0 40px rgba(0,0,0,0.8);
 }
 
@@ -186,7 +187,7 @@ body {
     100% { top: 100%; opacity: 0; }
 }
 
-/* AI Overlay Overlay */
+/* AI Overlay */
 .ai-overlay {
     position: absolute;
     top: 25%;
