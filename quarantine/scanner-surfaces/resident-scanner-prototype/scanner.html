@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watchtower Material Scanner</title>
+
+    <link rel="stylesheet" href="scanner.css">
+</head>
+
+<body>
+
+<div class="app-container">
+
+    <h2 class="header">
+        WATCHTOWER SCANNER
+    </h2>
+
+    <div class="stats-bar">
+        <span>
+            Value:
+            $<span id="stat-value">0.00</span>
+        </span>
+
+        <span>
+            Items:
+            <span id="stat-items">0</span>
+        </span>
+
+        <span>
+            WTWR:
+            <span id="stat-xp">0</span>
+        </span>
+    </div>
+
+
+    <div id="console-text" class="console-box">
+        SYSTEM READY
+    </div>
+
+
+    <div class="viewfinder">
+
+        <div class="scan-frame">
+            CAMERA READY
+            <br>
+            PLACE MATERIALS INSIDE
+        </div>
+
+    </div>
+
+
+    <div class="controls">
+
+        <button id="btn-shutter" class="btn btn-primary">
+            📷 SCAN MATERIAL
+        </button>
+
+
+        <button id="btn-finalize" class="btn btn-success hidden">
+            FINALIZE VERIFIED BOUNTY
+        </button>
+
+
+        <div class="verify-row">
+
+            <button id="v-org" class="btn">
+                ORGANIZED
+            </button>
+
+            <button id="v-buck" class="btn">
+                BUCKET
+            </button>
+
+            <button id="v-scale" class="btn">
+                SCALE
+            </button>
+
+        </div>
+
+
+        <button id="btn-open-sheet" class="btn">
+            VIEW MATERIALS FOUND
+        </button>
+
+
+        <button id="btn-reset" class="btn btn-danger">
+            RESET DEMO
+        </button>
+
+
+    </div>
+
+
+
+    <!-- CAMERA -->
+
+    <div id="mock-camera-overlay" class="overlay hidden">
+
+        <div class="modal">
+
+            <h3 id="camera-title">
+    Align Material
+</h3>3>
+                Align Material
+            </h3>
+
+
+            <div class="target-box"></div>
+
+
+            <button id="capture-btn" class="btn btn-primary">
+                CAPTURE PHOTO
+            </button>
+
+
+            <button id="btn-cancel-camera" class="btn">
+                CANCEL
+            </button>
+
+
+        </div>
+
+    </div>
+
+
+
+    <!-- VERIFY -->
+
+    <div id="agreement-modal" class="overlay hidden">
+
+        <div class="modal">
+
+            <h3>
+                Verify Bounty
+            </h3>
+
+
+            <p>
+                I confirm materials are organized,
+                photographed, and weight verified.
+            </p>
+
+
+            <button id="btn-accept-agreement" class="btn btn-success">
+                ACCEPT & LOCK
+            </button>
+
+
+            <button id="btn-cancel-agreement" class="btn">
+                CANCEL
+            </button>
+
+
+        </div>
+
+    </div>
+
+
+
+
+    <!-- INVENTORY -->
+
+    <div id="bottom-sheet" class="overlay hidden">
+
+        <div class="sheet-content">
+
+
+            <h3>
+                MATERIALS FOUND
+            </h3>
+
+
+            <ul id="inventory-list">
+
+            </ul>
+
+
+            <button id="btn-close-sheet" class="btn btn-primary">
+                CLOSE
+            </button>
+
+
+        </div>
+
+    </div>
+
+
+</div>
+
+
+<script src="scanner.js"></script>
+
+</body>
+</html>
