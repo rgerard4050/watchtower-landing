@@ -16,7 +16,9 @@ function fakeSupabaseClientScript() {
     (() => {
       const key = ${JSON.stringify(TEST_STATE_KEY)};
       const initialState = {
+        scanInsertAttempts: 0,
         scanInsertCalls: 0,
+        insertFailuresRemaining: 0,
         pickupUpdateCalls: 0,
         uploads: 0,
         scans: [],
@@ -41,11 +43,17 @@ function fakeSupabaseClientScript() {
             return {
               async select() {
                 const state = readState();
+                state.scanInsertAttempts += 1;
+                if (state.insertFailuresRemaining > 0) {
+                  state.insertFailuresRemaining -= 1;
+                  writeState(state);
+                  return { data: null, error: { message: 'Fixture insert failed' } };
+                }
                 const id = '10000000-0000-4000-8000-000000000001';
                 state.scanInsertCalls += 1;
                 state.scans.push({ id, ...payload });
                 writeState(state);
-                return { data: [{ id }], error: null };
+                return { data: [{ id, ...payload }], error: null };
               }
             };
           },
@@ -146,14 +154,22 @@ function fakeSupabaseClientScript() {
 
       window.__scannerCheckpoint = {
         readState,
-        reset() { writeState(structuredClone(initialState)); }
+        reset() { writeState(structuredClone(initialState)); },
+        failNextInsert() {
+          const state = readState();
+          state.insertFailuresRemaining = 1;
+          writeState(state);
+        }
       };
     })();
   `;
 }
 
-async function installBrowserBoundaries(page, { camera = 'success', cameraReady = true } = {}) {
-  await page.addInitScript(({ cameraMode, initialCameraReady }) => {
+async function installBrowserBoundaries(
+  page,
+  { camera = 'success', cameraReady = true, geolocation = 'success' } = {}
+) {
+  await page.addInitScript(({ cameraMode, initialCameraReady, geolocationMode }) => {
     let videoWidth = initialCameraReady ? 320 : 0;
     let videoHeight = initialCameraReady ? 240 : 0;
 
@@ -194,6 +210,7 @@ async function installBrowserBoundaries(page, { camera = 'success', cameraReady 
       configurable: true,
       value: {
         getCurrentPosition(success) {
+          if (geolocationMode === 'unavailable') return arguments[1]?.();
           success({ coords: { latitude: 29.1872, longitude: -82.1401, accuracy: 12 } });
         }
       }
@@ -210,7 +227,7 @@ async function installBrowserBoundaries(page, { camera = 'success', cameraReady 
         return { width: canvas.width, height: canvas.height };
       }
     };
-  }, { cameraMode: camera, initialCameraReady: cameraReady });
+  }, { cameraMode: camera, initialCameraReady: cameraReady, geolocationMode: geolocation });
 
   await page.route('**/npm/@supabase/supabase-js@2*', (route) => route.fulfill({
     status: 200,
@@ -279,10 +296,85 @@ test.describe('canonical resident scanner checkpoint', () => {
     await expect(page.locator('#summaryText')).toHaveText(SCAN_RESULT.summary);
     await expect(page.locator('#itemsBlock span')).toHaveCount(2);
     await expect(page.locator('#tipText')).toHaveText(SCAN_RESULT.coaching_tip);
-    await expect(page.locator('#earnedText')).toHaveText('You earned: 1,600 WTWR ($16.00)');
+    await expect(page.locator('#earnedText')).toHaveText('Estimated resident share: 1,600 WTWR ($16.00)');
     expect(requests.count).toBe(1);
     expect(requests.payloads[0].mediaType).toBe('image/jpeg');
     expect(requests.payloads[0].imageBase64).toBeTruthy();
+    expect(productionRequests).toEqual([]);
+  });
+
+  test('starts empty and populates the current collection from analysis', async ({ page }) => {
+    const productionRequests = await installBrowserBoundaries(page);
+    const requests = { count: 0, payloads: [] };
+    await routeSuccessfulScan(page, requests);
+    await page.goto('/scanner.html');
+
+    await expect(page.locator('#collectionStatus')).toHaveText('Empty');
+    await expect(page.locator('#collectionValue')).toHaveText('$0.00');
+    await expect(page.locator('#collectionCount')).toHaveText('0');
+    await expect(page.locator('#collectionEmpty')).toBeVisible();
+    await expect(page.locator('#log-btn')).toBeHidden();
+
+    await expect(page.locator('#capture-btn')).toBeEnabled();
+    await page.locator('#capture-btn').click();
+    await expect(page.locator('#collectionStatus')).toHaveText('Ready to add');
+    await expect(page.locator('#collectionValue')).toHaveText('Pending · est. $40.00');
+    await expect(page.locator('#collectionCount')).toHaveText('2');
+    await expect(page.locator('#collectionSummary')).toHaveText(SCAN_RESULT.summary);
+    await expect(page.locator('#collectionMaterials li')).toHaveText(SCAN_RESULT.items_seen);
+    await expect(page.locator('#log-btn')).toHaveText('ADD TO COLLECTION');
+    expect(requests.count).toBe(1);
+    expect(productionRequests).toEqual([]);
+  });
+
+  test('failed persistence does not lock the collection', async ({ page }) => {
+    const productionRequests = await installBrowserBoundaries(page, { geolocation: 'unavailable' });
+    const requests = { count: 0, payloads: [] };
+    await routeSuccessfulScan(page, requests);
+    await capture(page);
+    await page.evaluate(() => window.__scannerCheckpoint.failNextInsert());
+    await page.locator('#log-btn').click();
+
+    await expect(page.locator('#collectionStatus')).toHaveText('Save failed');
+    await expect(page.locator('#collectionStatus')).not.toHaveText('Bucket locked');
+    await expect(page.locator('#log-btn')).toHaveText('TRY ADDING AGAIN');
+    await expect(page.locator('#log-btn')).toBeEnabled();
+    await expect(page.locator('#new-collection-btn')).toBeHidden();
+    const state = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), TEST_STATE_KEY);
+    expect(state.scanInsertAttempts).toBe(1);
+    expect(state.scanInsertCalls).toBe(0);
+    expect(state.scans).toHaveLength(0);
+    expect(productionRequests).toEqual([]);
+  });
+
+  test('successful persistence locks once and reset starts a new empty collection', async ({ page }) => {
+    const productionRequests = await installBrowserBoundaries(page, { geolocation: 'unavailable' });
+    const requests = { count: 0, payloads: [] };
+    await routeSuccessfulScan(page, requests);
+    await capture(page);
+    await page.locator('#log-btn').evaluate((button) => {
+      button.click();
+      button.click();
+    });
+
+    await expect(page.locator('#collectionStatus')).toHaveText('Bucket locked');
+    await expect(page.locator('#collectionValue')).toHaveText('$40.00');
+    await expect(page.locator('#log-btn')).toBeDisabled();
+    await expect(page.locator('#new-collection-btn')).toBeVisible();
+    let state = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), TEST_STATE_KEY);
+    expect(state.scanInsertAttempts).toBe(1);
+    expect(state.scanInsertCalls).toBe(1);
+    expect(state.scans).toHaveLength(1);
+
+    await page.locator('#new-collection-btn').click();
+    await expect(page.locator('#collectionStatus')).toHaveText('Empty');
+    await expect(page.locator('#collectionValue')).toHaveText('$0.00');
+    await expect(page.locator('#collectionCount')).toHaveText('0');
+    await expect(page.locator('#collectionEmpty')).toBeVisible();
+    await expect(page.locator('#log-btn')).toBeHidden();
+    state = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), TEST_STATE_KEY);
+    expect(state.scanInsertCalls).toBe(1);
+    expect(state.scans).toHaveLength(1);
     expect(productionRequests).toEqual([]);
   });
 
@@ -382,9 +474,11 @@ test.describe('canonical resident scanner checkpoint', () => {
       button.click();
     });
     await expect(page.locator('#stateTitle')).toContainText('PICKUP SPOT SAVED');
+    await expect(page.locator('#stateText')).toContainText('Watchtower will collect from here');
 
     state = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), TEST_STATE_KEY);
     expect(state.scanInsertCalls).toBe(1);
+    expect(state.scanInsertAttempts).toBe(1);
     expect(state.pickupUpdateCalls).toBe(1);
     expect(state.scans).toHaveLength(1);
     expect(state.scans[0].bounty_status).toBe('open');

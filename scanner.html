@@ -92,8 +92,21 @@
             border-radius: 6px;
         }
 
-        /* ---- Coach result panel (resident-friendly, plain English) ---- */
-        #resultPanel { display:none; width: 90%; max-width: 450px; font-family: var(--sans); margin-top: 4px; }
+        /* ---- Current collection (one collection = one durable scan) ---- */
+        #resultPanel { width: 90%; max-width: 450px; font-family: var(--sans); margin-top: 16px; }
+        .collection-card { background: var(--dark); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+        .collection-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+        .collection-head h2 { margin:0; font-family:'Share Tech Mono',monospace; font-size:15px; color:var(--green); letter-spacing:.08em; }
+        .collection-status { border:1px solid var(--border); border-radius:20px; color:var(--muted); padding:5px 9px; font:10px 'Share Tech Mono',monospace; text-transform:uppercase; }
+        .collection-status.locked, .collection-status.pickup { border-color:var(--green-dim); color:var(--green); }
+        .collection-stats { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+        .collection-stat { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:12px; }
+        .collection-stat span { display:block; color:var(--muted); font-size:11px; margin-bottom:5px; }
+        .collection-stat strong { color:var(--text); font-size:16px; }
+        #collectionSummary { color:var(--text); font-size:14px; line-height:1.5; margin:0 0 12px; }
+        #collectionEmpty { color:var(--muted); font-size:13px; margin:0; }
+        #collectionMaterials { margin:0; padding-left:20px; color:var(--text); font-size:13px; line-height:1.7; }
+        .collection-actions { display:flex; flex-direction:column; gap:10px; margin-top:14px; }
         .safety {
             background: rgba(255,68,85,.08); border: 1px solid var(--red); border-radius: 10px;
             padding: 14px; margin-bottom: 12px;
@@ -139,23 +152,43 @@
     </div>
 
     <div id="resultPanel">
+        <section class="collection-card" aria-labelledby="collectionTitle">
+            <div class="collection-head">
+                <h2 id="collectionTitle">CURRENT COLLECTION</h2>
+                <span id="collectionStatus" class="collection-status">Empty</span>
+            </div>
+            <div class="collection-stats">
+                <div class="collection-stat">
+                    <span>Durable value</span>
+                    <strong id="collectionValue">$0.00</strong>
+                </div>
+                <div class="collection-stat">
+                    <span>Materials found</span>
+                    <strong id="collectionCount">0</strong>
+                </div>
+            </div>
+            <p id="collectionEmpty">Scan one collection to identify its materials.</p>
+            <p id="collectionSummary" style="display:none;"></p>
+            <ul id="collectionMaterials" style="display:none;"></ul>
+            <div class="collection-actions">
+                <button class="btn" id="log-btn" style="display:none;">ADD TO COLLECTION</button>
+                <button class="btn secondary" id="new-collection-btn" style="display:none;">START NEW COLLECTION</button>
+            </div>
+            <div id="logConfirm" style="display:none;"></div>
+        </section>
         <div id="safetyBlock" class="safety" style="display:none">
             <div class="tag">&#9888; SAFETY FIRST</div>
             <p id="safetyText"></p>
         </div>
         <div class="summary-card"><p id="summaryText"></p></div>
         <div class="summary-card" style="text-align:center;">
-            <p id="earnedText" style="font-size:18px;color:var(--green);font-weight:700;margin:0;">You earned: 0 WTWR ($0.00)</p>
+            <p id="earnedText" style="font-size:18px;color:var(--green);font-weight:700;margin:0;">Estimated resident share: 0 WTWR ($0.00)</p>
         </div>
         <div id="tipBlock" class="tip-card" style="display:none">
             <div class="tag">&#128161; EARN MORE</div>
             <p id="tipText"></p>
         </div>
         <div id="itemsBlock" class="items"></div>
-
-        <!-- NEW: log the haul to Supabase -->
-        <button class="btn" id="log-btn" style="margin-bottom:12px;">&#43; LOG THIS HAUL</button>
-        <div id="logConfirm" style="display:none;"></div>
 
         <div class="verify-note">Think we got it wrong? <button onclick="alert('Coming soon: a direct line to a real person who will re-check this.')">Tell us what it really is</button></div>
     </div>
@@ -172,7 +205,9 @@
         let sessionId = localStorage.getItem('wt_session');
         if (!sessionId) { sessionId = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())); localStorage.setItem('wt_session', sessionId); }
 
-        let lastScan = null; // holds the most recent read so the LOG button can save it
+        let lastScan = null; // holds the current analysis until it becomes one durable scan
+        let persistedScanId = null;
+        let persistenceInFlight = false;
         let currentResidentId = null;
 
         // Look up the logged-in resident (if any) so scans can be tied to their account
@@ -222,7 +257,41 @@
         const resultPanel = document.getElementById('resultPanel');
         const logBtn = document.getElementById('log-btn');
         const logConfirm = document.getElementById('logConfirm');
+        const newCollectionBtn = document.getElementById('new-collection-btn');
+        const collectionStatus = document.getElementById('collectionStatus');
+        const collectionValue = document.getElementById('collectionValue');
+        const collectionCount = document.getElementById('collectionCount');
+        const collectionEmpty = document.getElementById('collectionEmpty');
+        const collectionSummary = document.getElementById('collectionSummary');
+        const collectionMaterials = document.getElementById('collectionMaterials');
         let cameraReady = false;
+
+        function setCollectionStatus(label, styleName = '') {
+            collectionStatus.textContent = label;
+            collectionStatus.className = 'collection-status' + (styleName ? ' ' + styleName : '');
+        }
+
+        function resetCollection() {
+            lastScan = null;
+            persistedScanId = null;
+            persistenceInFlight = false;
+            setCollectionStatus('Empty');
+            collectionValue.textContent = '$0.00';
+            collectionCount.textContent = '0';
+            collectionEmpty.style.display = 'block';
+            collectionSummary.style.display = 'none';
+            collectionSummary.textContent = '';
+            collectionMaterials.style.display = 'none';
+            collectionMaterials.replaceChildren();
+            logBtn.style.display = 'none';
+            newCollectionBtn.style.display = 'none';
+            logConfirm.style.display = 'none';
+            document.getElementById('safetyBlock').style.display = 'none';
+            document.getElementById('tipBlock').style.display = 'none';
+            document.getElementById('itemsBlock').replaceChildren();
+            document.getElementById('summaryText').textContent = '';
+            document.getElementById('earnedText').textContent = 'Estimated resident share: 0 WTWR ($0.00)';
+        }
 
         function printLog(msg) {
             consoleLog.innerHTML += `<br>&gt; ${msg}`;
@@ -299,9 +368,8 @@
             captureBtn.textContent = 'Execute Optical Scan';
             captureBtn.removeAttribute('disabled');
             retakeBtn.style.display = 'none';
-            resultPanel.style.display = 'none';
             consoleLog.innerHTML = 'SYSTEM READY. AWAITING SCAN INPUT...';
-            lastScan = null;
+            resetCollection();
         });
 
         async function analyzePayload(base64Image) {
@@ -347,7 +415,7 @@
             const residentShareUsd = (Number(data.estimated_value_high) || 0) * 0.40;
             const residentShareWtwr = Math.round(residentShareUsd * 100);
             document.getElementById('earnedText').textContent =
-                'You earned: ' + residentShareWtwr.toLocaleString() + ' WTWR ($' + residentShareUsd.toFixed(2) + ')';
+                'Estimated resident share: ' + residentShareWtwr.toLocaleString() + ' WTWR ($' + residentShareUsd.toFixed(2) + ')';
 
             if (data.coaching_tip) {
                 document.getElementById('tipText').textContent = data.coaching_tip;
@@ -364,24 +432,38 @@
                 itemsBlock.appendChild(s);
             });
 
-            // reset the LOG button for this fresh result
+            setCollectionStatus('Ready to add');
+            collectionValue.textContent = 'Pending · est. $' + (Number(data.estimated_value_high) || 0).toFixed(2);
+            collectionCount.textContent = String((data.items_seen || []).length);
+            collectionEmpty.style.display = 'none';
+            collectionSummary.textContent = data.summary || "Here's what we found.";
+            collectionSummary.style.display = 'block';
+            collectionMaterials.replaceChildren();
+            (data.items_seen || []).forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item;
+                collectionMaterials.appendChild(li);
+            });
+            collectionMaterials.style.display = (data.items_seen || []).length ? 'block' : 'none';
+
+            // reset the durable action for this fresh, not-yet-persisted result
             logBtn.style.display = 'block';
             logBtn.removeAttribute('disabled');
-            logBtn.textContent = '+ LOG THIS HAUL';
+            logBtn.textContent = 'ADD TO COLLECTION';
             logConfirm.style.display = 'none';
-
-            resultPanel.style.display = 'block';
         }
 
-        // ---- LOG THIS HAUL -> save the scan to Supabase ----
+        // ---- ADD TO COLLECTION -> save exactly one scan to Supabase ----
         logBtn.addEventListener('click', async () => {
-            if (!lastScan) return;
+            if (!lastScan || persistedScanId || persistenceInFlight) return;
+            persistenceInFlight = true;
+            setCollectionStatus('Saving');
             logBtn.setAttribute('disabled', 'true');
-            logBtn.textContent = 'Logging...';
+            logBtn.textContent = 'Adding...';
 
             logBtn.textContent = 'Getting location...';
             const { lat, lng, accuracy } = await getGeolocation();
-            logBtn.textContent = 'Logging...';
+            logBtn.textContent = 'Adding...';
 
             // Three independent conditions, all required. A driver is only sent out when
             // we know where to send them and who is waiting there.
@@ -413,7 +495,9 @@
             }).select();
 
             if (error) {
-                logBtn.textContent = '+ LOG THIS HAUL';
+                persistenceInFlight = false;
+                setCollectionStatus('Save failed');
+                logBtn.textContent = 'TRY ADDING AGAIN';
                 logBtn.removeAttribute('disabled');
                 logConfirm.style.color = 'var(--red)';
                 logConfirm.textContent = 'Could not log. Try again.';
@@ -422,17 +506,38 @@
                 return;
             }
 
-            // A bounty isn't done here -- it still needs a pickup-spot photo
-            // before it can go live on the dispatch map, so hand off there
-            // right away instead of stopping on this screen.
-            if (bountyCreated && inserted && inserted[0]) {
-                printLog(`BOUNTY LOGGED. FIX \u00b1${Math.round(accuracy)}M. ROUTING TO PICKUP PHOTO...`);
-                location.href = 'pickup-photo.html?bounty=' + encodeURIComponent(inserted[0].id);
+            if (!inserted || !inserted[0] || !inserted[0].id) {
+                persistenceInFlight = false;
+                setCollectionStatus('Save failed');
+                logBtn.textContent = 'TRY ADDING AGAIN';
+                logBtn.removeAttribute('disabled');
+                logConfirm.style.color = 'var(--red)';
+                logConfirm.textContent = 'Could not confirm the saved collection. Try again.';
+                logConfirm.style.display = 'block';
+                printLog("LOG FAILED: NO SAVED SCAN RETURNED.");
                 return;
             }
 
-            logBtn.style.display = 'none';
+            persistedScanId = inserted[0].id;
+            persistenceInFlight = false;
+            setCollectionStatus('Bucket locked', 'locked');
+            collectionValue.textContent = '$' + Number(
+                inserted[0].accepted_value ?? lastScan.estimated_value_high ?? 0
+            ).toFixed(2);
+            logBtn.setAttribute('disabled', 'true');
+            logBtn.textContent = 'COLLECTION ADDED';
+
+            // A bounty isn't done here -- it still needs a pickup-spot photo
+            // before it can go live on the dispatch map, so hand off there
+            // right away instead of stopping on this screen.
+            if (bountyCreated) {
+                printLog(`BOUNTY LOGGED. FIX \u00b1${Math.round(accuracy)}M. ROUTING TO PICKUP PHOTO...`);
+                location.href = 'pickup-photo.html?bounty=' + encodeURIComponent(persistedScanId);
+                return;
+            }
+
             logConfirm.style.color = 'var(--green)';
+            newCollectionBtn.style.display = 'block';
 
             const dropPoint = '\u2713 Haul logged. Bring it to a drop point to claim your WTWR.';
             let confirmMsg = dropPoint;
@@ -448,6 +553,17 @@
             logConfirm.textContent = confirmMsg;
             logConfirm.style.display = 'block';
             printLog("HAUL LOGGED. NO BOUNTY.");
+        });
+
+        newCollectionBtn.addEventListener('click', () => {
+            if (!persistedScanId || persistenceInFlight) return;
+            video.style.display = 'block';
+            capturedImg.style.display = 'none';
+            captureBtn.textContent = 'Execute Optical Scan';
+            captureBtn.toggleAttribute('disabled', !hasUsableVideoDimensions());
+            retakeBtn.style.display = 'none';
+            consoleLog.textContent = 'SYSTEM READY. AWAITING SCAN INPUT...';
+            resetCollection();
         });
 
         window.addEventListener('load', initCamera);
