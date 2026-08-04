@@ -133,7 +133,7 @@
     </div>
 
     <div class="controls">
-        <button class="btn" id="capture-btn">Execute Optical Scan</button>
+        <button class="btn" id="capture-btn" disabled>Execute Optical Scan</button>
         <button class="btn secondary" id="retake-btn" style="display:none">Retake Photo</button>
         <div class="console-output" id="console">SYSTEM READY. AWAITING SCAN INPUT...</div>
     </div>
@@ -222,11 +222,26 @@
         const resultPanel = document.getElementById('resultPanel');
         const logBtn = document.getElementById('log-btn');
         const logConfirm = document.getElementById('logConfirm');
+        let cameraReady = false;
 
         function printLog(msg) {
             consoleLog.innerHTML += `<br>&gt; ${msg}`;
             consoleLog.scrollTop = consoleLog.scrollHeight;
         }
+
+        function hasUsableVideoDimensions() {
+            return video.videoWidth > 0 && video.videoHeight > 0;
+        }
+
+        function handleCameraReadiness() {
+            if (!hasUsableVideoDimensions()) return;
+            captureBtn.removeAttribute('disabled');
+            if (!cameraReady) printLog("CAMERA READY.");
+            cameraReady = true;
+        }
+
+        video.addEventListener('loadedmetadata', handleCameraReadiness);
+        video.addEventListener('canplay', handleCameraReadiness);
 
         async function initCamera() {
             try {
@@ -234,7 +249,6 @@
                     video: { facingMode: { exact: "environment" } }, audio: false
                 });
                 video.srcObject = stream;
-                printLog("CAMERA READY.");
             } catch (err) {
                 printLog("BACK CAMERA UNAVAILABLE. TRYING DEFAULT...");
                 navigator.mediaDevices.getUserMedia({ video: true, audio: false })
@@ -245,12 +259,28 @@
 
         captureBtn.addEventListener('click', () => {
             if (video.style.display === 'none') return; // already captured, ignore
+            if (!hasUsableVideoDimensions()) {
+                captureBtn.setAttribute('disabled', 'true');
+                printLog("CAMERA NOT READY. WAIT FOR THE PREVIEW, THEN TRY AGAIN.");
+                return;
+            }
+
             printLog("CAPTURING...");
             const context = canvas.getContext('2d');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
             const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            const jpegPrefix = 'data:image/jpeg;base64,';
+            const base64Image = dataUrl.startsWith(jpegPrefix)
+                ? dataUrl.slice(jpegPrefix.length)
+                : '';
+
+            if (!base64Image.trim()) {
+                printLog("CAPTURE FAILED. TRY AGAIN.");
+                captureBtn.removeAttribute('disabled');
+                return;
+            }
 
             capturedImg.src = dataUrl;
             video.style.display = 'none';
@@ -260,7 +290,7 @@
             retakeBtn.style.display = 'block';
 
             printLog("PHOTO CAPTURED. SENDING FOR ANALYSIS...");
-            analyzePayload(dataUrl.split(',')[1]);
+            analyzePayload(base64Image);
         });
 
         retakeBtn.addEventListener('click', () => {

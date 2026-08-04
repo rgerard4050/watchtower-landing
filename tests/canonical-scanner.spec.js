@@ -152,13 +152,24 @@ function fakeSupabaseClientScript() {
   `;
 }
 
-async function installBrowserBoundaries(page, { camera = 'success' } = {}) {
-  await page.addInitScript(({ cameraMode }) => {
+async function installBrowserBoundaries(page, { camera = 'success', cameraReady = true } = {}) {
+  await page.addInitScript(({ cameraMode, initialCameraReady }) => {
+    let videoWidth = initialCameraReady ? 320 : 0;
+    let videoHeight = initialCameraReady ? 240 : 0;
+
+    function dispatchCameraReadiness() {
+      const video = document.getElementById('webcam');
+      if (!video) return;
+      video.dispatchEvent(new Event('loadedmetadata'));
+      video.dispatchEvent(new Event('canplay'));
+    }
+
     Object.defineProperty(navigator, 'mediaDevices', {
       configurable: true,
       value: {
         async getUserMedia() {
           if (cameraMode === 'denied') throw new DOMException('Permission denied', 'NotAllowedError');
+          if (initialCameraReady) setTimeout(dispatchCameraReadiness, 0);
           return new MediaStream();
         }
       }
@@ -166,11 +177,11 @@ async function installBrowserBoundaries(page, { camera = 'success' } = {}) {
 
     Object.defineProperty(HTMLVideoElement.prototype, 'videoWidth', {
       configurable: true,
-      get: () => 320
+      get: () => videoWidth
     });
     Object.defineProperty(HTMLVideoElement.prototype, 'videoHeight', {
       configurable: true,
-      get: () => 240
+      get: () => videoHeight
     });
 
     HTMLCanvasElement.prototype.getContext = () => ({ drawImage() {} });
@@ -187,7 +198,19 @@ async function installBrowserBoundaries(page, { camera = 'success' } = {}) {
         }
       }
     });
-  }, { cameraMode: camera });
+
+    window.__scannerCamera = {
+      setReady(width = 320, height = 240) {
+        videoWidth = width;
+        videoHeight = height;
+        dispatchCameraReadiness();
+      },
+      canvasDimensions() {
+        const canvas = document.getElementById('snapshot');
+        return { width: canvas.width, height: canvas.height };
+      }
+    };
+  }, { cameraMode: camera, initialCameraReady: cameraReady });
 
   await page.route('**/npm/@supabase/supabase-js@2*', (route) => route.fulfill({
     status: 200,
@@ -224,6 +247,7 @@ async function routeSuccessfulScan(page, counter) {
 
 async function capture(page) {
   await page.goto('/scanner.html');
+  await expect(page.locator('#capture-btn')).toBeEnabled();
   await page.locator('#capture-btn').click();
 }
 
@@ -258,6 +282,33 @@ test.describe('canonical resident scanner checkpoint', () => {
     await expect(page.locator('#earnedText')).toHaveText('You earned: 1,600 WTWR ($16.00)');
     expect(requests.count).toBe(1);
     expect(requests.payloads[0].mediaType).toBe('image/jpeg');
+    expect(requests.payloads[0].imageBase64).toBeTruthy();
+    expect(productionRequests).toEqual([]);
+  });
+
+  test('waits for usable camera dimensions before submitting a capture', async ({ page }) => {
+    const productionRequests = await installBrowserBoundaries(page, { cameraReady: false });
+    const requests = { count: 0, payloads: [] };
+    await routeSuccessfulScan(page, requests);
+    await page.goto('/scanner.html');
+
+    await expect(page.locator('#capture-btn')).toBeDisabled();
+    await page.locator('#capture-btn').evaluate((button) => {
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await expect(page.locator('#console')).toContainText('CAMERA NOT READY');
+    expect(requests.count).toBe(0);
+
+    await page.evaluate(() => window.__scannerCamera.setReady());
+    await expect(page.locator('#capture-btn')).toBeEnabled();
+    await page.locator('#capture-btn').click();
+
+    await expect(page.locator('#summaryText')).toHaveText(SCAN_RESULT.summary);
+    expect(await page.evaluate(() => window.__scannerCamera.canvasDimensions())).toEqual({
+      width: 320,
+      height: 240,
+    });
+    expect(requests.count).toBe(1);
     expect(requests.payloads[0].imageBase64).toBeTruthy();
     expect(productionRequests).toEqual([]);
   });
