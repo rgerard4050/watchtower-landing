@@ -1,5 +1,15 @@
 {
   "version": 2,
   "cleanUrls": true,
-  "trailingSlash": false
+  "trailingSlash": false,
+  "rewrites": [
+    { "source": "/api/buyers", "destination": "/api/marketplace?resource=buyers" },
+    { "source": "/api/buyers.js", "destination": "/api/marketplace?resource=buyers" },
+    { "source": "/api/listings", "destination": "/api/marketplace?resource=listings" },
+    { "source": "/api/listings.js", "destination": "/api/marketplace?resource=listings" },
+    { "source": "/api/offers", "destination": "/api/marketplace?resource=offers" },
+    { "source": "/api/offers.js", "destination": "/api/marketplace?resource=offers" },
+    { "source": "/api/transactions", "destination": "/api/marketplace?resource=transactions" },
+    { "source": "/api/transactions.js", "destination": "/api/marketplace?resource=transactions" }
+  ]
 }
