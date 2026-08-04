@@ -7,7 +7,9 @@
     "doc": "docs"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm run test:scanner-checkpoint",
+    "test:scanner-checkpoint": "playwright test tests/canonical-scanner.spec.js",
+    "test:scanner-checkpoint:headed": "playwright test tests/canonical-scanner.spec.js --headed"
   },
   "repository": {
     "type": "git",
@@ -23,5 +25,8 @@
   "homepage": "https://github.com/rgerard4050/watchtower-landing#readme",
   "dependencies": {
     "stripe": "^22.3.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1"
   }
 }
