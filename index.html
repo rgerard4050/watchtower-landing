@@ -3,6 +3,14 @@
 <head>
   <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#060a0d">
+<meta name="description" content="Watchtower gives overlooked material a record, a route, and a next use.">
+<meta property="og:title" content="Watchtower â€” Value Is Leaving Every Property">
+<meta property="og:description" content="Scan it. Record it. Move it. Verify what happens next.">
+<meta property="og:image" content="https://watchtower-landing-lime.vercel.app/og-watchtower.png">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://watchtower-landing-lime.vercel.app/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://watchtower-landing-lime.vercel.app/og-watchtower.png">
 <link rel="apple-touch-icon" href="/icon-192.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -149,371 +157,6 @@
   .pw-eye{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:transparent;border:none;color:var(--green);font-family:var(--mono);font-size:12px;cursor:pointer;padding:8px;text-transform:uppercase;letter-spacing:0.08em;}
   .login-card{margin-top:22px;padding-top:20px;border-top:1px solid var(--border2);}
   .login-divider{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:0.12em;text-align:center;margin-bottom:16px;}
-  .link-btn{width:100%;background:transparent;border:none;color:var(--muted);font-size:14px;margin-top:12px;cursor:pointer;text-decoration:underline;}
-  .joincount{font-family:var(--mono);font-size:13px;color:var(--muted);margin-top:16px;}
-  .joincount span{color:var(--green);font-weight:700;font-size:15px;}
-  .learn-link{display:inline-block;margin-top:10px;color:var(--green);font-weight:600;text-decoration:none;font-size:15px;border-bottom:1px solid rgba(0,255,136,.4);padding-bottom:2px;}
-  .hero .primary-btn{margin-top:6px;}
-
-  /* --- operator access modal (replaces native prompt) --- */
-  .op-overlay{display:none;position:fixed;inset:0;background:rgba(6,10,13,0.92);z-index:1000;align-items:center;justify-content:center;padding:24px;}
-  .op-overlay.open{display:flex;}
-  .op-box{background:var(--panel);border:1px solid var(--green);border-radius:14px;padding:26px 22px;width:100%;max-width:320px;text-align:center;}
-  .op-title{font-family:var(--mono);font-size:12px;color:var(--green);letter-spacing:0.14em;margin-bottom:18px;}
-  .op-input{width:100%;background:var(--dark);border:1px solid var(--border2);border-radius:8px;padding:16px;color:var(--text);font-family:var(--mono);font-size:18px;text-align:center;letter-spacing:0.1em;outline:none;margin-bottom:14px;-webkit-appearance:none;}
-  .op-input:focus{border-color:var(--green);}
-  .op-enter{width:100%;background:var(--green);color:#000;border:none;border-radius:8px;padding:16px;font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;}
-  .op-enter:active{background:var(--green-dim);}
-  .op-cancel{width:100%;background:transparent;border:none;color:var(--muted);font-size:13px;margin-top:14px;cursor:pointer;padding:8px;}
-  .op-err{font-family:var(--mono);font-size:11px;color:#ff4455;min-height:16px;margin-top:10px;}
-</style>
-</head>
-<body>
-
-<nav>
-  <div class="nav-logo" onclick="enterTerminal()" style="cursor:pointer" title="Operator access"><div class="pulse"></div>WATCHTOWER</div>
-  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
-    <a href="resident.html" style="color:var(--text);text-decoration:none;font-family:var(--mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">Residents</a>
-    <a href="business.html" style="color:var(--text);text-decoration:none;font-family:var(--mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">Businesses</a>
-    <a href="marketplace.html" style="color:var(--text);text-decoration:none;font-family:var(--mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">Marketplace</a>
-    <a href="terminal.html" style="color:var(--text);text-decoration:none;font-family:var(--mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">Operators</a>
-    <a href="learn.html" style="color:var(--text);text-decoration:none;font-family:var(--mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">Learn</a>
-    <button class="nav-cta" onclick="enterBusiness()">BUSINESS &#8594;</button>
-  </div>
-</nav>
-
-<!-- Operator access modal â€” big tap targets, replaces the native prompt() popup -->
-<div class="op-overlay" id="opOverlay">
-  <div class="op-box">
-    <div class="op-title">// OPERATOR ACCESS</div>
-    <input type="text" id="opCodeInput" class="op-input" placeholder="ACCESS CODE" autocomplete="off" autocapitalize="characters">
-    <button class="op-enter" onclick="submitOpCode()">ENTER &#8594;</button>
-    <button class="op-cancel" onclick="closeOpModal()">Cancel</button>
-    <div class="op-err" id="opErr"></div>
-  </div>
-</div>
-
-<div class="hero">
-  <div class="hero-grid"></div>
-  <div class="hero-glow"></div>
-  <div class="hero-content">
-    <div class="hero-eyebrow">Ocala, FL &middot; By Ocala, for Ocala</div>
-    <h1>The city stopped<br>recycling.<br><span class="accent">We didn't.</span></h1>
-    <p class="hero-sub">We buy your scrap and reward better recycling. You get paid in <strong>WTWR</strong> &mdash; credits you redeem at local stores. No bin fee. You earn instead.</p>
-    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px;">
-      <a class="primary-btn" href="resident.html" style="display:inline-block;text-align:center;text-decoration:none;width:auto;padding:14px 18px;">RESIDENTS START HERE &#8594;</a>
-      <a class="secondary-btn" href="business.html" style="display:inline-block;text-align:center;text-decoration:none;width:auto;padding:14px 18px;border:1px solid var(--border2);color:var(--text);">BUSINESSES JOIN THE NETWORK</a>
-    </div>
-    <button class="primary-btn" onclick="document.getElementById('wallet-section').scrollIntoView({behavior:'smooth'})">JOIN NOW &mdash; IT'S FREE &#8594;</button>
-    <div class="joincount"><span id="signupCount">&mdash;</span> neighbors have already joined</div>
-  </div>
-</div>
-
-<section>
-  <div class="section-tag">How to participate</div>
-  <h2>Your recycling.<br>Your credits. Your call.</h2>
-  <div class="how-grid">
-    <div class="how-card"><span class="how-icon">&#128248;</span><div class="how-title">Snap a photo</div><p class="how-desc">If it has metal, send a pic. We price it and tell you if it's ready to go.</p></div>
-    <div class="how-card"><span class="how-icon">&#127968;</span><div class="how-title">We come get it</div><p class="how-desc">Hit the minimum and a driver is dispatched. Free for valuable loads.</p></div>
-    <div class="how-card"><span class="how-icon">&#127978;</span><div class="how-title">Spend locally</div><p class="how-desc">Redeem WTWR at partner stores near you. Store list coming soon.</p></div>
-  </div>
-</section>
-
-<section id="wallet-section">
-  <div class="section-tag">Join The Network</div>
-  <h2>Create your wallet.<br>Start earning.</h2>
-  <p>Your WTWR wallet holds your credits, tracks your recycling history, and lets you spend at any partner location.</p>
-  <div class="wallet-wrap">
-    <div class="wallet-tabs">
-      <button class="wtab active" onclick="switchTab('email',this)">ğŸ“§ EMAIL</button>
-      </div>
-    <div class="tab-panel active" id="tab-email">
-      <div id="emailForm">
-        <div class="field"><label for="fname">Full Name</label><input type="text" id="fname" placeholder="Your name" autocomplete="name"></div>
-        <div class="field"><label for="femail">Email</label><input type="email" id="femail" placeholder="you@email.com" autocomplete="email"></div>
-        <div class="field"><label for="faddress">Address</label><input type="text" id="faddress" placeholder="123 Main St, Ocala FL" autocomplete="street-address"><div class="input-note">Required for driveway pickup service</div></div>
-        <div class="field"><label for="fzip">Zip Code</label><input type="text" id="fzip" placeholder="34470" maxlength="5" inputmode="numeric"><div class="input-note">Used to match you to your nearest node</div></div>
-        <div class="field"><label for="fpass">Password</label><div class="pw-wrap"><input type="password" id="fpass" placeholder="Min 8 characters"><button type="button" class="pw-eye" onclick="togglePw('fpass',this)">show</button></div></div>
-        <div class="divider"><div class="divider-line"></div><div class="divider-text">OPTIONAL â€” ADD DRIVEWAY SERVICE</div><div class="divider-line"></div></div>
-        <div class="stripe-section">
-          <div class="stripe-label"><span class="stripe-lock">â™»ï¸</span> Two ways to recycle</div>
-          <p style="font-size:14px;color:var(--text);margin:0 0 10px;line-height:1.6;"><b style="color:var(--green);">FREE â€”</b> Metal, copper, wire, batteries, electronics. If it meets the pickup minimum, we come get it and you earn WTWR. No subscription.</p>
-          <p style="font-size:14px;color:var(--text);margin:0 0 10px;line-height:1.6;"><b style="color:var(--green);">$4.99/mo â€”</b> Weekly driveway pickup of your everyday plastic &amp; cardboard (the old curbside service).</p>
-          <p style="font-size:13px;color:var(--muted);margin:0;line-height:1.5;">Small loads under the minimum ride along with your weekly pickup, or wait for a paid run.</p>
-        </div>
-        <button class="primary-btn" style="margin-top:16px" onclick="createEmailWallet()">CREATE MY FREE WALLET â†’</button>
-        <button class="secondary-btn" onclick="subscribeStripe()">Add weekly driveway pickup â€” $4.99/mo</button>
-        <a class="secondary-btn" href="scanner.html?demo=1" style="display:block;text-align:center;text-decoration:none;margin-top:12px;">ENTER AS A NEW RESIDENT Â· DEMO â†’</a>
-        <p class="input-note" style="margin-top:8px;">Try the complete scanner lifecycle without changing production data. Sales and values are clearly simulated.</p>
-        <div class="login-card">
-          <div class="login-divider">â€” ALREADY JOINED? LOG IN â€”</div>
-          <div class="field"><label for="loginEmail">Email</label><input type="email" id="loginEmail" placeholder="you@email.com"></div>
-          <div class="field"><label for="loginPass">Password</label><div class="pw-wrap"><input type="password" id="loginPass" placeholder="Your password"><button type="button" class="pw-eye" onclick="togglePw('loginPass',this)">show</button></div></div>
-          <button class="primary-btn" style="margin-top:12px" onclick="loginUser()">LOG IN â†’</button>
-          <button class="link-btn" onclick="forgotPassword()">Forgot password?</button>
-          <button class="link-btn" onclick="sendMagicLink()">Trouble signing in? Get a link instead</button>
-        </div>
-      </div>
-      <div class="success-wrap" id="emailSuccess">
-        <div class="success-glyph">âœ…</div>
-        <div class="success-title">// WALLET CREATED</div>
-        <p style="font-size:14px;color:var(--muted);margin-bottom:12px;">Welcome to the Watchtower network.</p>
-        <div class="success-addr" id="emailSuccessAddr"></div>
-        <p style="font-size:12px;color:var(--muted);margin:0">Check your email for confirmation. Credits appear after your first pickup.</p>
-      </div>
-    </div>
-    </div>
-</section>
-
-<section>
-  <div class="section-tag">Why this exists</div>
-  <h2>The city stopped picking up recycling.<br>So we built something better.</h2>
-  <p>We're trying a different way &mdash; one where you don't <em>pay</em> to recycle, you <strong>earn</strong> for it. The carrot works better than the stick.</p>
-  <p>You sort what needs sorting, and that only helps you. When you submit a full bounty, we verify it meets the minimum &mdash; whether it's one clean category or a mixed load.</p>
-  <p>No more rigid every-day, every-week pickup. This is &agrave; la carte: you cash in once you've got enough above the minimum. Doing a remodel? Got car batteries, aluminum scrap, an old sink, a dead fridge? <strong>Rule of thumb &mdash; if it has metal, snap a photo.</strong> We'll tell you if it's worth money, how to make it worth more, and whether to hold for a bigger load or send it now.</p>
-  <a class="learn-link" href="learn.html">Want to dig deeper? Read how it all works &#8594;</a>
-</section>
-
-<section>
-  <div class="section-tag">Optional: Driveway Service</div>
-  <h2>Want weekly pickup?</h2>
-  <p>Free covers your valuable metal. For weekly plastic &amp; cardboard from your driveway, add the subscription.</p>
-  <div class="driveway-card">
-    <div class="driveway-price">$4.99 <span>/ month</span></div>
-    <ul class="driveway-list">
-      <li>We provide the collection vessel</li>
-      <li>Ping us through the app when it's full</li>
-      <li>Weekly plastic &amp; cardboard pickup</li>
-      <li>Earn WTWR on valuable loads too</li>
-      <li>Cancel anytime</li>
-    </ul>
-    <button class="primary-btn" onclick="document.getElementById('wallet-section').scrollIntoView({behavior:'smooth'})">ADD DRIVEWAY PICKUP &#8594;</button>
-  </div>
-</section>
-
-<section>
-  <div class="section-tag">Learn</div>
-  <h2>Waste is valuable.<br>Most people just don't know it.</h2>
-  <p>Commodity prices, sorting guides, network updates, and the real economics of recycling.</p>
-  <div class="edu-cards">
-    <div class="edu-card"><div class="edu-icon">â™»ï¸</div><div><div class="edu-tag">Sorting Guide</div><div class="edu-title">What actually has value in your bin</div><p class="edu-desc">Aluminum pays 20x more than mixed recycling. Learn what to separate and why. <span class="coming-badge">COMING SOON</span></p></div></div>
-    <div class="edu-card"><div class="edu-icon">ğŸ’°</div><div><div class="edu-tag">Commodity Education</div><div class="edu-title">Why copper is $4/lb and why that matters to you</div><p class="edu-desc">Live commodity prices explained in plain language. Updated daily. <span class="coming-badge">COMING SOON</span></p></div></div>
-    <div class="edu-card"><div class="edu-icon">ğŸ†</div><div><div class="edu-tag">Community</div><div class="edu-title">Contests, prizes, and network leaderboard</div><p class="edu-desc">Top recyclers earn bonus WTWR. Monthly prizes funded by commodity revenue. <span class="coming-badge">COMING SOON</span></p></div></div>
-  </div>
-</section>
-
-<footer>
-  <div class="footer-logo">WATCHTOWER PROTOCOL</div>
-  <div class="footer-links">
-    <a href="resident.html">Residents</a>
-    <a href="business.html">Businesses</a>
-    <a href="marketplace.html">Marketplace</a>
-    <a href="terminal.html">Operators</a>
-    <a href="dispatch.html">Dispatch</a>
-    <a href="mailto:contact.watchtowerer@gmail.com">Contact</a>
-  </div>
-  <p>Ocala Asset Security Â· Ocala, FL</p>
-  <p style="margin-top:6px"><a href="mailto:contact.watchtowerer@gmail.com">contact.watchtowerer@gmail.com</a></p>
-  <p style="margin-top:12px;font-size:11px">Powered by Base blockchain Â· Not financial advice</p>
-</footer>
-
-<script>
-const SUPABASE_URL = 'https://eypovuxuddiqgncjdpkq.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_ZlykauNc-3YY80w6nxzsKw_Z2lgAgU1';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-function switchTab(tab, btn) {
-  document.querySelectorAll('.wtab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById('tab-'+tab).classList.add('active');
-  btn.classList.add('active');
-}
-
-async function createResident(subscriber) {
-  const name=document.getElementById('fname').value.trim();
-  const email=document.getElementById('femail').value.trim().toLowerCase();
-  const address=document.getElementById('faddress').value.trim();
-  const zip=document.getElementById('fzip').value.trim();
-  const pass=document.getElementById('fpass').value;
-  if(!name||!email){alert('Please enter your name and email.');return;}
-  if(!pass||pass.length<8){alert('Please set a password (at least 8 characters). You will use it to log in.');return;}
-  if(subscriber && !address){alert('Address is required for driveway pickup service.');return;}
-
-  const { data:auth, error:authErr } = await sb.auth.signUp({
-    email, password: pass,
-    options: { data:{ name, address, zip }, emailRedirectTo: 'https://app.ocalaassetsecurity.com/index.html' }
-  });
-  if (authErr) {
-    if((authErr.message||'').toLowerCase().includes('already')) alert("Welcome back! You're already signed up with that email - log in below, or tap \"Trouble signing in?\" for a link instead of a password.");
-    else { alert('Signup failed: '+authErr.message); console.error(authErr); }
-    return;
-  }
-
-  // The residents row is created server-side by the on_auth_user_created_resident
-  // trigger, from the name/address/zip passed as signUp metadata above. The
-  // client no longer inserts or selects residents here -- doing so required the
-  // table to be readable by anon, which exposed every resident's name, email,
-  // home address and Stripe customer id to anyone holding the publishable key.
-  //
-  // wallet_id is only ever generated on first insert, so a resident's WTWR
-  // history is never disconnected by a repeat signup.
-  const inNow = !!auth.session;
-  let walletId = null;
-
-  if (inNow) {
-    // Signed in already (no email confirmation step), so the scoped
-    // "residents select own row" policy lets us read our own wallet id back.
-    const { data: mine } = await sb.from('residents')
-      .select('wallet_id').eq('user_id', auth.user.id).maybeSingle();
-    walletId = mine && mine.wallet_id;
-  }
-
-  if (subscriber) {
-    // Subscriber is a paid upgrade and is set by the Stripe checkout flow
-    // below, not by this form -- the client must not be able to grant it.
-    console.info('[signup] subscriber requested; confirmed on Stripe checkout');
-  }
-
-  document.getElementById('emailSuccessAddr').textContent =
-    (walletId ? 'Wallet ID: ' + walletId : 'Your Wallet ID is in your account once you sign in.')
-    + (subscriber ? ' (Driveway subscriber - $4.99/mo)' : '')
-    + (inNow ? '' : '  -  Check your email to confirm.');
-  document.getElementById('emailForm').style.display='none';
-  document.getElementById('emailSuccess').classList.add('show');
-  if (subscriber && !document.getElementById('stripeNote')) {
-    const note=document.createElement('p');
-    note.id='stripeNote';
-    note.style.cssText='font-size:13px;color:var(--muted);margin-top:12px;line-height:1.5;';
-    note.textContent='Your subscription is handled through secure Stripe checkout when you tap the subscription button above.';
-    document.getElementById('emailSuccess').appendChild(note);
-  }
-}
-
-function createEmailWallet() { createResident(false); }
-function togglePw(id,btn){const el=document.getElementById(id);if(!el)return;if(el.type==='password'){el.type='text';btn.textContent='hide';}else{el.type='password';btn.textContent='show';}}
-async function loginUser(){
-  const email=document.getElementById('loginEmail').value.trim();
-  const pass=document.getElementById('loginPass').value;
-  if(!email||!pass){alert('Enter your email and password.');return;}
-  const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
-  if(error){alert('Login failed: '+error.message);return;}
-  showLoggedIn(data.user);
-}
-async function forgotPassword(){
-  const email=(document.getElementById('loginEmail').value||document.getElementById('femail').value||'').trim();
-  if(!email){alert('Type your email in the login box first, then tap Forgot password.');return;}
-  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:'https://app.ocalaassetsecurity.com/index.html'});
-  if(error){alert('Could not send reset link: '+error.message);return;}
-  alert('Reset link sent to '+email+'. Check your inbox and spam folder.');
-}
-async function sendMagicLink(){
-  const email=(document.getElementById('loginEmail').value||document.getElementById('femail').value||'').trim().toLowerCase();
-  if(!email){alert('Type your email in the login box first, then tap "Get a link instead".');return;}
-  const {error}=await sb.auth.signInWithOtp({
-    email,
-    options:{ shouldCreateUser:false, emailRedirectTo:'https://app.ocalaassetsecurity.com/index.html' }
-  });
-  if(error){
-    const m=(error.message||'').toLowerCase();
-    if(m.includes('signup') || m.includes('not found') || m.includes('not allowed')){
-      alert('No account found for that email. Use "Join Free" above to create one.');
-    } else {
-      alert('Could not send sign-in link: '+error.message);
-    }
-    return;
-  }
-  alert('Sign-in link sent to '+email+'. Check your inbox and spam folder, then tap the link to log in.');
-}
-function showLoggedIn(user){
-  location.href='resident.html';
-}
-sb.auth.onAuthStateChange((event)=>{
-  if(event==='PASSWORD_RECOVERY'){
-    const np=prompt('Enter a new password (at least 8 characters):');
-    if(np&&np.length>=8){ sb.auth.updateUser({password:np}).then(({error})=>{ alert(error?('Error: '+error.message):'Password updated - you can log in now.'); }); }
-    else if(np){ alert('Password too short.'); }
-  }
-});
-sb.auth.getSession().then(({data})=>{ if(data&&data.session){ location.href='resident.html'; } });
-
-async function subscribeStripe(event) {
-  const name=document.getElementById('fname').value.trim();
-  const email=document.getElementById('femail').value.trim();
-  const address=document.getElementById('faddress').value.trim();
-  if(!name||!email){alert('Please fill in your name and email first.');return;}
-  if(!address){alert('Address is required for driveway pickup.');return;}
-  const button=event?.currentTarget || document.querySelector('#wallet-section .primary-btn');
-  const original=button?.textContent || 'GET WEEKLY PICKUP â€” $4.99/MO â†’';
-  if(button){button.disabled=true; button.textContent='OPENING SECURE CHECKOUTâ€¦';}
-  try{
-    const response=await fetch('/api/create-checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email,address,zip:document.getElementById('fzip').value.trim()})});
-    const data=await response.json();
-    if(!response.ok||!data.url)throw new Error(data.error||'Unable to start checkout.');
-    window.location.href=data.url;
-  }catch(error){
-    alert(error.message||'Unable to start checkout. Please try again.');
-    if(button){button.disabled=false; button.textContent=original;}
-  }
-}
-async function connectMetaMask() {
-  if(typeof window.ethereum==='undefined'){alert('MetaMask not detected. On mobile, open this page inside the MetaMask browser, or use Trust Wallet / Coinbase Wallet.');return;}
-  try{
-    const accounts=await window.ethereum.request({method:'eth_requestAccounts'});
-    const addr=accounts[0];
-    try{await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x2105'}]});}
-    catch(e){await window.ethereum.request({method:'wallet_addEthereumChain',params:[{chainId:'0x2105',chainName:'Base',nativeCurrency:{name:'ETH',symbol:'ETH',decimals:18},rpcUrls:['https://mainnet.base.org'],blockExplorerUrls:['https://basescan.org']}]});}
-    showCryptoSuccess(addr);
-  }catch(e){alert('Connection cancelled.');}
-}
-function connectWalletConnect(){alert('Trust Wallet / Coinbase Wallet connection coming at launch. For now use email signup or MetaMask browser.');}
-function showCryptoSuccess(addr){
-  document.getElementById('cryptoAddr').textContent=addr;
-  document.getElementById('cryptoSuccess').classList.add('show');
-  document.querySelectorAll('.wallet-connect-btn').forEach(b=>b.style.display='none');
-}
-function formatCard(el){let v=el.value.replace(/\D/g,'').substring(0,16);el.value=v.replace(/(.{4})/g,'$1 ').trim();}
-function formatExp(el){let v=el.value.replace(/\D/g,'');if(v.length>=2)v=v.substring(0,2)+'/'+v.substring(2,4);el.value=v;}
-</script>
-<script>
-(function(){
-  // ---- Operator access: on-screen modal (big tap target) instead of native prompt() ----
-  window.enterTerminal=function(){
-    if(localStorage.getItem('wt_op')==='1'){location.href='terminal.html';return;}
-    document.getElementById('opErr').textContent='';
-    document.getElementById('opCodeInput').value='';
-    document.getElementById('opOverlay').classList.add('open');
-    setTimeout(function(){ document.getElementById('opCodeInput').focus(); }, 50);
-  };
-  window.closeOpModal=function(){
-    document.getElementById('opOverlay').classList.remove('open');
-  };
-  window.submitOpCode=function(){
-    var val=(document.getElementById('opCodeInput').value||'').trim();
-    if(val==='WATCH2026'){
-      localStorage.setItem('wt_op','1');
-      document.getElementById('opOverlay').classList.remove('open');
-      location.href='terminal.html';
-    } else {
-      document.getElementById('opErr').textContent='Incorrect code. Try again.';
-    }
-  };
-  // allow hitting Enter on the keyboard/return key instead of tapping the button
-  document.addEventListener('DOMContentLoaded', function(){
-    var inp=document.getElementById('opCodeInput');
-    if(inp){ inp.addEventListener('keydown', function(e){ if(e.key==='Enter'){ submitOpCode(); } }); }
-  });
-
-  window.enterBusiness=function(){ location.href='business.html'; };
-  try{
-    // Via RPC, not a table count: residents is no longer readable by anon, and
-    // this definer function exposes the count without exposing any rows.
-    sb.rpc('resident_signup_count').then(function(r){
-      var el=document.getElementById('signupCount');
-      if(!el)return;
-      el.textContent=(!r.error && typeof r.data==='number')?r.data:'0';
-    });
-  }catch(e){}
-})();
-</script>
-</body>
-</html>
+  .link-btn{width:100%;background:transparent;border:none;color:varãŸ;¶‰ËkºwµçUAÜ ±½¥¹A…ÍÌœ±Ñ¡¥Ì¤ˆùÍ¡½Üğ½‰ÕÑÑ½¸øğ½‘¥Øøğ½‘¥Øø4(€€€€€€€€€€ñ‰ÕÑÑ½¸±…ÍÌô‰ÁÉ¥µ…Éäµ‰Ñ¸ˆÍÑå±”ô‰µ…É¥¸µÑ½ÀèÄÉÁàˆ½¹±¥¬ô‰±½¥¹UÍ•È ¤ˆù1=%8ƒŠHğ½‰ÕÑÑ½¸ø4(€€€€€€€€€€ñ‰ÕÑÑ½¸±…ÍÌô‰±¥¹¬µ‰Ñ¸ˆ½¹±¥¬ô‰™½É½ÑA…ÍÍİ½É ¤ˆù½É½ĞÁ…ÍÍİ½Éüğ½‰ÕÑÑ½¸ø4(€€€€€€€€€€ñ‰ÕÑÑ½¸±…ÍÌô‰±¥¹¬µ‰Ñ¸ˆ½¹±¥¬ô‰Í•¹‘5…¥1¥¹¬ ¤ˆùQÉ½Õ‰±”Í¥¹¥¹œ¥¸ü•Ğ„±¥¹¬¥¹ÍÑ•…ğ½‰ÕÑÑ½¸ø4(€€€€€€€€ğ½‘¥Øø4(€€€€€€ğ½‘¥Øø4(€€€€€€ñ‘¥Ø±…ÍÌô‰ÍÕ•ÍÌµİÉ…Àˆ¥ô‰•µ…¥±MÕ•ÍÌˆø4(€€€€€€€€ñ‘¥Ø±…ÍÌô‰ÍÕ•ÍÌµ±åÁ ˆûŠrğ½‘¥Øø4(€€€€€€€€ñ‘¥Ø±…ÍÌô‰ÍÕ•ÍÌµÑ¥Ñ±”ˆø¼¼]11PIQğ½‘¥Øø4(€€€€€€€€ñÀÍÑå±”ô‰™½¹ĞµÍ¥é”èÄÑÁàí½±½ÈéÙ…È ´µµÕÑ•¤íµ…É¥¸µ‰½ÑÑ½´èÄÉÁàìˆù]•±½µ”Ñ¼Ñ¡”]…Ñ¡Ñ½İ•È¹•Ñİ½É¬¸ğ½Àø4(€€€€€€€€ñ‘¥Ø±…ÍÌô‰ÍÕ•ÍÌµ…‘‘Èˆ¥ô‰•µ…¥±MÕ•ÍÍ‘‘Èˆøğ½‘¥Øø4(€€€€€€€€ñÀÍÑå±”ô‰™½¹ĞµÍ¥é”èÄÉÁàí½±½ÈéÙ…È ´µµÕÑ•¤íµ…É¥¸èÀˆù¡•¬å½ÕÈ•µ…¥°™½È½¹™¥Éµ…Ñ¥½¸¸É•‘¥ÑÌ…ÁÁ•…È…™Ñ•Èå½ÕÈ™¥ÉÍĞÁ¥­ÕÀ¸ğ½Àø4(€€€€€€ğ½‘¥Øø4(€€€€ğ½‘¥Øø4(€€€€ğ½‘¥Øø4(ğ½Í•Ñ¥½¸ø4(4(ñÍ•Ñ¥½¸ø(€€ñ‘¥Ø±…ÍÌô‰Í•Ñ¥½¸µÑ…œˆù]¡äÑ¡¥Ì•á¥ÍÑÌğ½‘¥Øø(€€ñ Èù…Ñ Ñ¡”Í¥¹…°ñ‰Èù‰•™½É”¥Ğ‰•½µ•Ìİ…ÍÑ”¸ğ½ Èø(€€ñÀù!½µ•Ì¡…Ù”¥Ğ¸MÑ½É•Ì¡…Ù”µ½É”½˜¥Ğ¸½¹ÑÉ…Ñ½ÉÌ°Í¡½½±Ì°…Á…ÉÑµ•¹ÑÌ°½™™¥•Ì°…¹µ•‘¥…°ÁÉ…Ñ¥•Ì…±°¡…Ù”µ½µ•¹ÑÌİ¡•¸ÕÍ•™Õ°µ…Ñ•É¥…°½È•ÅÕ¥Áµ•¹Ğ¥Ì…‰½ÕĞÑ¼±•…Ù”¸ğ½Àø(€€ñÀù]…Ñ¡Ñ½İ•ÈÑÉ•…ÑÌ•Ù•ÉäÁ…ÉÑ¥¥Á…Ñ¥¹œÁ±…”…Ì„¹½‘”¸Q¡”©½ˆ¥ÌÍ¥µÁ±”è¥‘•¹Ñ¥™äÑ¡”µ…Ñ•É¥…°•…É±ä°­••À¥ÑÌÉ•½É¥¹Ñ…Ğ°…¹µ…­”„‰•ÑÑ•È¹•áĞµ½Ù”¸ğ½Àø(€€ñ„±…ÍÌô‰±•…É¸µ±¥¹¬ˆ¡É•˜ô‰±•…É¸¹¡Ñµ°ˆùMÑ…ÉĞİ¥Ñ Ñ¡”µ…Ñ•É¥…°¥¸å½ÕÈ¡…¹€˜ŒàÔäĞìğ½„ø(ğ½Í•Ñ¥½¸ø(4(ñÍ•Ñ¥½¸ø4(€€ñ‘¥Ø±…ÍÌô‰Í•Ñ¥½¸µÑ…œˆù=ÁÑ¥½¹…°èÉ¥Ù•İ…äM•ÉÙ¥”ğ½‘¥Øø4(€€ñ Èù]…¹Ğİ••­±äÁ¥­ÕÀüğ½ Èø4(€€ñÀùQ¡¥ÌÍ•ÉÙ¥”¥Ì¥¸Á¥±½ĞÁÉ•Á…É…Ñ¥½¸¸)½¥¸Ñ¡”±¥ÍĞ¹½Üì½±±•Ñ¥½¸‰•¥¹Ì½¹±ä…™Ñ•È]…Ñ¡Ñ½İ•È½¹™¥ÉµÌÉ½ÕÑ”…Á…¥Ñä…¹Í•ÉÙ¥”‘•Ñ…¥±Ì¸ğ½Àø(€€ñ‘¥Ø±…ÍÌô‰‘É¥Ù•İ…äµ…Éˆø4(€€€€ñ‘¥Ø±…ÍÌô‰‘É¥Ù•İ…äµÁÉ¥”ˆøĞ¸ää€ñÍÁ…¸ø¼µ½¹Ñ ğ½ÍÁ…¸øğ½‘¥Øø4(€€€€ñÕ°±…ÍÌô‰‘É¥Ù•İ…äµ±¥ÍĞˆø4(€€€€€€ñ±¤ùA±…¹¹•½±±•Ñ¥½¸Ù•ÍÍ•°ğ½±¤ø(€€€€€€ñ±¤ùA±…¹¹•¥¸µ…ÁÀÁ¥­ÕÀÉ•ÅÕ•ÍĞğ½±¤ø(€€€€€€ñ±¤ùI½ÕÑ”…Ù…¥±…‰¥±¥Ñä½¹™¥Éµ•‰•™½É”…Ñ¥Ù…Ñ¥½¸ğ½±¤ø(€€€€€€ñ±¤ù9¼Á¥­ÕÀ½ÈÁ…å½ÕĞÁÉ½µ¥Í”‰•™½É”½¹™¥Éµ…Ñ¥½¸ğ½±¤ø(€€€€€€ñ±¤ùA¥±½ĞÑ•ÉµÌÍ¡½İ¸‰•™½É”Á…åµ•¹Ğğ½±¤ø(€€€€ğ½Õ°ø4(€€€€ñ‰ÕÑÑ½¸±…ÍÌô‰ÁÉ¥µ…Éäµ‰Ñ¸ˆÑåÁ”ô‰‰ÕÑÑ½¸ˆ‘¥Í…‰±•ùI%Y]dA%1=PƒŠP=5%9M==8ğ½‰ÕÑÑ½¸ø(€€ğ½‘¥Øø4(ğ½Í•Ñ¥½¸ø4(4(ñÍ•Ñ¥½¸ø4(€€ñ‘¥Ø±…ÍÌô‰Í•Ñ¥½¸µÑ…œˆù1•…É¸ğ½‘¥Øø4(€€ñ Èù]…ÍÑ”¥ÌÙ…±Õ…‰±”¸ñ‰Èù5½ÍĞÁ•½Á±”©ÕÍĞ‘½¸Ğ­¹½Ü¥Ğ¸ğ½ Èø4(€€ñÀù½µµ½‘¥ÑäÁÉ¥•Ì°Í½ÉÑ¥¹œÕ¥‘•Ì°¹•Ñİ½É¬ÕÁ‘…Ñ•Ì°…¹Ñ¡”É•…°•½¹½µ¥Ì½˜É•å±¥¹œ¸ğ½Àø4(€€ñ‘¥Ø±…ÍÌô‰•‘Ôµ…É‘Ìˆø4(€€€€ñ‘¥Ø±…ÍÌô‰•‘Ôµ…Éˆøñ‘¥Ø±…ÍÌô‰•‘Ôµ¥½¸ˆûŠfï¾â<ğ½‘¥Øøñ‘¥Øøñ‘¥Ø±…ÍÌô‰•‘ÔµÑ…œˆùM½ÉÑ¥¹œÕ¥‘”ğ½‘¥Øøñ‘¥Ø±…ÍÌô‰•‘ÔµÑ¥Ñ±”ˆù]¡…Ğ…ÑÕ…±±ä¡…ÌÙ…±Õ”¥¸å½ÕÈ‰¥¸ğ½‘¥ØøñÀ±…ÍÌô‰•‘Ôµ‘•ÍŒˆù±Õµ¥¹Õ´Á…åÌ€ÈÁàµ½É”Ñ¡…¸µ¥á•É•å±¥¹œ¸1•…É¸İ¡…ĞÑ¼Í•Á…É…Ñ”…¹İ¡ä¸€ñÍÁ…¸±…ÍÌô‰½µ¥¹œµ‰…‘”ˆù=5%9M==8ğ½ÍÁ…¸øğ½Àøğ½‘¥Øøğ½‘¥Øø4(€€€€ñ‘¥Ø±…ÍÌô‰•‘Ôµ…Éˆøñ‘¥Ø±…ÍÌô‰•‘Ôµ¥½¸ˆûÂ~JÀğ½‘¥Øøñ‘¥Øøñ‘¥Ø±…ÍÌô‰•‘ÔµÑ…œˆù½µµ½‘¥Ñä‘Õ…Ñ¥½¸ğ½‘¥Øøñ‘¥Ø±…ÍÌô‰•‘ÔµÑ¥Ñ±”ˆù]¡ä½ÁÁ•È¥Ì€Ğ½±ˆ…¹İ¡äÑ¡…Ğµ…ÑÑ•ÉÌÑ¼å½Ôğ½‘¥ØøñÀ±…ÍÌô‰•‘Ôµ‘•ÍŒˆù1¥Ù”½µµ½‘¥ÑäÁÉ¥•Ì•áÁ±…¥¹•¥¸Á±…¥¸±…¹Õ…”¸UÁ‘…Ñ•‘…¥±ä¸€ñÍÁ…¸±…ÍÌô‰½µ¥¹œµ‰…‘”ˆù=5%9M==8ğ½ÍÁ…¸øğ½Àøğ½‘¥Øøğ½‘¥Øø4(€€€€ñ‘¥Ø±…ÍÌô‰•‘Ôµ…Éˆøñ‘¥Ø±…ÍÌô‰•‘Ôµ¥½¸ˆûÂ~>ğ½‘¥Øøñ‘¥Øøñ‘¥Ø±…ÍÌô‰•‘ÔµÑ…œˆù½µµÕ¹¥Ñäğ½‘¥Øøñ‘¥Ø±…ÍÌô‰•‘ÔµÑ¥Ñ±”ˆù½¹Ñ•ÍÑÌ°ÁÉ¥é•Ì°…¹¹•Ñİ½É¬±•…‘•É‰½…Éğ½‘¥ØøñÀ±…ÍÌô‰•‘Ôµ‘•ÍŒˆùQ½ÀÉ•å±•ÉÌ•…É¸‰½¹ÕÌ]Q]H¸5½¹Ñ¡±äÁÉ¥é•Ì™Õ¹‘•‰ä½µµ½‘¥ÑäÉ•Ù•¹Õ”¸€ñÍÁ…¸±…ÍÌô‰½µ¥¹œµ‰…‘”ˆù=5%9M==8ğ½ÍÁ…¸øğ½Àøğ½‘¥Øøğ½‘¥Øø4(€€ğ½‘¥Øø4(ğ½Í•Ñ¥½¸ø4(4(ñ™½½Ñ•Èø4(€€ñ‘¥Ø±…ÍÌô‰™½½Ñ•Èµ±½¼ˆù]Q!Q=]HAI=Q==0ğ½‘¥Øø4(€€ñ‘¥Ø±…ÍÌô‰™½½Ñ•Èµ±¥¹­Ìˆø4(€€€€ñ„¡É•˜ô‰É•Í¥‘•¹Ğ¹¡Ñµ°ˆùI•Í¥‘•¹ÑÌğ½„ø4(€€€€ñ„¡É•˜ô‰‰ÕÍ¥¹•ÍÌ¹¡Ñµ°ˆù	ÕÍ¥¹•ÍÍ•Ìğ½„ø4(€€€€ñ„¡É•˜ô‰µ…É­•ÑÁ±…”¹¡Ñµ°ˆù5…É­•ÑÁ±…”ğ½„ø(€€€€ñ„¡É•˜ô‰©½ÕÉ¹…°¹¡Ñµ°ˆù)½ÕÉ¹…°€ŒÀÀÀğ½„ø(€€€€ñ„¡É•˜ô‰Ñ•Éµ¥¹…°¹¡Ñµ°ˆù=Á•É…Ñ½ÉÌğ½„ø4(€€€€ñ„¡É•˜ô‰‘¥ÍÁ…Ñ ¹¡Ñµ°ˆù¥ÍÁ…Ñ ğ½„ø4(€€€€ñ„¡É•˜ô‰µ…¥±Ñ¼é½¹Ñ…Ğ¹İ…Ñ¡Ñ½İ•É•Éµ…¥°¹½´ˆù½¹Ñ…Ğğ½„ø4(€€ğ½‘¥Øø4(€€ñÀù=…±„ÍÍ•ĞM•ÕÉ¥Ñäƒ
+Ü=…±„°0ğ½Àø4(€€ñÀÍÑå±”ô‰µ…É¥¸µÑ½ÀèÙÁàˆøñ„¡É•˜ô‰µ…¥±Ñ¼é½¹Ñ…Ğ¹İ…Ñ¡Ñ½İ•É•Éµ…¥°¹½´ˆù½¹Ñ…Ğ¹İ…Ñ¡Ñ½İ•É•Éµ…¥°¹½´ğ½„øğ½Àø4(€€ñÀÍÑå±”ô‰µ…É¥¸µÑ½ÀèÄÉÁàí™½¹ĞµÍ¥é”èÄÅÁàˆùA½İ•É•‰ä	…Í”‰±½­¡…¥¸ƒ
+Ü9½Ğ™¥¹…¹¥…°…‘Ù¥”ğ½Àø4(ğ½™½½Ñ•Èø4(4(ñÍÉ¥ÁĞø4)½¹ÍĞMUA	M}UI0€ô€¡ÑÑÁÌè¼½•åÁ½ÙÕáÕ‘‘¥Å¹©‘Á­Ä¹ÍÕÁ…‰…Í”¹¼œì4)½¹ÍĞMUA	M}-d€ô€Í‰}ÁÕ‰±¥Í¡…‰±•}i±å­…Õ9Œ´ÍedàÁÜÙ¹áéÍ-İ}hÉ±TÄœì4)½¹ÍĞÍˆ€ôÍÕÁ…‰…Í”¹É•…Ñ•±¥•¹Ğ¡MUA	M}UI0°MUA	M}-d¤ì4(4)™Õ¹Ñ¥½¸Íİ¥Ñ¡Q…ˆ¡Ñ…ˆ°‰Ñ¸¤ì4(€‘½Õµ•¹Ğ¹ÅÕ•ÉåM•±•Ñ½É±° œ¹İÑ…ˆœ¤¹™½É… ¡ĞôùĞ¹±…ÍÍ1¥ÍĞ¹É•µ½Ù” …Ñ¥Ù”œ¤¤ì4(€‘½Õµ•¹Ğ¹ÅÕ•ÉåM•±•Ñ½É±° œ¹Ñ…ˆµÁ…¹•°œ¤¹™½É… ¡ÀôùÀ¹±…ÍÍ1¥ÍĞ¹É•µ½Ù” …Ñ¥Ù”œ¤¤ì4(€‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% Ñ…ˆ´œ­Ñ…ˆ¤¹±…ÍÍ1¥ÍĞ¹…‘ …Ñ¥Ù”œ¤ì4(€‰Ñ¸¹±…ÍÍ1¥ÍĞ¹…‘ …Ñ¥Ù”œ¤ì4)ô4(4)…Íå¹Œ™Õ¹Ñ¥½¸É•…Ñ•I•Í¥‘•¹Ğ¡ÍÕ‰ÍÉ¥‰•È¤ì4(€½¹ÍĞ¹…µ”õ‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% ™¹…µ”œ¤¹Ù…±Õ”¹ÑÉ¥´ ¤ì4(€½¹ÍĞ•µ…¥°õ‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% ™•µ…¥°œ¤¹Ù…±Õ”¹ÑÉ¥´ ¤¹Ñ½1½İ•É…Í” ¤ì4(€½¹ÍĞ…‘‘É•ÍÌõ‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% ™…‘‘É•ÍÌœ¤¹Ù…±Õ”¹ÑÉ¥´ ¤ì4(€½¹ÍĞé¥Àõ‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% ™é¥Àœ¤¹Ù…±Õ”¹ÑÉ¥´ ¤ì4(€½¹ÍĞÁ…ÍÌõ‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% ™Á…ÍÌœ¤¹Ù…±Õ”ì4(€¥˜ …¹…µ•ñğ…•µ…¥°¥í…±•ÉĞ A±•…Í”•¹Ñ•Èå½ÕÈ¹…µ”…¹•µ…¥°¸œ¤íÉ•ÑÕÉ¸íô4(€¥˜ …Á…ÍÍññÁ…ÍÌ¹±•¹Ñ ğà¥í…±•ÉĞ A±•…Í”Í•Ğ„Á…ÍÍİ½É€¡…Ğ±•…ÍĞ€à¡…É…Ñ•ÉÌ¤¸e½Ôİ¥±°ÕÍ”¥ĞÑ¼±½œ¥¸¸œ¤íÉ•ÑÕÉ¸íô4(€¥˜¡ÍÕ‰ÍÉ¥‰•È€˜˜€……‘‘É•ÍÌ¥í…±•ÉĞ ‘‘É•ÍÌ¥ÌÉ•ÅÕ¥É•™½È‘É¥Ù•İ…äÁ¥­ÕÀÍ•ÉÙ¥”¸œ¤íÉ•ÑÕÉ¸íô4(4(€½¹ÍĞì‘…Ñ„é…ÕÑ °•ÉÉ½Èé…ÕÑ¡ÉÈô€ô…İ…¥ĞÍˆ¹…ÕÑ ¹Í¥¹UÀ¡ì4(€€€•µ…¥°°Á…ÍÍİ½ÉèÁ…ÍÌ°4(€€€½ÁÑ¥½¹Ìèì‘…Ñ„éì¹…µ”°…‘‘É•ÍÌ°é¥Àô°•µ…¥±I•‘¥É•ÑQ¼è€¡ÑÑÁÌè¼½…ÁÀ¹½…±……ÍÍ•ÑÍ•ÕÉ¥Ñä¹½´½¥¹‘•à¹¡Ñµ°œô4(€ô¤ì4(€¥˜€¡…ÕÑ¡ÉÈ¤ì4(€€€¥˜ ¡…ÕÑ¡ÉÈ¹µ•ÍÍ…•ñğœœ¤¹Ñ½1½İ•É…Í” ¤¹¥¹±Õ‘•Ì …±É•…‘äœ¤¤…±•ÉĞ ‰]•±½µ”‰…¬„e½ÔÉ”…±É•…‘äÍ¥¹•ÕÀİ¥Ñ Ñ¡…Ğ•µ…¥°€´±½œ¥¸‰•±½Ü°½ÈÑ…Àp‰QÉ½Õ‰±”Í¥¹¥¹œ¥¸ıpˆ™½È„±¥¹¬¥¹ÍÑ•…½˜„Á…ÍÍİ½É¸ˆ¤ì4(€€€•±Í”ì…±•ÉĞ M¥¹ÕÀ™…¥±•è€œ­…ÕÑ¡ÉÈ¹µ•ÍÍ…”¤ì½¹Í½±”¹•ÉÉ½È¡…ÕÑ¡ÉÈ¤ìô4(€€€É•ÑÕÉ¸ì4(€ô4(4(€€¼¼Q¡”É•Í¥‘•¹ÑÌÉ½Ü¥ÌÉ•…Ñ•Í•ÉÙ•ÈµÍ¥‘”‰äÑ¡”½¹}…ÕÑ¡}ÕÍ•É}É•…Ñ•‘}É•Í¥‘•¹Ğ4(€€¼¼ÑÉ¥•È°™É½´Ñ¡”¹…µ”½…‘‘É•ÍÌ½é¥ÀÁ…ÍÍ•…ÌÍ¥¹UÀµ•Ñ…‘…Ñ„…‰½Ù”¸Q¡”4(€€¼¼±¥•¹Ğ¹¼±½¹•È¥¹Í•ÉÑÌ½ÈÍ•±•ÑÌÉ•Í¥‘•¹ÑÌ¡•É”€´´‘½¥¹œÍ¼É•ÅÕ¥É•Ñ¡”4(€€¼¼Ñ…‰±”Ñ¼‰”É•…‘…‰±”‰ä…¹½¸°İ¡¥ •áÁ½Í••Ù•ÉäÉ•Í¥‘•¹ĞÌ¹…µ”°•µ…¥°°4(€€¼¼¡½µ”…‘‘É•ÍÌ…¹MÑÉ¥Á”ÕÍÑ½µ•È¥Ñ¼…¹å½¹”¡½±‘¥¹œÑ¡”ÁÕ‰±¥Í¡…‰±”­•ä¸4(€€¼¼4(€€¼¼İ…±±•Ñ}¥¥Ì½¹±ä•Ù•È•¹•É…Ñ•½¸™¥ÉÍĞ¥¹Í•ÉĞ°Í¼„É•Í¥‘•¹ĞÌ]Q]H4(€€¼¼¡¥ÍÑ½Éä¥Ì¹•Ù•È‘¥Í½¹¹•Ñ•‰ä„É•Á•…ĞÍ¥¹ÕÀ¸4(€½¹ÍĞ¥¹9½Ü€ô€„……ÕÑ ¹Í•ÍÍ¥½¸ì4(€±•Ğİ…±±•Ñ%€ô¹Õ±°ì4(4(€¥˜€¡¥¹9½Ü¤ì4(€€€€¼¼M¥¹•¥¸…±É•…‘ä€¡¹¼•µ…¥°½¹™¥Éµ…Ñ¥½¸ÍÑ•À¤°Í¼Ñ¡”Í½Á•4(€€€€¼¼€‰É•Í¥‘•¹ÑÌÍ•±•Ğ½İ¸É½ÜˆÁ½±¥ä±•ÑÌÕÌÉ•…½ÕÈ½İ¸İ…±±•Ğ¥‰…¬¸4(€€€½¹ÍĞì‘…Ñ„èµ¥¹”ô€ô…İ…¥ĞÍˆ¹™É½´ É•Í¥‘•¹ÑÌœ¤4(€€€€€€¹Í•±•Ğ İ…±±•Ñ}¥œ¤¹•Ä ÕÍ•É}¥œ°…ÕÑ ¹ÕÍ•È¹¥¤¹µ…å‰•M¥¹±” ¤ì4(€€€İ…±±•Ñ%€ôµ¥¹”€˜˜µ¥¹”¹İ…±±•Ñ}¥ì4(€ô4(4(€¥˜€¡ÍÕ‰ÍÉ¥‰•È¤ì4(€€€€¼¼MÕ‰ÍÉ¥‰•È¥Ì„Á…¥ÕÁÉ…‘”…¹¥ÌÍ•Ğ‰äÑ¡”MÑÉ¥Á”¡•­½ÕĞ™±½Ü4(€€€€¼¼‰•±½Ü°¹½Ğ‰äÑ¡¥Ì™½É´€´´Ñ¡”±¥•¹ĞµÕÍĞ¹½Ğ‰”…‰±”Ñ¼É…¹Ğ¥Ğ¸4(€€€½¹Í½±”¹¥¹™¼ mÍ¥¹ÕÁtÍÕ‰ÍÉ¥‰•ÈÉ•ÅÕ•ÍÑ•ì½¹™¥Éµ•½¸MÑÉ¥Á”¡•­½ÕĞœ¤ì4(€ô4(4(€‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% •µ…¥±MÕ•ÍÍ‘‘Èœ¤¹Ñ•áÑ½¹Ñ•¹Ğ€ô4(€€€€¡İ…±±•Ñ%€ü€]…±±•Ğ%è€œ€¬İ…±±•Ñ%€è€e½ÕÈ]…±±•Ğ%¥Ì¥¸å½ÕÈ…½Õ¹Ğ½¹”å½ÔÍ¥¸¥¸¸œ¤4(€€€€¬€¡ÍÕ‰ÍÉ¥‰•È€ü€œ€¡É¥Ù•İ…äÍÕ‰ÍÉ¥‰•È€´€Ğ¸ää½µ¼¤œ€è€œœ¤4(€€€€¬€¡¥¹9½Ü€ü€œœ€è€œ€€´€¡•¬å½ÕÈ•µ…¥°Ñ¼½¹™¥É´¸œ¤ì4(€‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% •µ…¥±½É´œ¤¹ÍÑå±”¹‘¥ÍÁ±…äô¹½¹”œì4(€‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% •µ…¥±MÕ•ÍÌœ¤¹±…ÍÍ1¥ÍĞ¹…‘ Í¡½Üœ¤ì4(€¥˜€¡ÍÕ‰ÍÉ¥‰•È€˜˜€…‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% ÍÑÉ¥Á•9½Ñ”œ¤¤ì4(€€€½¹ÍĞ¹½Ñ”õ‘½Õµ•¹Ğ¹É•…Ñ•±•µ•¹Ğ Àœ¤ì4(€€€¹½Ñ”¹¥ôÍÑÉ¥Á•9½Ñ”œì4(€€€¹½Ñ”¹ÍÑå±”¹ÍÍQ•áĞô™½¹ĞµÍ¥é”èÄÍÁàí½±½ÈéÙ…È ´µµÕÑ•¤íµ…É¥¸µÑ½ÀèÄÉÁàí±¥¹”µ¡•¥¡ĞèÄ¸Ôìœì4(€€€¹½Ñ”¹Ñ•áÑ½¹Ñ•¹Ğôe½ÕÈÍÕ‰ÍÉ¥ÁÑ¥½¸¥Ì¡…¹‘±•Ñ¡É½Õ Í•ÕÉ”MÑÉ¥Á”¡•­½ÕĞİ¡•¸å½ÔÑ…ÀÑ¡”ÍÕ‰ÍÉ¥ÁÑ¥½¸‰ÕÑÑ½¸…‰½Ù”¸œì4(€€€‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% •µ…¥±MÕ•ÍÌœ¤¹…ÁÁ•¹‘¡¥±¡¹½Ñ”¤ì4(€ô4)ô4(4)™Õ¹Ñ¥½¸É•…Ñ•µ…¥±]…±±•Ğ ¤ìÉ•…Ñ•I•Í¥‘•¹Ğ¡™…±Í”¤ìô4)™Õ¹Ñ¥½¸Ñ½±•AÜ¡¥±‰Ñ¸¥í½¹ÍĞ•°õ‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å%¡¥¤í¥˜ …•°¥É•ÑÕÉ¸í¥˜¡•°¹ÑåÁ”ôôôÁ…ÍÍİ½Éœ¥í•°¹ÑåÁ”ôÑ•áĞœí‰Ñ¸¹Ñ•áÑ½¹Ñ•¹Ğô¡¥‘”œíõ•±Í•í•°¹ÑåÁ”ôÁ…ÍÍİ½Éœí‰Ñ¸¹Ñ•áÑ½¹Ñ•¹ĞôÍ¡½Üœíõô4)…Íå¹Œ™Õ¹Ñ¥½¸±½¥¹UÍ•È ¥ì4(€½¹ÍĞ•µ…¥°õ‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% ±½¥¹µ…¥°œ¤¹Ù…±Õ”¹ÑÉ¥´ ¤ì4(€½¹ÍĞÁ…ÍÌõ‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% ±½¥¹A…ÍÌœ¤¹Ù…±Õ”ì4(€¥˜ …•µ…¥±ñğ…Á…ÍÌ¥í…±•ÉĞ ¹Ñ•Èå½ÕÈ•µ…¥°…¹Á…ÍÍİ½É¸œ¤íÉ•ÑÕÉ¸íô4(€½¹ÍĞí‘…Ñ„±•ÉÉ½Éôõ…İ…¥ĞÍˆ¹…ÕÑ ¹Í¥¹%¹]¥Ñ¡A…ÍÍİ½É¡í•µ…¥°±Á…ÍÍİ½ÉéÁ…ÍÍô¤ì4(€¥˜¡•ÉÉ½È¥í…±•ÉĞ 1½¥¸™…¥±•è€œ­•ÉÉ½È¹µ•ÍÍ…”¤íÉ•ÑÕÉ¸íô4(€Í¡½İ1½•‘%¸¡‘…Ñ„¹ÕÍ•È¤ì4)ô4)…Íå¹Œ™Õ¹Ñ¥½¸™½É½ÑA…ÍÍİ½É ¥ì4(€½¹ÍĞ•µ…¥°ô¡‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% ±½¥¹µ…¥°œ¤¹Ù…±Õ•ññ‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% ™•µ…¥°œ¤¹Ù…±Õ•ñğœœ¤¹ÑÉ¥´ ¤ì4(€¥˜ …•µ…¥°¥í…±•ÉĞ QåÁ”å½ÕÈ•µ…¥°¥¸Ñ¡”±½¥¸‰½à™¥ÉÍĞ°Ñ¡•¸Ñ…À½É½ĞÁ…ÍÍİ½É¸œ¤íÉ•ÑÕÉ¸íô4(€½¹ÍĞí•ÉÉ½Éôõ…İ…¥ĞÍˆ¹…ÕÑ ¹É•Í•ÑA…ÍÍİ½É‘½Éµ…¥°¡•µ…¥°±íÉ•‘¥É•ÑQ¼è¡ÑÑÁÌè¼½…ÁÀ¹½…±……ÍÍ•ÑÍ•ÕÉ¥Ñä¹½´½¥¹‘•à¹¡Ñµ°ô¤ì4(€¥˜¡•ÉÉ½È¥í…±•ÉĞ ½Õ±¹½ĞÍ•¹É•Í•Ğ±¥¹¬è€œ­•ÉÉ½È¹µ•ÍÍ…”¤íÉ•ÑÕÉ¸íô4(€…±•ÉĞ I•Í•Ğ±¥¹¬Í•¹ĞÑ¼€œ­•µ…¥°¬œ¸¡•¬å½ÕÈ¥¹‰½à…¹ÍÁ…´™½±‘•È¸œ¤ì4)ô4)…Íå¹Œ™Õ¹Ñ¥½¸Í•¹‘5…¥1¥¹¬ ¥ì4(€½¹ÍĞ•µ…¥°ô¡‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% ±½¥¹µ…¥°œ¤¹Ù…±Õ•ññ‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% ™•µ…¥°œ¤¹Ù…±Õ•ñğœœ¤¹ÑÉ¥´ ¤¹Ñ½1½İ•É…Í” ¤ì4(€¥˜ …•µ…¥°¥í…±•ÉĞ QåÁ”å½ÕÈ•µ…¥°¥¸Ñ¡”±½¥¸‰½à™¥ÉÍĞ°Ñ¡•¸Ñ…À€‰•Ğ„±¥¹¬¥¹ÍÑ•…ˆ¸œ¤íÉ•ÑÕÉ¸íô4(€½¹ÍĞí•ÉÉ½Éôõ…İ…¥ĞÍˆ¹…ÕÑ ¹Í¥¹%¹]¥Ñ¡=ÑÀ¡ì4(€€€•µ…¥°°4(€€€½ÁÑ¥½¹ÌéìÍ¡½Õ±‘É•…Ñ•UÍ•Èé™…±Í”°•µ…¥±I•‘¥É•ÑQ¼è¡ÑÑÁÌè¼½…ÁÀ¹½…±……ÍÍ•ÑÍ•ÕÉ¥Ñä¹½´½¥¹‘•à¹¡Ñµ°œô4(€ô¤ì4(€¥˜¡•ÉÉ½È¥ì4(€€€½¹ÍĞ´ô¡•ÉÉ½È¹µ•ÍÍ…•ñğœœ¤¹Ñ½1½İ•É…Í” ¤ì4(€€€¥˜¡´¹¥¹±Õ‘•Ì Í¥¹ÕÀœ¤ñğ´¹¥¹±Õ‘•Ì ¹½Ğ™½Õ¹œ¤ñğ´¹¥¹±Õ‘•Ì ¹½Ğ…±±½İ•œ¤¥ì4(€€€€€…±•ÉĞ 9¼…½Õ¹Ğ™½Õ¹™½ÈÑ¡…Ğ•µ…¥°¸UÍ”€‰)½¥¸É•”ˆ…‰½Ù”Ñ¼É•…Ñ”½¹”¸œ¤ì4(€€€ô•±Í”ì4(€€€€€…±•ÉĞ ½Õ±¹½ĞÍ•¹Í¥¸µ¥¸±¥¹¬è€œ­•ÉÉ½È¹µ•ÍÍ…”¤ì4(€€€ô4(€€€É•ÑÕÉ¸ì4(€ô4(€…±•ÉĞ M¥¸µ¥¸±¥¹¬Í•¹ĞÑ¼€œ­•µ…¥°¬œ¸¡•¬å½ÕÈ¥¹‰½à…¹ÍÁ…´™½±‘•È°Ñ¡•¸Ñ…ÀÑ¡”±¥¹¬Ñ¼±½œ¥¸¸œ¤ì4)ô4)™Õ¹Ñ¥½¸Í¡½İ1½•‘%¸¡ÕÍ•È¥ì4(€±½…Ñ¥½¸¹¡É•˜ôÉ•Í¥‘•¹Ğ¹¡Ñµ°œì4)ô4)Íˆ¹…ÕÑ ¹½¹ÕÑ¡MÑ…Ñ•¡…¹” ¡•Ù•¹Ğ¤ôùì4(€¥˜¡•Ù•¹ĞôôôAMM]=I}I=YIdœ¥ì4(€€€½¹ÍĞ¹ÀõÁÉ½µÁĞ ¹Ñ•È„¹•ÜÁ…ÍÍİ½É€¡…Ğ±•…ÍĞ€à¡…É…Ñ•ÉÌ¤èœ¤ì4(€€€¥˜¡¹À˜™¹À¹±•¹Ñ øôà¥ìÍˆ¹…ÕÑ ¹ÕÁ‘…Ñ•UÍ•È¡íÁ…ÍÍİ½Éé¹Áô¤¹Ñ¡•¸ ¡í•ÉÉ½Éô¤ôùì…±•ÉĞ¡•ÉÉ½Èü ÉÉ½Èè€œ­•ÉÉ½È¹µ•ÍÍ…”¤èA…ÍÍİ½ÉÕÁ‘…Ñ•€´å½Ô…¸±½œ¥¸¹½Ü¸œ¤ìô¤ìô4(€€€•±Í”¥˜¡¹À¥ì…±•ÉĞ A…ÍÍİ½ÉÑ½¼Í¡½ÉĞ¸œ¤ìô4(€ô4)ô¤ì4)Íˆ¹…ÕÑ ¹•ÑM•ÍÍ¥½¸ ¤¹Ñ¡•¸ ¡í‘…Ñ…ô¤ôùì¥˜¡‘…Ñ„˜™‘…Ñ„¹Í•ÍÍ¥½¸¥ì±½…Ñ¥½¸¹¡É•˜ôÉ•Í¥‘•¹Ğ¹¡Ñµ°œìôô¤ì4(4)…Íå¹Œ™Õ¹Ñ¥½¸ÍÕ‰ÍÉ¥‰•MÑÉ¥Á”¡•Ù•¹Ğ¤ì4(€½¹ÍĞ¹…µ”õ‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% ™¹…µ”œ¤¹Ù…±Õ”¹ÑÉ¥´ ¤ì4(€½¹ÍĞ•µ…¥°õ‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% ™•µ…¥°œ¤¹Ù…±Õ”¹ÑÉ¥´ ¤ì4(€½¹ÍĞ…‘‘É•ÍÌõ‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% ™…‘‘É•ÍÌœ¤¹Ù…±Õ”¹ÑÉ¥´ ¤ì4(€¥˜ …¹…µ•ñğ…•µ…¥°¥í…±•ÉĞ A±•…Í”™¥±°¥¸å½ÕÈ¹…µ”…¹•µ…¥°™¥ÉÍĞ¸œ¤íÉ•ÑÕÉ¸íô4(€¥˜ ……‘‘É•ÍÌ¥í…±•ÉĞ ‘‘É•ÍÌ¥ÌÉ•ÅÕ¥É•™½È‘É¥Ù•İ…äÁ¥­ÕÀ¸œ¤íÉ•ÑÕÉ¸íô4(€½¹ÍĞ‰ÕÑÑ½¸õ•Ù•¹Ğü¹ÕÉÉ•¹ÑQ…É•Ğñğ‘½Õµ•¹Ğ¹ÅÕ•ÉåM•±•Ñ½È œİ…±±•ĞµÍ•Ñ¥½¸€¹ÁÉ¥µ…Éäµ‰Ñ¸œ¤ì4(€½¹ÍĞ½É¥¥¹…°õ‰ÕÑÑ½¸ü¹Ñ•áÑ½¹Ñ•¹Ğñğ€P]-1dA%-U@ƒŠP€Ğ¸ää½5<ƒŠHœì4(€¥˜¡‰ÕÑÑ½¸¥í‰ÕÑÑ½¸¹‘¥Í…‰±•õÑÉÕ”ì‰ÕÑÑ½¸¹Ñ•áÑ½¹Ñ•¹Ğô=A9%9MUI!-=USŠ˜œíô4(€ÑÉåì4(€€€½¹ÍĞÉ•ÍÁ½¹Í”õ…İ…¥Ğ™•Ñ  œ½…Á¤½É•…Ñ”µ¡•­½ÕĞœ±íµ•Ñ¡½èA=MPœ±¡•…‘•ÉÌéì½¹Ñ•¹ĞµQåÁ”œè…ÁÁ±¥…Ñ¥½¸½©Í½¸ô±‰½‘äé)M=8¹ÍÑÉ¥¹¥™ä¡í¹…µ”±•µ…¥°±…‘‘É•ÍÌ±é¥Àé‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% ™é¥Àœ¤¹Ù…±Õ”¹ÑÉ¥´ ¥ô¥ô¤ì4(€€€½¹ÍĞ‘…Ñ„õ…İ…¥ĞÉ•ÍÁ½¹Í”¹©Í½¸ ¤ì4(€€€¥˜ …É•ÍÁ½¹Í”¹½­ñğ…‘…Ñ„¹ÕÉ°¥Ñ¡É½Ü¹•ÜÉÉ½È¡‘…Ñ„¹•ÉÉ½ÉñğU¹…‰±”Ñ¼ÍÑ…ÉĞ¡•­½ÕĞ¸œ¤ì4(€€€İ¥¹‘½Ü¹±½…Ñ¥½¸¹¡É•˜õ‘…Ñ„¹ÕÉ°ì4(€õ…Ñ ¡•ÉÉ½È¥ì4(€€€…±•ÉĞ¡•ÉÉ½È¹µ•ÍÍ…•ñğU¹…‰±”Ñ¼ÍÑ…ÉĞ¡•­½ÕĞ¸A±•…Í”ÑÉä……¥¸¸œ¤ì4(€€€¥˜¡‰ÕÑÑ½¸¥í‰ÕÑÑ½¸¹‘¥Í…‰±•õ™…±Í”ì‰ÕÑÑ½¸¹Ñ•áÑ½¹Ñ•¹Ğõ½É¥¥¹…°íô4(€ô4)ô4)…Íå¹Œ™Õ¹Ñ¥½¸½¹¹•Ñ5•Ñ…5…Í¬ ¤ì4(€¥˜¡ÑåÁ•½˜İ¥¹‘½Ü¹•Ñ¡•É•Õ´ôôôÕ¹‘•™¥¹•œ¥í…±•ÉĞ 5•Ñ…5…Í¬¹½Ğ‘•Ñ•Ñ•¸=¸µ½‰¥±”°½Á•¸Ñ¡¥ÌÁ…”¥¹Í¥‘”Ñ¡”5•Ñ…5…Í¬‰É½İÍ•È°½ÈÕÍ”QÉÕÍĞ]…±±•Ğ€¼½¥¹‰…Í”]…±±•Ğ¸œ¤íÉ•ÑÕÉ¸íô4(€ÑÉåì4(€€€½¹ÍĞ…½Õ¹ÑÌõ…İ…¥Ğİ¥¹‘½Ü¹•Ñ¡•É•Õ´¹É•ÅÕ•ÍĞ¡íµ•Ñ¡½è•Ñ¡}É•ÅÕ•ÍÑ½Õ¹ÑÌô¤ì4(€€€½¹ÍĞ…‘‘Èõ…½Õ¹ÑÍlÁtì4(€€€ÑÉåí…İ…¥Ğİ¥¹‘½Ü¹•Ñ¡•É•Õ´¹É•ÅÕ•ÍĞ¡íµ•Ñ¡½èİ…±±•Ñ}Íİ¥Ñ¡Ñ¡•É•Õµ¡…¥¸œ±Á…É…µÌémí¡…¥¹%èœÁàÈÄÀÔõuô¤íô4(€€€…Ñ ¡”¥í…İ…¥Ğİ¥¹‘½Ü¹•Ñ¡•É•Õ´¹É•ÅÕ•ÍĞ¡íµ•Ñ¡½èİ…±±•Ñ}…‘‘Ñ¡•É•Õµ¡…¥¸œ±Á…É…µÌémí¡…¥¹%èœÁàÈÄÀÔœ±¡…¥¹9…µ”è	…Í”œ±¹…Ñ¥Ù•ÕÉÉ•¹äéí¹…µ”èQ œ±Íåµ‰½°èQ œ±‘•¥µ…±ÌèÄáô±ÉÁUÉ±Ìél¡ÑÑÁÌè¼½µ…¥¹¹•Ğ¹‰…Í”¹½Éœt±‰±½­áÁ±½É•ÉUÉ±Ìél¡ÑÑÁÌè¼½‰…Í•Í…¸¹½Éœuõuô¤íô4(€€€Í¡½İÉåÁÑ½MÕ•ÍÌ¡…‘‘È¤ì4(€õ…Ñ ¡”¥í…±•ÉĞ ½¹¹•Ñ¥½¸…¹•±±•¸œ¤íô4)ô4)™Õ¹Ñ¥½¸½¹¹•Ñ]…±±•Ñ½¹¹•Ğ ¥í…±•ÉĞ QÉÕÍĞ]…±±•Ğ€¼½¥¹‰…Í”]…±±•Ğ½¹¹•Ñ¥½¸½µ¥¹œ…Ğ±…Õ¹ ¸½È¹½ÜÕÍ”•µ…¥°Í¥¹ÕÀ½È5•Ñ…5…Í¬‰É½İÍ•È¸œ¤íô4)™Õ¹Ñ¥½¸Í¡½İÉåÁÑ½MÕ•ÍÌ¡…‘‘È¥ì4(€‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% ÉåÁÑ½‘‘Èœ¤¹Ñ•áÑ½¹Ñ•¹Ğõ…‘‘Èì4(€‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% ÉåÁÑ½MÕ•ÍÌœ¤¹±…ÍÍ1¥ÍĞ¹…‘ Í¡½Üœ¤ì4(€‘½Õµ•¹Ğ¹ÅÕ•ÉåM•±•Ñ½É±° œ¹İ…±±•Ğµ½¹¹•Ğµ‰Ñ¸œ¤¹™½É… ¡ˆôùˆ¹ÍÑå±”¹‘¥ÍÁ±…äô¹½¹”œ¤ì4)ô4)™Õ¹Ñ¥½¸™½Éµ…Ñ…É¡•°¥í±•ĞØõ•°¹Ù…±Õ”¹É•Á±…” ½q½œ°œœ¤¹ÍÕ‰ÍÑÉ¥¹œ À°ÄØ¤í•°¹Ù…±Õ”õØ¹É•Á±…” ¼ ¹ìÑô¤½œ°œÄ€œ¤¹ÑÉ¥´ ¤íô4)™Õ¹Ñ¥½¸™½Éµ…ÑáÀ¡•°¥í±•ĞØõ•°¹Ù…±Õ”¹É•Á±…” ½q½œ°œœ¤í¥˜¡Ø¹±•¹Ñ øôÈ¥ØõØ¹ÍÕ‰ÍÑÉ¥¹œ À°È¤¬œ¼œ­Ø¹ÍÕ‰ÍÑÉ¥¹œ È°Ğ¤í•°¹Ù…±Õ”õØíô4(ğ½ÍÉ¥ÁĞø4(ñÍÉ¥ÁĞø4(¡™Õ¹Ñ¥½¸ ¥ì4(€€¼¼€´´´´=Á•É…Ñ½È…•ÍÌè½¸µÍÉ••¸µ½‘…°€¡‰¥œÑ…ÀÑ…É•Ğ¤¥¹ÍÑ•…½˜¹…Ñ¥Ù”ÁÉ½µÁĞ ¤€´´´´4(€İ¥¹‘½Ü¹•¹Ñ•ÉQ•Éµ¥¹…°õ™Õ¹Ñ¥½¸ ¥ì4(€€€¥˜¡±½…±MÑ½É…”¹•Ñ%Ñ•´ İÑ}½Àœ¤ôôôœÄœ¥í±½…Ñ¥½¸¹¡É•˜ôÑ•Éµ¥¹…°¹¡Ñµ°œíÉ•ÑÕÉ¸íô4(€€€‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% ½ÁÉÈœ¤¹Ñ•áÑ½¹Ñ•¹Ğôœœì4(€€€‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% ½Á½‘•%¹ÁÕĞœ¤¹Ù…±Õ”ôœœì4(€€€‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% ½Á=Ù•É±…äœ¤¹±…ÍÍ1¥ÍĞ¹…‘ ½Á•¸œ¤ì4(€€€Í•ÑQ¥µ•½ÕĞ¡™Õ¹Ñ¥½¸ ¥ì‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% ½Á½‘•%¹ÁÕĞœ¤¹™½ÕÌ ¤ìô°€ÔÀ¤ì4(€ôì4(€İ¥¹‘½Ü¹±½Í•=Á5½‘…°õ™Õ¹Ñ¥½¸ ¥ì4(€€€‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% ½Á=Ù•É±…äœ¤¹±…ÍÍ1¥ÍĞ¹É•µ½Ù” ½Á•¸œ¤ì4(€ôì4(€İ¥¹‘½Ü¹ÍÕ‰µ¥Ñ=Á½‘”õ™Õ¹Ñ¥½¸ ¥ì4(€€€Ù…ÈÙ…°ô¡‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% ½Á½‘•%¹ÁÕĞœ¤¹Ù…±Õ•ñğœœ¤¹ÑÉ¥´ ¤ì4(€€€¥˜¡Ù…°ôôô]Q ÈÀÈØœ¥ì4(€€€€€±½…±MÑ½É…”¹Í•Ñ%Ñ•´ İÑ}½Àœ°œÄœ¤ì4(€€€€€‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% ½Á=Ù•É±…äœ¤¹±…ÍÍ1¥ÍĞ¹É•µ½Ù” ½Á•¸œ¤ì4(€€€€€±½…Ñ¥½¸¹¡É•˜ôÑ•Éµ¥¹…°¹¡Ñµ°œì4(€€€ô•±Í”ì4(€€€€€‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% ½ÁÉÈœ¤¹Ñ•áÑ½¹Ñ•¹Ğô%¹½ÉÉ•Ğ½‘”¸QÉä……¥¸¸œì4(€€€ô4(€ôì4(€€¼¼…±±½Ü¡¥ÑÑ¥¹œ¹Ñ•È½¸Ñ¡”­•å‰½…É½É•ÑÕÉ¸­•ä¥¹ÍÑ•…½˜Ñ…ÁÁ¥¹œÑ¡”‰ÕÑÑ½¸4(€‘½Õµ•¹Ğ¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È =5½¹Ñ•¹Ñ1½…‘•œ°™Õ¹Ñ¥½¸ ¥ì4(€€€Ù…È¥¹Àõ‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% ½Á½‘•%¹ÁÕĞœ¤ì4(€€€¥˜¡¥¹À¥ì¥¹À¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ­•å‘½İ¸œ°™Õ¹Ñ¥½¸¡”¥ì¥˜¡”¹­•äôôô¹Ñ•Èœ¥ìÍÕ‰µ¥Ñ=Á½‘” ¤ìôô¤ìô4(€ô¤ì4(4(€İ¥¹‘½Ü¹•¹Ñ•É	ÕÍ¥¹•ÍÌõ™Õ¹Ñ¥½¸ ¥ì±½…Ñ¥½¸¹¡É•˜ô‰ÕÍ¥¹•ÍÌ¹¡Ñµ°œìôì4(€ÑÉåì4(€€€€¼¼Y¥„IA°¹½Ğ„Ñ…‰±”½Õ¹ĞèÉ•Í¥‘•¹ÑÌ¥Ì¹¼±½¹•ÈÉ•…‘…‰±”‰ä…¹½¸°…¹4(€€€€¼¼Ñ¡¥Ì‘•™¥¹•È™Õ¹Ñ¥½¸•áÁ½Í•ÌÑ¡”½Õ¹Ğİ¥Ñ¡½ÕĞ•áÁ½Í¥¹œ…¹äÉ½İÌ¸4(€€€Íˆ¹ÉÁŒ É•Í¥‘•¹Ñ}Í¥¹ÕÁ}½Õ¹Ğœ¤¹Ñ¡•¸¡™Õ¹Ñ¥½¸¡È¥ì4(€€€€€Ù…È•°õ‘½Õµ•¹Ğ¹•Ñ±•µ•¹Ñ	å% Í¥¹ÕÁ½Õ¹Ğœ¤ì4(€€€€€¥˜ …•°¥É•ÑÕÉ¸ì4(€€€€€•°¹Ñ•áÑ½¹Ñ•¹Ğô …È¹•ÉÉ½È€˜˜ÑåÁ•½˜È¹‘…Ñ„ôôô¹Õµ‰•Èœ¤ıÈ¹‘…Ñ„èœÀœì4(€€€ô¤ì4(€õ…Ñ ¡”¥íô4)ô¤ ¤ì4(ğ½ÍÉ¥ÁĞø4(ğ½‰½‘äø4(ğ½¡Ñµ°ø4

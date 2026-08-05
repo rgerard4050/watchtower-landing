@@ -50,7 +50,7 @@ h2{font-family:var(--mono);font-size:13px;color:var(--green);letter-spacing:.1em
 .model-box p{font-size:14px;line-height:1.65;color:var(--text);}
 .model-box p+p{margin-top:10px;}
 
-.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px;}
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:20px;}
 @media (max-width:700px){.pricing-grid{grid-template-columns:1fr;}}
 .tier-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px;display:flex;flex-direction:column;}
 .tier-card.featured{border-color:var(--green);box-shadow:0 0 0 1px var(--green),0 0 24px var(--green-glow);position:relative;}
@@ -167,8 +167,8 @@ input[type=number]:focus,textarea#rdmManualCode:focus{border-color:var(--green);
 
     <section>
       <h1>You're paying to throw away <span>money.</span></h1>
-      <p class="lede">Right now, waste removal is a bill. With Watchtower it becomes a line of credit and a stream of customers walking through your door to spend it.</p>
-      <p class="sub">Every business in Ocala currently pays someone to haul material away â€” a line on the accounts payable side. Watchtower flips it: the same material becomes revenue, and the credits residents earn get spent at your register.</p>
+      <p class="lede">A business is a bigger node: cleaner recurring streams, more equipment, more people, and more moments when useful value can disappear.</p>
+      <p class="sub">Start with a profile and scanner demo. Add paid service when Watchtower is ready to actively support your material flow.</p>
 
       <div class="angle-grid">
         <div class="angle-card"><div class="t">AP &rarr; AR flip</div><div class="d">The removal fee you already pay becomes material value on your ledger instead.</div></div>
@@ -181,575 +181,19 @@ input[type=number]:focus,textarea#rdmManualCode:focus{border-color:var(--green);
         <div class="angle-card"><div class="t">Smart node placement</div><div class="d">A discreet, out-of-the-way collection point â€” not an eyesore at the front of your store.</div></div>
       </div>
 
-      <div class="model-box">
-        <span class="model-tag">Illustration, not a case study</span>
-        <p><strong>What this looks like in practice:</strong> we don't have partner data yet, so nothing below is a real result â€” it's a model of the mechanics.</p>
-        <p>A shop generating ~200 lbs of cardboard a week currently pays for removal. Under Signal, that same material offsets part of that removal cost and starts generating WTWR credit-driven visits instead â€” real numbers here will replace this once our first partners are live.</p>
-      </div>
+      <div class="model-box"><span class="model-tag">START WITH WHAT IS REAL</span><p>Map the streams leaving your property, try the material lifecycle, and show us where cost, space, or recoverable equipment is being overlooked. Savings and returns are measured only after a real pilot begins.</p></div>
     </section>
 
     <section>
       <h2>Pricing</h2>
       <div class="pricing-grid">
         <div class="tier-card">
-          <div class="tier-name">Signal</div>
-          <div class="tier-price">$49<small>/mo</small></div>
-          <div class="tier-annual">or $490/yr</div>
-          <button class="tier-pick" data-tier="Signal" onclick="pickTier(this)">Choose Signal</button>
-        </div>
-        <div class="tier-card featured">
-          <div class="tier-name">Enforcer</div>
-          <div class="tier-price">$99<small>/mo</small></div>
-          <div class="tier-annual">or $990/yr</div>
-          <button class="tier-pick" data-tier="Enforcer" onclick="pickTier(this)">Choose Enforcer</button>
+          <div class="tier-name">Scout</div>
+          <div class="tier-price">$0<small>/free</small></div>
+          <div class="tier-annual">Business node profile + scanner lifecycle demo</div>
+          <a class="tier-pick" href="scanner.html?demo=1&amp;entity=business" style="display:block;text-align:center;text-decoration:none;">Try Business Demo</a>
         </div>
         <div class="tier-card">
-          <div class="tier-name">Sentinel</div>
-          <div class="tier-price">$199<small>/mo</small></div>
-          <div class="tier-annual">or $1,990/yr</div>
-          <button class="tier-pick" data-tier="Sentinel" onclick="pickTier(this)">Choose Sentinel</button>
-        </div>
-      </div>
-      <div class="addon-row">
-        <div class="addon-chip"><b>Ad â€” Boost</b> +$25/mo, on top of any tier</div>
-        <div class="addon-chip"><b>Ad â€” Featured</b> +$75/mo, on top of any tier</div>
-      </div>
-    </section>
-
-    <section id="signupSection">
-      <h2>Initialize Node</h2>
-      <div class="form-card">
-        <div class="input-group">
-          <label>Business Name</label>
-          <input type="text" id="biz" placeholder="Ocala Hardware Co." required>
-        </div>
-        <div class="input-group">
-          <label>Contact Name</label>
-          <input type="text" id="contact" placeholder="Primary Operator" required>
-        </div>
-        <div class="input-group">
-          <label>Node Email (Login ID)</label>
-          <input type="email" id="email" placeholder="you@yourbusiness.com" required>
-        </div>
-        <div class="input-group">
-          <label>Node Passkey</label>
-          <input type="password" id="password" placeholder="Min. 6 characters" required>
-        </div>
-        <div class="input-group">
-          <label>Contact Phone</label>
-          <input type="tel" id="phone" placeholder="(352) 555-0199">
-        </div>
-
-        <div class="input-group">
-          <label>Tier</label>
-          <div class="segmented" id="tierSeg">
-            <button type="button" class="seg-btn active" data-tier="Signal" onclick="setTier(this)">Signal</button>
-            <button type="button" class="seg-btn" data-tier="Enforcer" onclick="setTier(this)">Enforcer</button>
-            <button type="button" class="seg-btn" data-tier="Sentinel" onclick="setTier(this)">Sentinel</button>
-          </div>
-        </div>
-
-        <div class="input-group">
-          <label>Billing</label>
-          <div class="segmented" id="intervalSeg">
-            <button type="button" class="seg-btn active" data-interval="monthly" onclick="setInterval_(this)">Monthly</button>
-            <button type="button" class="seg-btn" data-interval="annual" onclick="setInterval_(this)">Annual (save 2mo)</button>
-          </div>
-        </div>
-
-        <div class="input-group">
-          <label>Ad Add-ons (optional)</label>
-          <div class="checkbox-row"><input type="checkbox" id="addonBoost"> <label for="addonBoost" style="margin:0;text-transform:none;">Boost â€” $25/mo</label></div>
-          <div class="checkbox-row"><input type="checkbox" id="addonFeatured"> <label for="addonFeatured" style="margin:0;text-transform:none;">Featured â€” $75/mo</label></div>
-        </div>
-
-        <div class="input-group">
-          <label>Notes</label>
-          <textarea id="notes" rows="3" placeholder="Anything about your material streams or logistics we should know."></textarea>
-        </div>
-
-        <button class="submit-btn" id="submitBtn" onclick="handleSubmit()">Provision Node &amp; Continue to Payment</button>
-        <div class="msg" id="formMsg"></div>
-      </div>
-    </section>
-
-    <p class="contact-line">Questions? <a href="mailto:contact.watchtowerer@gmail.com">contact.watchtowerer@gmail.com</a></p>
-  </div>
-
-  <!-- ============ LOGGED-IN WORKSPACE ============ -->
-  <div id="workspaceView">
-    <div id="loadingState" style="text-align:center;padding:60px 0;color:var(--muted);font-family:var(--mono);font-size:13px;">LOADING NODE&hellip;</div>
-    <div id="workspaceBody" style="display:none;">
-      <div class="ws-header">
-        <div class="ws-hello">Welcome back, <span id="wsBizName" style="color:var(--green);"></span></div>
-        <div class="ws-tier" id="wsTier"></div>
-      </div>
-
-      <div class="tab-bar" id="tabBar">
-        <button class="tab-btn active" data-tab="overview">Overview</button>
-        <button class="tab-btn" data-tab="redemptions">Redemptions</button>
-        <button class="tab-btn" data-tab="pickups">Pickups</button>
-        <button class="tab-btn" data-tab="streams">My Streams</button>
-        <button class="tab-btn" data-tab="marketing">Marketing</button>
-        <button class="tab-btn" data-tab="support">Support</button>
-        <button class="tab-btn" data-tab="billing">Billing</button>
-      </div>
-
-      <div class="tab-panel active" data-panel="overview">
-        <div class="stat-row">
-          <div class="stat"><div class="v" id="statWtwr">&mdash;</div><div class="l">WTWR Redeemed</div></div>
-          <div class="stat"><div class="v" id="statOffset">&mdash;</div><div class="l">AP&rarr;AR Flip Value</div></div>
-        </div>
-        <div id="overviewEmpty" class="empty-state" style="display:none;">
-          <strong>Your first redemption will activate this dashboard.</strong> No business has redeemed WTWR credit here yet â€” these numbers update automatically the moment it happens.
-        </div>
-        <div class="empty-state">
-          <strong>Material diverted:</strong> not shown yet. Sharing intake/diversion data with business accounts needs an operator sign-off on data access before this can be wired up honestly.
-        </div>
-      </div>
-
-      <div class="tab-panel" data-panel="redemptions">
-        <div class="stat-row" style="grid-template-columns:1fr;">
-          <div class="stat"><div class="v" id="rdmAllTimeTotal">&mdash;</div><div class="l">All-Time WTWR Redeemed</div></div>
-        </div>
-
-        <div class="rdm-card">
-          <h3>Redeem a Customer's Code</h3>
-          <div id="rdmScanner"></div>
-          <button class="scan-btn" id="rdmScanToggle" onclick="toggleScanner()">Start Camera Scan</button>
-
-          <div class="input-group" style="margin-top:16px;">
-            <label>Or Paste Code Manually</label>
-            <textarea id="rdmManualCode" rows="2" placeholder="If the scan fails, ask the customer to read you the code from their app"></textarea>
-          </div>
-          <div class="input-group">
-            <label>WTWR Amount to Redeem</label>
-            <input type="number" id="rdmAmount" min="0.01" step="0.01" placeholder="e.g. 25.00">
-          </div>
-          <button class="submit-btn" id="rdmSubmitBtn" onclick="submitRedemption()">Redeem</button>
-          <div class="msg" id="rdmMsg"></div>
-        </div>
-
-        <div class="rdm-card">
-          <h3>Redemption Settings</h3>
-          <div class="input-group">
-            <label>Accepting WTWR Right Now</label>
-            <button class="toggle-btn" id="acceptingToggle" onclick="toggleAccepting()">&mdash;</button>
-          </div>
-          <div class="input-group">
-            <label>Multiplier (1.00&ndash;3.00&times;)</label>
-            <div class="stepper">
-              <button type="button" onclick="adjustMultiplier(-0.1)">&minus;</button>
-              <span id="multiplierValue">1.00&times;</span>
-              <button type="button" onclick="adjustMultiplier(0.1)">+</button>
-            </div>
-          </div>
-          <div class="input-group">
-            <label>Monthly Redemption Cap (WTWR, blank = uncapped)</label>
-            <input type="number" id="capInput" min="0.01" step="0.01" placeholder="e.g. 500">
-          </div>
-          <button class="submit-btn" onclick="saveRedemptionSettings()">Save Settings</button>
-          <div class="msg" id="settingsMsg"></div>
-        </div>
-
-        <div class="rdm-card">
-          <h3>Recent Redemptions</h3>
-          <div id="rdmLog"></div>
-          <div class="empty-state" id="rdmLogEmpty" style="display:none;">
-            <strong>No redemptions yet.</strong> This list fills in the moment a customer redeems WTWR at your register.
-          </div>
-        </div>
-      </div>
-      <div class="tab-panel" data-panel="pickups">
-        <div class="stub-card"><span class="stub-tag">Not built yet</span>
-        <h3>Pickups</h3>
-        <p>Upcoming pickup schedule, history, and a way to request an extra a-la-carte pickup. Coming in the next build pass.</p></div>
-      </div>
-      <div class="tab-panel" data-panel="streams">
-        <div class="stub-card"><span class="stub-tag">Not built yet</span>
-        <h3>My Streams</h3>
-        <p>Edit the material types your business generates (cardboard, metals, plastics, e-waste, etc.) â€” this drives routing and payout. Coming in the next build pass.</p></div>
-      </div>
-      <div class="tab-panel" data-panel="marketing">
-        <div class="stub-card"><span class="stub-tag">Not built yet</span>
-        <h3>Marketing</h3>
-        <p>Ad creative uploads for Boost/Featured holders, where your ads currently appear, and your referral link + credit earned. Coming in the next build pass.</p></div>
-      </div>
-      <div class="tab-panel" data-panel="support">
-        <div class="stub-card"><span class="stub-tag">Not built yet</span>
-        <h3>Support</h3>
-        <p>One intake for maintenance/service tickets, suggestions, complaints, and staff education requests, with status tracking. Coming in the next build pass.</p></div>
-      </div>
-      <div class="tab-panel" data-panel="billing">
-        <div class="stub-card"><span class="stub-tag">Not built yet</span>
-        <h3>Billing</h3>
-        <p>Current tier, renewal date, upgrade/downgrade and monthly/annual switching via the Stripe Customer Portal, ad add-ons, and invoice history. Coming in the next build pass.</p></div>
-      </div>
-    </div>
-  </div>
-
-</div>
-
-<script>
-const SUPABASE_URL = 'https://eypovuxuddiqgncjdpkq.supabase.co';
-const SUPABASE_ANON = 'sb_publishable_ZlykauNc-3YY80w6nxzsKw_Z2lgAgU1';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-
-let selectedTier = 'Signal';
-let selectedInterval = 'monthly';
-let currentBusinessId = null;
-let currentMultiplier = 1.00;
-let currentAccepting = true;
-let scannerRunning = false;
-let html5QrCode = null;
-
-function setTier(btn){
-  document.querySelectorAll('#tierSeg .seg-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  selectedTier = btn.dataset.tier;
-}
-function setInterval_(btn){
-  document.querySelectorAll('#intervalSeg .seg-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  selectedInterval = btn.dataset.interval;
-}
-function pickTier(btn){
-  const seg = document.querySelector(`#tierSeg .seg-btn[data-tier="${btn.dataset.tier}"]`);
-  if (seg) setTier(seg);
-  document.getElementById('signupSection').scrollIntoView({behavior:'smooth'});
-}
-
-async function handleSubmit(){
-  const bizName = document.getElementById('biz').value.trim();
-  const contactName = document.getElementById('contact').value.trim();
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value;
-  const phone = document.getElementById('phone').value.trim();
-  const notes = document.getElementById('notes').value.trim();
-  const btn = document.getElementById('submitBtn');
-  const msg = document.getElementById('formMsg');
-
-  msg.className = 'msg';
-  msg.textContent = '';
-
-  if (!bizName || !contactName || !email || !password) {
-    msg.className = 'msg error';
-    msg.textContent = 'Business name, contact name, email, and passkey are required.';
-    return;
-  }
-  if (password.length < 6) {
-    msg.className = 'msg error';
-    msg.textContent = 'Passkey must be at least 6 characters.';
-    return;
-  }
-
-  btn.disabled = true;
-  btn.textContent = 'Creating accountâ€¦';
-
-  const { data: authData, error: authError } = await sb.auth.signUp({ email, password });
-  if (authError) {
-    msg.className = 'msg error';
-    msg.textContent = authError.message;
-    btn.disabled = false;
-    btn.textContent = 'Provision Node & Continue to Payment';
-    return;
-  }
-
-  if (!authData.user) {
-    msg.className = 'msg error';
-    msg.textContent = 'Account created â€” check your email to confirm, then sign back in.';
-    btn.disabled = false;
-    btn.textContent = 'Provision Node & Continue to Payment';
-    return;
-  }
-
-  btn.textContent = 'Linking ledgerâ€¦';
-  const { error: dbError } = await sb.from('businesses').insert([{
-    auth_id: authData.user.id,
-    business_name: bizName,
-    contact_name: contactName,
-    email,
-    phone,
-    tier: selectedTier,
-    notes,
-  }]);
-
-  if (dbError) {
-    console.error('Ledger error:', dbError);
-    msg.className = 'msg error';
-    msg.textContent = 'Account created, but we could not save your business profile. Contact contact.watchtowerer@gmail.com.';
-    btn.disabled = false;
-    btn.textContent = 'Provision Node & Continue to Payment';
-    return;
-  }
-
-  btn.textContent = 'Redirecting to paymentâ€¦';
-  const { data: sessionData } = await sb.auth.getSession();
-  const accessToken = sessionData && sessionData.session ? sessionData.session.access_token : null;
-
-  const addons = [];
-  if (document.getElementById('addonBoost').checked) addons.push('boost');
-  if (document.getElementById('addonFeatured').checked) addons.push('featured');
-
-  try {
-    const res = await fetch('/api/create-business-checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ access_token: accessToken, tier: selectedTier, interval: selectedInterval, addons }),
-    });
-    const out = await res.json();
-    if (!res.ok || !out.url) {
-      throw new Error(out.error || 'Checkout could not be started.');
-    }
-    window.location.href = out.url;
-  } catch (err) {
-    console.error('Checkout error:', err);
-    msg.className = 'msg error';
-    msg.textContent = 'Your node is set up, but payment setup failed. Contact contact.watchtowerer@gmail.com and we will get billing sorted manually.';
-    btn.disabled = false;
-    btn.textContent = 'Provision Node & Continue to Payment';
-  }
-}
-
-function showCheckoutBanner(status){
-  const el = document.getElementById('checkoutBanner');
-  if (!el) return;
-  if (status === 'success') {
-    el.innerHTML = '<div class="banner">Payment received â€” sign in to reach your workspace.</div>';
-  } else if (status === 'cancelled') {
-    el.innerHTML = '<div class="banner cancelled">Checkout was cancelled. Your node is saved â€” pick a tier below whenever you\'re ready.</div>';
-  }
-}
-
-function initTabs(){
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-      btn.classList.add('active');
-      document.querySelector(`.tab-panel[data-panel="${btn.dataset.tab}"]`).classList.add('active');
-    });
-  });
-}
-
-function signOut(){
-  sb.auth.signOut().then(() => { window.location.href = 'business.html'; });
-}
-
-// ===== Redemptions tab =====
-
-function toggleScanner(){
-  const btn = document.getElementById('rdmScanToggle');
-  if (scannerRunning) {
-    html5QrCode.stop().then(() => {
-      html5QrCode.clear();
-      scannerRunning = false;
-      btn.textContent = 'Start Camera Scan';
-      btn.classList.remove('scanning');
-    }).catch(() => {});
-    return;
-  }
-
-  if (!html5QrCode) html5QrCode = new Html5Qrcode('rdmScanner');
-
-  html5QrCode.start(
-    { facingMode: 'environment' },
-    { fps: 10, qrbox: 220 },
-    (decodedText) => {
-      document.getElementById('rdmManualCode').value = decodedText;
-      toggleScanner();
-    },
-    () => {}
-  ).then(() => {
-    scannerRunning = true;
-    btn.textContent = 'Stop Camera';
-    btn.classList.add('scanning');
-  }).catch((err) => {
-    console.error('Camera scan failed to start:', err);
-    const msg = document.getElementById('rdmMsg');
-    msg.className = 'msg error';
-    msg.textContent = 'Could not access the camera. Paste the code manually instead.';
-  });
-}
-
-async function submitRedemption(){
-  const code = document.getElementById('rdmManualCode').value.trim();
-  const amount = parseFloat(document.getElementById('rdmAmount').value);
-  const msg = document.getElementById('rdmMsg');
-  msg.className = 'msg';
-  msg.textContent = '';
-
-  if (!code) {
-    msg.className = 'msg error';
-    msg.textContent = 'Scan or paste a redemption code first.';
-    return;
-  }
-  if (!amount || amount <= 0) {
-    msg.className = 'msg error';
-    msg.textContent = 'Enter a WTWR amount greater than zero.';
-    return;
-  }
-
-  const btn = document.getElementById('rdmSubmitBtn');
-  btn.disabled = true;
-  btn.textContent = 'Processingâ€¦';
-
-  const { data, error } = await sb.rpc('redeem_wtwr', {
-    p_token: code,
-    p_business_id: currentBusinessId,
-    p_amount: amount,
-  });
-
-  btn.disabled = false;
-  btn.textContent = 'Redeem';
-
-  if (error) {
-    msg.className = 'msg error';
-    msg.textContent = error.message || 'Redemption failed.';
-    return;
-  }
-
-  msg.className = 'msg ok';
-  msg.textContent = `Redeemed ${amount.toFixed(2)} WTWR ($${(amount / 100).toFixed(2)}).`;
-  document.getElementById('rdmManualCode').value = '';
-  document.getElementById('rdmAmount').value = '';
-
-  await refreshRedemptionData();
-}
-
-function renderAcceptingToggle(){
-  const btn = document.getElementById('acceptingToggle');
-  btn.textContent = currentAccepting ? 'Accepting â€” tap to pause' : 'Paused â€” tap to resume';
-  btn.classList.toggle('on', currentAccepting);
-}
-
-async function toggleAccepting(){
-  currentAccepting = !currentAccepting;
-  renderAcceptingToggle();
-
-  const { error } = await sb.from('businesses').update({ accepting_wtwr: currentAccepting }).eq('id', currentBusinessId);
-  const msg = document.getElementById('settingsMsg');
-  if (error) {
-    currentAccepting = !currentAccepting;
-    renderAcceptingToggle();
-    msg.className = 'msg error';
-    msg.textContent = 'Could not save â€” try again.';
-    return;
-  }
-  msg.className = 'msg ok';
-  msg.textContent = currentAccepting ? 'Now accepting WTWR redemptions.' : 'Paused â€” redemptions will be rejected until you resume.';
-}
-
-function renderMultiplier(){
-  document.getElementById('multiplierValue').textContent = currentMultiplier.toFixed(2) + 'Ã—';
-}
-
-function adjustMultiplier(delta){
-  const next = Math.round((currentMultiplier + delta) * 100) / 100;
-  currentMultiplier = Math.min(3.00, Math.max(1.00, next));
-  renderMultiplier();
-}
-
-async function saveRedemptionSettings(){
-  const capRaw = document.getElementById('capInput').value.trim();
-  const cap = capRaw === '' ? null : parseFloat(capRaw);
-  const msg = document.getElementById('settingsMsg');
-
-  if (capRaw !== '' && (!Number.isFinite(cap) || cap <= 0)) {
-    msg.className = 'msg error';
-    msg.textContent = 'Monthly cap must be a positive number, or blank for uncapped.';
-    return;
-  }
-
-  const { error } = await sb.from('businesses')
-    .update({ multiplier: currentMultiplier, redemption_cap_monthly: cap })
-    .eq('id', currentBusinessId);
-
-  if (error) {
-    msg.className = 'msg error';
-    msg.textContent = error.message || 'Could not save settings.';
-    return;
-  }
-  msg.className = 'msg ok';
-  msg.textContent = 'Settings saved.';
-}
-
-async function refreshRedemptionData(){
-  const { data: business } = await sb.from('businesses').select('wtwr_redeemed').eq('id', currentBusinessId).maybeSingle();
-  if (business) {
-    document.getElementById('rdmAllTimeTotal').textContent = Number(business.wtwr_redeemed || 0).toFixed(2);
-    document.getElementById('statWtwr').textContent = Number(business.wtwr_redeemed || 0).toFixed(2);
-    document.getElementById('overviewEmpty').style.display = Number(business.wtwr_redeemed || 0) === 0 ? 'block' : 'none';
-  }
-
-  const { data: log } = await sb.from('redemptions')
-    .select('id, wtwr_amount, usd_value, created_at')
-    .eq('business_id', currentBusinessId)
-    .order('created_at', { ascending: false })
-    .limit(25);
-
-  const logEl = document.getElementById('rdmLog');
-  const emptyEl = document.getElementById('rdmLogEmpty');
-
-  if (!log || log.length === 0) {
-    logEl.innerHTML = '';
-    emptyEl.style.display = 'block';
-    return;
-  }
-
-  emptyEl.style.display = 'none';
-  logEl.innerHTML = log.map((r) => `
-    <div class="log-row">
-      <div><span class="amt">${Number(r.wtwr_amount).toFixed(2)} WTWR</span> ($${Number(r.usd_value).toFixed(2)})</div>
-      <div class="when">${new Date(r.created_at).toLocaleString()}</div>
-    </div>
-  `).join('');
-}
-
-async function showWorkspace(business){
-  document.getElementById('pitchView').style.display = 'none';
-  document.getElementById('workspaceView').style.display = 'block';
-  document.getElementById('navLinksLoggedOut').style.display = 'none';
-  document.getElementById('navLinksWorkspace').style.display = 'flex';
-  document.getElementById('signOutBtn').addEventListener('click', signOut);
-
-  document.getElementById('wsBizName').textContent = business.business_name;
-  document.getElementById('wsTier').textContent = (business.tier || 'UNASSIGNED').toUpperCase() + ' TIER';
-
-  const wtwr = Number(business.wtwr_redeemed || 0);
-  const offset = Number(business.disposal_cost_saved || 0);
-  document.getElementById('statWtwr').textContent = wtwr.toFixed(2);
-  document.getElementById('statOffset').textContent = '$' + offset.toFixed(2);
-  document.getElementById('overviewEmpty').style.display = wtwr === 0 ? 'block' : 'none';
-
-  currentBusinessId = business.id;
-  currentMultiplier = Number(business.multiplier || 1.00);
-  currentAccepting = business.accepting_wtwr !== false;
-  document.getElementById('rdmAllTimeTotal').textContent = wtwr.toFixed(2);
-  document.getElementById('capInput').value = business.redemption_cap_monthly != null ? business.redemption_cap_monthly : '';
-  renderAcceptingToggle();
-  renderMultiplier();
-  refreshRedemptionData();
-
-  initTabs();
-  document.getElementById('loadingState').style.display = 'none';
-  document.getElementById('workspaceBody').style.display = 'block';
-}
-
-async function initPage(){
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('checkout')) showCheckoutBanner(params.get('checkout'));
-
-  const { data: { session } } = await sb.auth.getSession();
-  if (!session) return;
-
-  const { data: business } = await sb.from('businesses').select('*').eq('auth_id', session.user.id).maybeSingle();
-  if (!business) return;
-
-  showWorkspace(business);
-}
-
-initPage();
-</script>
-</body>
-</html>
+          <div class="tier-name">Signal</div>
+          <div class="tier-price">$49.99<small>/pilot</small></div>
+          <div class="tier-annual">Tier 1 &middot; Cash Û½u¶‰žËkºwµç@€€€€€ð½‘¥Øø(€€€€€€€€€€ñ‰ÕÑÑ½¸±…ÍÌô‰ÍÕ‰µ¥Ðµ‰Ñ¸ˆ½¹±¥¬ô‰Í…Ù•I•‘•µÁÑ¥½¹M•ÑÑ¥¹Ì ¤ˆùM…Ù”M•ÑÑ¥¹Ìð½‰ÕÑÑ½¸ø(€€€€€€€€€€ñ‘¥Ø±…ÍÌô‰µÍœˆ¥ô‰Í•ÑÑ¥¹Í5Íœˆøð½‘¥Øø(€€€€€€€€ð½‘¥Øø((€€€€€€€€ñ‘¥Ø±…ÍÌô‰É‘´µ…Éˆø(€€€€€€€€€€ñ ÌùI••¹ÐI•‘•µÁÑ¥½¹Ìð½ Ìø(€€€€€€€€€€ñ‘¥Ø¥ô‰É‘µ1½œˆøð½‘¥Øø(€€€€€€€€€€ñ‘¥Ø±…ÍÌô‰•µÁÑäµÍÑ…Ñ”ˆ¥ô‰É‘µ1½µÁÑäˆÍÑå±”ô‰‘¥ÍÁ±…äé¹½¹”ìˆø(€€€€€€€€€€€€ñÍÑÉ½¹œù9¼É•‘•µÁÑ¥½¹Ìå•Ð¸ð½ÍÑÉ½¹œøQ¡¥Ì±¥ÍÐ™¥±±Ì¥¸Ñ¡”µ½µ•¹Ð„ÕÍÑ½µ•ÈÉ•‘••µÌ]Q]H…Ðå½ÕÈÉ•¥ÍÑ•È¸(€€€€€€€€€€ð½‘¥Øø(€€€€€€€€ð½‘¥Øø(€€€€€€ð½‘¥Øø(€€€€€€ñ‘¥Ø±…ÍÌô‰Ñ…ˆµÁ…¹•°ˆ‘…Ñ„µÁ…¹•°ô‰Á¥­ÕÁÌˆø(€€€€€€€€ñ‘¥Ø±…ÍÌô‰ÍÑÕˆµ…ÉˆøñÍÁ…¸±…ÍÌô‰ÍÑÕˆµÑ…œˆù9½Ð‰Õ¥±Ðå•Ðð½ÍÁ…¸ø(€€€€€€€€ñ ÌùA¥­ÕÁÌð½ Ìø(€€€€€€€€ñÀùUÁ½µ¥¹œÁ¥­ÕÀÍ¡•‘Õ±”°¡¥ÍÑ½Éä°…¹„Ý…äÑ¼É•ÅÕ•ÍÐ…¸•áÑÉ„„µ±„µ…ÉÑ”Á¥­ÕÀ¸½µ¥¹œ¥¸Ñ¡”¹•áÐ‰Õ¥±Á…ÍÌ¸ð½Àøð½‘¥Øø(€€€€€€ð½‘¥Øø(€€€€€€ñ‘¥Ø±…ÍÌô‰Ñ…ˆµÁ…¹•°ˆ‘…Ñ„µÁ…¹•°ô‰ÍÑÉ•…µÌˆø(€€€€€€€€ñ‘¥Ø±…ÍÌô‰ÍÑÕˆµ…ÉˆøñÍÁ…¸±…ÍÌô‰ÍÑÕˆµÑ…œˆù9½Ð‰Õ¥±Ðå•Ðð½ÍÁ…¸ø(€€€€€€€€ñ Ìù5äMÑÉ•…µÌð½ Ìø(€€€€€€€€ñÀù‘¥ÐÑ¡”µ…Ñ•É¥…°ÑåÁ•Ìå½ÕÈ‰ÕÍ¥¹•ÍÌ•¹•É…Ñ•Ì€¡…É‘‰½…É°µ•Ñ…±Ì°Á±…ÍÑ¥Ì°”µÝ…ÍÑ”°•ÑŒ¸¤ƒŠPÑ¡¥Ì‘É¥Ù•ÌÉ½ÕÑ¥¹œ…¹Á…å½ÕÐ¸½µ¥¹œ¥¸Ñ¡”¹•áÐ‰Õ¥±Á…ÍÌ¸ð½Àøð½‘¥Øø(€€€€€€ð½‘¥Øø(€€€€€€ñ‘¥Ø±…ÍÌô‰Ñ…ˆµÁ…¹•°ˆ‘…Ñ„µÁ…¹•°ô‰µ…É­•Ñ¥¹œˆø(€€€€€€€€ñ‘¥Ø±…ÍÌô‰ÍÑÕˆµ…ÉˆøñÍÁ…¸±…ÍÌô‰ÍÑÕˆµÑ…œˆù9½Ð‰Õ¥±Ðå•Ðð½ÍÁ…¸ø(€€€€€€€€ñ Ìù5…É­•Ñ¥¹œð½ Ìø(€€€€€€€€ñÀùÉ•…Ñ¥Ù”ÕÁ±½…‘Ì™½È	½½ÍÐ½•…ÑÕÉ•¡½±‘•ÉÌ°Ý¡•É”å½ÕÈ…‘ÌÕÉÉ•¹Ñ±ä…ÁÁ•…È°…¹å½ÕÈÉ•™•ÉÉ…°±¥¹¬€¬É•‘¥Ð•…É¹•¸½µ¥¹œ¥¸Ñ¡”¹•áÐ‰Õ¥±Á…ÍÌ¸ð½Àøð½‘¥Øø(€€€€€€ð½‘¥Øø(€€€€€€ñ‘¥Ø±…ÍÌô‰Ñ…ˆµÁ…¹•°ˆ‘…Ñ„µÁ…¹•°ô‰ÍÕÁÁ½ÉÐˆø(€€€€€€€€ñ‘¥Ø±…ÍÌô‰ÍÑÕˆµ…ÉˆøñÍÁ…¸±…ÍÌô‰ÍÑÕˆµÑ…œˆù9½Ð‰Õ¥±Ðå•Ðð½ÍÁ…¸ø(€€€€€€€€ñ ÌùMÕÁÁ½ÉÐð½ Ìø(€€€€€€€€ñÀù=¹”¥¹Ñ…­”™½Èµ…¥¹Ñ•¹…¹”½Í•ÉÙ¥”Ñ¥­•ÑÌ°ÍÕ•ÍÑ¥½¹Ì°½µÁ±…¥¹ÑÌ°…¹ÍÑ…™˜•‘Õ…Ñ¥½¸É•ÅÕ•ÍÑÌ°Ý¥Ñ ÍÑ…ÑÕÌÑÉ…­¥¹œ¸½µ¥¹œ¥¸Ñ¡”¹•áÐ‰Õ¥±Á…ÍÌ¸ð½Àøð½‘¥Øø(€€€€€€ð½‘¥Øø(€€€€€€ñ‘¥Ø±…ÍÌô‰Ñ…ˆµÁ…¹•°ˆ‘…Ñ„µÁ…¹•°ô‰‰¥±±¥¹œˆø(€€€€€€€€ñ‘¥Ø±…ÍÌô‰ÍÑÕˆµ…ÉˆøñÍÁ…¸±…ÍÌô‰ÍÑÕˆµÑ…œˆù9½Ð‰Õ¥±Ðå•Ðð½ÍÁ…¸ø(€€€€€€€€ñ Ìù	¥±±¥¹œð½ Ìø(€€€€€€€€ñÀùÕÉÉ•¹ÐÑ¥•È°É•¹•Ý…°‘…Ñ”°ÕÁÉ…‘”½‘½Ý¹É…‘”…¹µ½¹Ñ¡±ä½…¹¹Õ…°ÍÝ¥Ñ¡¥¹œÙ¥„Ñ¡”MÑÉ¥Á”ÕÍÑ½µ•ÈA½ÉÑ…°°……‘µ½¹Ì°…¹¥¹Ù½¥”¡¥ÍÑ½Éä¸½µ¥¹œ¥¸Ñ¡”¹•áÐ‰Õ¥±Á…ÍÌ¸ð½Àøð½‘¥Øø(€€€€€€ð½‘¥Øø(€€€€ð½‘¥Øø(€€ð½‘¥Øø((ð½‘¥Øø((ñÍÉ¥ÁÐø)½¹ÍÐMUA	M}UI0€ô€¡ÑÑÁÌè¼½•åÁ½ÙÕáÕ‘‘¥Å¹©‘Á­Ä¹ÍÕÁ…‰…Í”¹¼œì)½¹ÍÐMUA	M}9=8€ô€Í‰}ÁÕ‰±¥Í¡…‰±•}i±å­…Õ9Œ´ÍedàÁÜÙ¹áéÍ-Ý}hÉ±TÄœì)½¹ÍÐÍˆ€ôÍÕÁ…‰…Í”¹É•…Ñ•±¥•¹Ð¡MUA	M}UI0°MUA	M}9=8¤ì()±•ÐÍ•±•Ñ•‘Q¥•È€ô€M¥¹…°œì)±•ÐÍ•±•Ñ•‘%¹Ñ•ÉÙ…°€ô€µ½¹Ñ¡±äœì)±•ÐÕÉÉ•¹Ñ	ÕÍ¥¹•ÍÍ%€ô¹Õ±°ì)±•ÐÕÉÉ•¹Ñ5Õ±Ñ¥Á±¥•È€ô€Ä¸ÀÀì)±•ÐÕÉÉ•¹Ñ•ÁÑ¥¹œ€ôÑÉÕ”ì)±•ÐÍ…¹¹•ÉIÕ¹¹¥¹œ€ô™…±Í”ì)±•Ð¡Ñµ°ÕEÉ½‘”€ô¹Õ±°ì()™Õ¹Ñ¥½¸Í•ÑQ¥•È¡‰Ñ¸¥ì(€‘½Õµ•¹Ð¹ÅÕ•ÉåM•±•Ñ½É±° œÑ¥•ÉM•œ€¹Í•œµ‰Ñ¸œ¤¹™½É… ¡ˆôùˆ¹±…ÍÍ1¥ÍÐ¹É•µ½Ù” …Ñ¥Ù”œ¤¤ì(€‰Ñ¸¹±…ÍÍ1¥ÍÐ¹…‘ …Ñ¥Ù”œ¤ì(€Í•±•Ñ•‘Q¥•È€ô‰Ñ¸¹‘…Ñ…Í•Ð¹Ñ¥•Èì)ô)™Õ¹Ñ¥½¸Í•Ñ%¹Ñ•ÉÙ…±|¡‰Ñ¸¥ì(€‘½Õµ•¹Ð¹ÅÕ•ÉåM•±•Ñ½É±° œ¥¹Ñ•ÉÙ…±M•œ€¹Í•œµ‰Ñ¸œ¤¹™½É… ¡ˆôùˆ¹±…ÍÍ1¥ÍÐ¹É•µ½Ù” …Ñ¥Ù”œ¤¤ì(€‰Ñ¸¹±…ÍÍ1¥ÍÐ¹…‘ …Ñ¥Ù”œ¤ì(€Í•±•Ñ•‘%¹Ñ•ÉÙ…°€ô‰Ñ¸¹‘…Ñ…Í•Ð¹¥¹Ñ•ÉÙ…°ì)ô)™Õ¹Ñ¥½¸Á¥­Q¥•È¡‰Ñ¸¥ì(€½¹ÍÐÍ•œ€ô‘½Õµ•¹Ð¹ÅÕ•ÉåM•±•Ñ½È¡€Ñ¥•ÉM•œ€¹Í•œµ‰Ñ¹m‘…Ñ„µÑ¥•Èôˆ‘í‰Ñ¸¹‘…Ñ…Í•Ð¹Ñ¥•Éô‰u€¤ì(€¥˜€¡Í•œ¤Í•ÑQ¥•È¡Í•œ¤ì(€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% Í¥¹ÕÁM•Ñ¥½¸œ¤¹ÍÉ½±±%¹Ñ½Y¥•Ü¡í‰•¡…Ù¥½ÈèÍµ½½Ñ ô¤ì)ô()…Íå¹Œ™Õ¹Ñ¥½¸¡…¹‘±•MÕ‰µ¥Ð ¥ì(€½¹ÍÐ‰¥é9…µ”€ô‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% ‰¥èœ¤¹Ù…±Õ”¹ÑÉ¥´ ¤ì(€½¹ÍÐ½¹Ñ…Ñ9…µ”€ô‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% ½¹Ñ…Ðœ¤¹Ù…±Õ”¹ÑÉ¥´ ¤ì(€½¹ÍÐ•µ…¥°€ô‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% •µ…¥°œ¤¹Ù…±Õ”¹ÑÉ¥´ ¤ì(€½¹ÍÐÁ…ÍÍÝ½É€ô‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% Á…ÍÍÝ½Éœ¤¹Ù…±Õ”ì(€½¹ÍÐÁ¡½¹”€ô‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% Á¡½¹”œ¤¹Ù…±Õ”¹ÑÉ¥´ ¤ì(€½¹ÍÐ¹½Ñ•Ì€ô‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% ¹½Ñ•Ìœ¤¹Ù…±Õ”¹ÑÉ¥´ ¤ì(€½¹ÍÐ‰Ñ¸€ô‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% ÍÕ‰µ¥Ñ	Ñ¸œ¤ì(€½¹ÍÐµÍœ€ô‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% ™½Éµ5Íœœ¤ì((€µÍœ¹±…ÍÍ9…µ”€ô€µÍœœì(€µÍœ¹Ñ•áÑ½¹Ñ•¹Ð€ô€œœì((€¥˜€ …‰¥é9…µ”ñð€…½¹Ñ…Ñ9…µ”ñð€…•µ…¥°ñð€…Á…ÍÍÝ½É¤ì(€€€µÍœ¹±…ÍÍ9…µ”€ô€µÍœ•ÉÉ½Èœì(€€€µÍœ¹Ñ•áÑ½¹Ñ•¹Ð€ô€	ÕÍ¥¹•ÍÌ¹…µ”°½¹Ñ…Ð¹…µ”°•µ…¥°°…¹Á…ÍÍ­•ä…É”É•ÅÕ¥É•¸œì(€€€É•ÑÕÉ¸ì(€ô(€¥˜€¡Á…ÍÍÝ½É¹±•¹Ñ €ð€Ø¤ì(€€€µÍœ¹±…ÍÍ9…µ”€ô€µÍœ•ÉÉ½Èœì(€€€µÍœ¹Ñ•áÑ½¹Ñ•¹Ð€ô€A…ÍÍ­•äµÕÍÐ‰”…Ð±•…ÍÐ€Ø¡…É…Ñ•ÉÌ¸œì(€€€É•ÑÕÉ¸ì(€ô((€‰Ñ¸¹‘¥Í…‰±•€ôÑÉÕ”ì(€‰Ñ¸¹Ñ•áÑ½¹Ñ•¹Ð€ô€É•…Ñ¥¹œ…½Õ¹ÓŠ˜œì((€½¹ÍÐì‘…Ñ„è…ÕÑ¡…Ñ„°•ÉÉ½Èè…ÕÑ¡ÉÉ½Èô€ô…Ý…¥ÐÍˆ¹…ÕÑ ¹Í¥¹UÀ¡ì•µ…¥°°Á…ÍÍÝ½Éô¤ì(€¥˜€¡…ÕÑ¡ÉÉ½È¤ì(€€€µÍœ¹±…ÍÍ9…µ”€ô€µÍœ•ÉÉ½Èœì(€€€µÍœ¹Ñ•áÑ½¹Ñ•¹Ð€ô…ÕÑ¡ÉÉ½È¹µ•ÍÍ…”ì(€€€‰Ñ¸¹‘¥Í…‰±•€ô™…±Í”ì(€€€‰Ñ¸¹Ñ•áÑ½¹Ñ•¹Ð€ô€AÉ½Ù¥Í¥½¸9½‘”€˜½¹Ñ¥¹Õ”Ñ¼A…åµ•¹Ðœì(€€€É•ÑÕÉ¸ì(€ô((€¥˜€ ……ÕÑ¡…Ñ„¹ÕÍ•È¤ì(€€€µÍœ¹±…ÍÍ9…µ”€ô€µÍœ•ÉÉ½Èœì(€€€µÍœ¹Ñ•áÑ½¹Ñ•¹Ð€ô€½Õ¹ÐÉ•…Ñ•ƒŠP¡•¬å½ÕÈ•µ…¥°Ñ¼½¹™¥É´°Ñ¡•¸Í¥¸‰…¬¥¸¸œì(€€€‰Ñ¸¹‘¥Í…‰±•€ô™…±Í”ì(€€€‰Ñ¸¹Ñ•áÑ½¹Ñ•¹Ð€ô€AÉ½Ù¥Í¥½¸9½‘”€˜½¹Ñ¥¹Õ”Ñ¼A…åµ•¹Ðœì(€€€É•ÑÕÉ¸ì(€ô((€‰Ñ¸¹Ñ•áÑ½¹Ñ•¹Ð€ô€1¥¹­¥¹œ±•‘•ËŠ˜œì(€½¹ÍÐì•ÉÉ½Èè‘‰ÉÉ½Èô€ô…Ý…¥ÐÍˆ¹™É½´ ‰ÕÍ¥¹•ÍÍ•Ìœ¤¹¥¹Í•ÉÐ¡mì(€€€…ÕÑ¡}¥è…ÕÑ¡…Ñ„¹ÕÍ•È¹¥°(€€€‰ÕÍ¥¹•ÍÍ}¹…µ”è‰¥é9…µ”°(€€€½¹Ñ…Ñ}¹…µ”è½¹Ñ…Ñ9…µ”°(€€€•µ…¥°°(€€€Á¡½¹”°(€€€Ñ¥•ÈèÍ•±•Ñ•‘Q¥•È°(€€€¹½Ñ•Ì°(€õt¤ì((€¥˜€¡‘‰ÉÉ½È¤ì(€€€½¹Í½±”¹•ÉÉ½È 1•‘•È•ÉÉ½Èèœ°‘‰ÉÉ½È¤ì(€€€µÍœ¹±…ÍÍ9…µ”€ô€µÍœ•ÉÉ½Èœì(€€€µÍœ¹Ñ•áÑ½¹Ñ•¹Ð€ô€½Õ¹ÐÉ•…Ñ•°‰ÕÐÝ”½Õ±¹½ÐÍ…Ù”å½ÕÈ‰ÕÍ¥¹•ÍÌÁÉ½™¥±”¸½¹Ñ…Ð½¹Ñ…Ð¹Ý…Ñ¡Ñ½Ý•É•Éµ…¥°¹½´¸œì(€€€‰Ñ¸¹‘¥Í…‰±•€ô™…±Í”ì(€€€‰Ñ¸¹Ñ•áÑ½¹Ñ•¹Ð€ô€AÉ½Ù¥Í¥½¸9½‘”€˜½¹Ñ¥¹Õ”Ñ¼A…åµ•¹Ðœì(€€€É•ÑÕÉ¸ì(€ô((€‰Ñ¸¹Ñ•áÑ½¹Ñ•¹Ð€ô€I•‘¥É•Ñ¥¹œÑ¼Á…åµ•¹ÓŠ˜œì(€½¹ÍÐì‘…Ñ„èÍ•ÍÍ¥½¹…Ñ„ô€ô…Ý…¥ÐÍˆ¹…ÕÑ ¹•ÑM•ÍÍ¥½¸ ¤ì(€½¹ÍÐ…•ÍÍQ½­•¸€ôÍ•ÍÍ¥½¹…Ñ„€˜˜Í•ÍÍ¥½¹…Ñ„¹Í•ÍÍ¥½¸€üÍ•ÍÍ¥½¹…Ñ„¹Í•ÍÍ¥½¸¹…•ÍÍ}Ñ½­•¸€è¹Õ±°ì((€½¹ÍÐ…‘‘½¹Ì€ômtì(€¥˜€¡‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% …‘‘½¹	½½ÍÐœ¤¹¡•­•¤…‘‘½¹Ì¹ÁÕÍ  ‰½½ÍÐœ¤ì(€¥˜€¡‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% …‘‘½¹•…ÑÕÉ•œ¤¹¡•­•¤…‘‘½¹Ì¹ÁÕÍ  ™•…ÑÕÉ•œ¤ì((€ÑÉäì(€€€½¹ÍÐÉ•Ì€ô…Ý…¥Ð™•Ñ  œ½…Á¤½É•…Ñ”µ‰ÕÍ¥¹•ÍÌµ¡•­½ÕÐœ°ì(€€€€€µ•Ñ¡½è€A=MPœ°(€€€€€¡•…‘•ÉÌèì€½¹Ñ•¹ÐµQåÁ”œè€…ÁÁ±¥…Ñ¥½¸½©Í½¸œô°(€€€€€‰½‘äè)M=8¹ÍÑÉ¥¹¥™ä¡ì…•ÍÍ}Ñ½­•¸è…•ÍÍQ½­•¸°Ñ¥•ÈèÍ•±•Ñ•‘Q¥•È°¥¹Ñ•ÉÙ…°èÍ•±•Ñ•‘%¹Ñ•ÉÙ…°°…‘‘½¹Ìô¤°(€€€ô¤ì(€€€½¹ÍÐ½ÕÐ€ô…Ý…¥ÐÉ•Ì¹©Í½¸ ¤ì(€€€¥˜€ …É•Ì¹½¬ñð€…½ÕÐ¹ÕÉ°¤ì(€€€€€Ñ¡É½Ü¹•ÜÉÉ½È¡½ÕÐ¹•ÉÉ½Èñð€¡•­½ÕÐ½Õ±¹½Ð‰”ÍÑ…ÉÑ•¸œ¤ì(€€€ô(€€€Ý¥¹‘½Ü¹±½…Ñ¥½¸¹¡É•˜€ô½ÕÐ¹ÕÉ°ì(€ô…Ñ €¡•ÉÈ¤ì(€€€½¹Í½±”¹•ÉÉ½È ¡•­½ÕÐ•ÉÉ½Èèœ°•ÉÈ¤ì(€€€µÍœ¹±…ÍÍ9…µ”€ô€µÍœ•ÉÉ½Èœì(€€€µÍœ¹Ñ•áÑ½¹Ñ•¹Ð€ô€e½ÕÈ¹½‘”¥ÌÍ•ÐÕÀ°‰ÕÐÁ…åµ•¹ÐÍ•ÑÕÀ™…¥±•¸½¹Ñ…Ð½¹Ñ…Ð¹Ý…Ñ¡Ñ½Ý•É•Éµ…¥°¹½´…¹Ý”Ý¥±°•Ð‰¥±±¥¹œÍ½ÉÑ•µ…¹Õ…±±ä¸œì(€€€‰Ñ¸¹‘¥Í…‰±•€ô™…±Í”ì(€€€‰Ñ¸¹Ñ•áÑ½¹Ñ•¹Ð€ô€AÉ½Ù¥Í¥½¸9½‘”€˜½¹Ñ¥¹Õ”Ñ¼A…åµ•¹Ðœì(€ô)ô()™Õ¹Ñ¥½¸Í¡½Ý¡•­½ÕÑ	…¹¹•È¡ÍÑ…ÑÕÌ¥ì(€½¹ÍÐ•°€ô‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% ¡•­½ÕÑ	…¹¹•Èœ¤ì(€¥˜€ …•°¤É•ÑÕÉ¸ì(€¥˜€¡ÍÑ…ÑÕÌ€ôôô€ÍÕ•ÍÌœ¤ì(€€€•°¹¥¹¹•É!Q50€ô€œñ‘¥Ø±…ÍÌô‰‰…¹¹•ÈˆùA…åµ•¹ÐÉ••¥Ù•ƒŠPÍ¥¸¥¸Ñ¼É•… å½ÕÈÝ½É­ÍÁ…”¸ð½‘¥Øøœì(€ô•±Í”¥˜€¡ÍÑ…ÑÕÌ€ôôô€…¹•±±•œ¤ì(€€€•°¹¥¹¹•É!Q50€ô€œñ‘¥Ø±…ÍÌô‰‰…¹¹•È…¹•±±•ˆù¡•­½ÕÐÝ…Ì…¹•±±•¸e½ÕÈ¹½‘”¥ÌÍ…Ù•ƒŠPÁ¥¬„Ñ¥•È‰•±½ÜÝ¡•¹•Ù•Èå½ÕpÉ”É•…‘ä¸ð½‘¥Øøœì(€ô)ô()™Õ¹Ñ¥½¸¥¹¥ÑQ…‰Ì ¥ì(€‘½Õµ•¹Ð¹ÅÕ•ÉåM•±•Ñ½É±° œ¹Ñ…ˆµ‰Ñ¸œ¤¹™½É… ¡‰Ñ¸€ôøì(€€€‰Ñ¸¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ±¥¬œ°€ ¤€ôøì(€€€€€‘½Õµ•¹Ð¹ÅÕ•ÉåM•±•Ñ½É±° œ¹Ñ…ˆµ‰Ñ¸œ¤¹™½É… ¡ˆ€ôøˆ¹±…ÍÍ1¥ÍÐ¹É•µ½Ù” …Ñ¥Ù”œ¤¤ì(€€€€€‘½Õµ•¹Ð¹ÅÕ•ÉåM•±•Ñ½É±° œ¹Ñ…ˆµÁ…¹•°œ¤¹™½É… ¡À€ôøÀ¹±…ÍÍ1¥ÍÐ¹É•µ½Ù” …Ñ¥Ù”œ¤¤ì(€€€€€‰Ñ¸¹±…ÍÍ1¥ÍÐ¹…‘ …Ñ¥Ù”œ¤ì(€€€€€‘½Õµ•¹Ð¹ÅÕ•ÉåM•±•Ñ½È¡€¹Ñ…ˆµÁ…¹•±m‘…Ñ„µÁ…¹•°ôˆ‘í‰Ñ¸¹‘…Ñ…Í•Ð¹Ñ…‰ô‰u€¤¹±…ÍÍ1¥ÍÐ¹…‘ …Ñ¥Ù”œ¤ì(€€€ô¤ì(€ô¤ì)ô()™Õ¹Ñ¥½¸Í¥¹=ÕÐ ¥ì(€Íˆ¹…ÕÑ ¹Í¥¹=ÕÐ ¤¹Ñ¡•¸  ¤€ôøìÝ¥¹‘½Ü¹±½…Ñ¥½¸¹¡É•˜€ô€‰ÕÍ¥¹•ÍÌ¹¡Ñµ°œìô¤ì)ô((¼¼€ôôôôôI•‘•µÁÑ¥½¹ÌÑ…ˆ€ôôôôô()™Õ¹Ñ¥½¸Ñ½±•M…¹¹•È ¥ì(€½¹ÍÐ‰Ñ¸€ô‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% É‘µM…¹Q½±”œ¤ì(€¥˜€¡Í…¹¹•ÉIÕ¹¹¥¹œ¤ì(€€€¡Ñµ°ÕEÉ½‘”¹ÍÑ½À ¤¹Ñ¡•¸  ¤€ôøì(€€€€€¡Ñµ°ÕEÉ½‘”¹±•…È ¤ì(€€€€€Í…¹¹•ÉIÕ¹¹¥¹œ€ô™…±Í”ì(€€€€€‰Ñ¸¹Ñ•áÑ½¹Ñ•¹Ð€ô€MÑ…ÉÐ…µ•É„M…¸œì(€€€€€‰Ñ¸¹±…ÍÍ1¥ÍÐ¹É•µ½Ù” Í…¹¹¥¹œœ¤ì(€€€ô¤¹…Ñ   ¤€ôøíô¤ì(€€€É•ÑÕÉ¸ì(€ô((€¥˜€ …¡Ñµ°ÕEÉ½‘”¤¡Ñµ°ÕEÉ½‘”€ô¹•Ü!Ñµ°ÕEÉ½‘” É‘µM…¹¹•Èœ¤ì((€¡Ñµ°ÕEÉ½‘”¹ÍÑ…ÉÐ (€€€ì™…¥¹5½‘”è€•¹Ù¥É½¹µ•¹Ðœô°(€€€ì™ÁÌè€ÄÀ°ÅÉ‰½àè€ÈÈÀô°(€€€€¡‘•½‘•‘Q•áÐ¤€ôøì(€€€€€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% É‘µ5…¹Õ…±½‘”œ¤¹Ù…±Õ”€ô‘•½‘•‘Q•áÐì(€€€€€Ñ½±•M…¹¹•È ¤ì(€€€ô°(€€€€ ¤€ôøíô(€€¤¹Ñ¡•¸  ¤€ôøì(€€€Í…¹¹•ÉIÕ¹¹¥¹œ€ôÑÉÕ”ì(€€€‰Ñ¸¹Ñ•áÑ½¹Ñ•¹Ð€ô€MÑ½À…µ•É„œì(€€€‰Ñ¸¹±…ÍÍ1¥ÍÐ¹…‘ Í…¹¹¥¹œœ¤ì(€ô¤¹…Ñ  ¡•ÉÈ¤€ôøì(€€€½¹Í½±”¹•ÉÉ½È …µ•É„Í…¸™…¥±•Ñ¼ÍÑ…ÉÐèœ°•ÉÈ¤ì(€€€½¹ÍÐµÍœ€ô‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% É‘µ5Íœœ¤ì(€€€µÍœ¹±…ÍÍ9…µ”€ô€µÍœ•ÉÉ½Èœì(€€€µÍœ¹Ñ•áÑ½¹Ñ•¹Ð€ô€½Õ±¹½Ð…•ÍÌÑ¡”…µ•É„¸A…ÍÑ”Ñ¡”½‘”µ…¹Õ…±±ä¥¹ÍÑ•…¸œì(€ô¤ì)ô()…Íå¹Œ™Õ¹Ñ¥½¸ÍÕ‰µ¥ÑI•‘•µÁÑ¥½¸ ¥ì(€½¹ÍÐ½‘”€ô‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% É‘µ5…¹Õ…±½‘”œ¤¹Ù…±Õ”¹ÑÉ¥´ ¤ì(€½¹ÍÐ…µ½Õ¹Ð€ôÁ…ÉÍ•±½…Ð¡‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% É‘µµ½Õ¹Ðœ¤¹Ù…±Õ”¤ì(€½¹ÍÐµÍœ€ô‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% É‘µ5Íœœ¤ì(€µÍœ¹±…ÍÍ9…µ”€ô€µÍœœì(€µÍœ¹Ñ•áÑ½¹Ñ•¹Ð€ô€œœì((€¥˜€ …½‘”¤ì(€€€µÍœ¹±…ÍÍ9…µ”€ô€µÍœ•ÉÉ½Èœì(€€€µÍœ¹Ñ•áÑ½¹Ñ•¹Ð€ô€M…¸½ÈÁ…ÍÑ”„É•‘•µÁÑ¥½¸½‘”™¥ÉÍÐ¸œì(€€€É•ÑÕÉ¸ì(€ô(€¥˜€ ……µ½Õ¹Ðñð…µ½Õ¹Ð€ðô€À¤ì(€€€µÍœ¹±…ÍÍ9…µ”€ô€µÍœ•ÉÉ½Èœì(€€€µÍœ¹Ñ•áÑ½¹Ñ•¹Ð€ô€¹Ñ•È„]Q]H…µ½Õ¹ÐÉ•…Ñ•ÈÑ¡…¸é•É¼¸œì(€€€É•ÑÕÉ¸ì(€ô((€½¹ÍÐ‰Ñ¸€ô‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% É‘µMÕ‰µ¥Ñ	Ñ¸œ¤ì(€‰Ñ¸¹‘¥Í…‰±•€ôÑÉÕ”ì(€‰Ñ¸¹Ñ•áÑ½¹Ñ•¹Ð€ô€AÉ½•ÍÍ¥¹ŸŠ˜œì((€½¹ÍÐì‘…Ñ„°•ÉÉ½Èô€ô…Ý…¥ÐÍˆ¹ÉÁŒ É•‘••µ}ÝÑÝÈœ°ì(€€€Á}Ñ½­•¸è½‘”°(€€€Á}‰ÕÍ¥¹•ÍÍ}¥èÕÉÉ•¹Ñ	ÕÍ¥¹•ÍÍ%°(€€€Á}…µ½Õ¹Ðè…µ½Õ¹Ð°(€ô¤ì((€‰Ñ¸¹‘¥Í…‰±•€ô™…±Í”ì(€‰Ñ¸¹Ñ•áÑ½¹Ñ•¹Ð€ô€I•‘••´œì((€¥˜€¡•ÉÉ½È¤ì(€€€µÍœ¹±…ÍÍ9…µ”€ô€µÍœ•ÉÉ½Èœì(€€€µÍœ¹Ñ•áÑ½¹Ñ•¹Ð€ô•ÉÉ½È¹µ•ÍÍ…”ñð€I•‘•µÁÑ¥½¸™…¥±•¸œì(€€€É•ÑÕÉ¸ì(€ô((€µÍœ¹±…ÍÍ9…µ”€ô€µÍœ½¬œì(€µÍœ¹Ñ•áÑ½¹Ñ•¹Ð€ôI•‘••µ•€‘í…µ½Õ¹Ð¹Ñ½¥á• È¥ô]Q]H€ ‘ì¡…µ½Õ¹Ð€¼€ÄÀÀ¤¹Ñ½¥á• È¥ô¤¹€ì(€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% É‘µ5…¹Õ…±½‘”œ¤¹Ù…±Õ”€ô€œœì(€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% É‘µµ½Õ¹Ðœ¤¹Ù…±Õ”€ô€œœì((€…Ý…¥ÐÉ•™É•Í¡I•‘•µÁÑ¥½¹…Ñ„ ¤ì)ô()™Õ¹Ñ¥½¸É•¹‘•É•ÁÑ¥¹Q½±” ¥ì(€½¹ÍÐ‰Ñ¸€ô‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% …•ÁÑ¥¹Q½±”œ¤ì(€‰Ñ¸¹Ñ•áÑ½¹Ñ•¹Ð€ôÕÉÉ•¹Ñ•ÁÑ¥¹œ€ü€•ÁÑ¥¹œƒŠPÑ…ÀÑ¼Á…ÕÍ”œ€è€A…ÕÍ•ƒŠPÑ…ÀÑ¼É•ÍÕµ”œì(€‰Ñ¸¹±…ÍÍ1¥ÍÐ¹Ñ½±” ½¸œ°ÕÉÉ•¹Ñ•ÁÑ¥¹œ¤ì)ô()…Íå¹Œ™Õ¹Ñ¥½¸Ñ½±••ÁÑ¥¹œ ¥ì(€ÕÉÉ•¹Ñ•ÁÑ¥¹œ€ô€…ÕÉÉ•¹Ñ•ÁÑ¥¹œì(€É•¹‘•É•ÁÑ¥¹Q½±” ¤ì((€½¹ÍÐì•ÉÉ½Èô€ô…Ý…¥ÐÍˆ¹™É½´ ‰ÕÍ¥¹•ÍÍ•Ìœ¤¹ÕÁ‘…Ñ”¡ì…•ÁÑ¥¹}ÝÑÝÈèÕÉÉ•¹Ñ•ÁÑ¥¹œô¤¹•Ä ¥œ°ÕÉÉ•¹Ñ	ÕÍ¥¹•ÍÍ%¤ì(€½¹ÍÐµÍœ€ô‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% Í•ÑÑ¥¹Í5Íœœ¤ì(€¥˜€¡•ÉÉ½È¤ì(€€€ÕÉÉ•¹Ñ•ÁÑ¥¹œ€ô€…ÕÉÉ•¹Ñ•ÁÑ¥¹œì(€€€É•¹‘•É•ÁÑ¥¹Q½±” ¤ì(€€€µÍœ¹±…ÍÍ9…µ”€ô€µÍœ•ÉÉ½Èœì(€€€µÍœ¹Ñ•áÑ½¹Ñ•¹Ð€ô€½Õ±¹½ÐÍ…Ù”ƒŠPÑÉä……¥¸¸œì(€€€É•ÑÕÉ¸ì(€ô(€µÍœ¹±…ÍÍ9…µ”€ô€µÍœ½¬œì(€µÍœ¹Ñ•áÑ½¹Ñ•¹Ð€ôÕÉÉ•¹Ñ•ÁÑ¥¹œ€ü€9½Ü…•ÁÑ¥¹œ]Q]HÉ•‘•µÁÑ¥½¹Ì¸œ€è€A…ÕÍ•ƒŠPÉ•‘•µÁÑ¥½¹ÌÝ¥±°‰”É•©•Ñ•Õ¹Ñ¥°å½ÔÉ•ÍÕµ”¸œì)ô()™Õ¹Ñ¥½¸É•¹‘•É5Õ±Ñ¥Á±¥•È ¥ì(€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% µÕ±Ñ¥Á±¥•ÉY…±Õ”œ¤¹Ñ•áÑ½¹Ñ•¹Ð€ôÕÉÉ•¹Ñ5Õ±Ñ¥Á±¥•È¹Ñ½¥á• È¤€¬€Ÿ\œì)ô()™Õ¹Ñ¥½¸…‘©ÕÍÑ5Õ±Ñ¥Á±¥•È¡‘•±Ñ„¥ì(€½¹ÍÐ¹•áÐ€ô5…Ñ ¹É½Õ¹ ¡ÕÉÉ•¹Ñ5Õ±Ñ¥Á±¥•È€¬‘•±Ñ„¤€¨€ÄÀÀ¤€¼€ÄÀÀì(€ÕÉÉ•¹Ñ5Õ±Ñ¥Á±¥•È€ô5…Ñ ¹µ¥¸ Ì¸ÀÀ°5…Ñ ¹µ…à Ä¸ÀÀ°¹•áÐ¤¤ì(€É•¹‘•É5Õ±Ñ¥Á±¥•È ¤ì)ô()…Íå¹Œ™Õ¹Ñ¥½¸Í…Ù•I•‘•µÁÑ¥½¹M•ÑÑ¥¹Ì ¥ì(€½¹ÍÐ…ÁI…Ü€ô‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% …Á%¹ÁÕÐœ¤¹Ù…±Õ”¹ÑÉ¥´ ¤ì(€½¹ÍÐ…À€ô…ÁI…Ü€ôôô€œœ€ü¹Õ±°€èÁ…ÉÍ•±½…Ð¡…ÁI…Ü¤ì(€½¹ÍÐµÍœ€ô‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% Í•ÑÑ¥¹Í5Íœœ¤ì((€¥˜€¡…ÁI…Ü€„ôô€œœ€˜˜€ …9Õµ‰•È¹¥Í¥¹¥Ñ”¡…À¤ñð…À€ðô€À¤¤ì(€€€µÍœ¹±…ÍÍ9…µ”€ô€µÍœ•ÉÉ½Èœì(€€€µÍœ¹Ñ•áÑ½¹Ñ•¹Ð€ô€5½¹Ñ¡±ä…ÀµÕÍÐ‰”„Á½Í¥Ñ¥Ù”¹Õµ‰•È°½È‰±…¹¬™½ÈÕ¹…ÁÁ•¸œì(€€€É•ÑÕÉ¸ì(€ô((€½¹ÍÐì•ÉÉ½Èô€ô…Ý…¥ÐÍˆ¹™É½´ ‰ÕÍ¥¹•ÍÍ•Ìœ¤(€€€€¹ÕÁ‘…Ñ”¡ìµÕ±Ñ¥Á±¥•ÈèÕÉÉ•¹Ñ5Õ±Ñ¥Á±¥•È°É•‘•µÁÑ¥½¹}…Á}µ½¹Ñ¡±äè…Àô¤(€€€€¹•Ä ¥œ°ÕÉÉ•¹Ñ	ÕÍ¥¹•ÍÍ%¤ì((€¥˜€¡•ÉÉ½È¤ì(€€€µÍœ¹±…ÍÍ9…µ”€ô€µÍœ•ÉÉ½Èœì(€€€µÍœ¹Ñ•áÑ½¹Ñ•¹Ð€ô•ÉÉ½È¹µ•ÍÍ…”ñð€½Õ±¹½ÐÍ…Ù”Í•ÑÑ¥¹Ì¸œì(€€€É•ÑÕÉ¸ì(€ô(€µÍœ¹±…ÍÍ9…µ”€ô€µÍœ½¬œì(€µÍœ¹Ñ•áÑ½¹Ñ•¹Ð€ô€M•ÑÑ¥¹ÌÍ…Ù•¸œì)ô()…Íå¹Œ™Õ¹Ñ¥½¸É•™É•Í¡I•‘•µÁÑ¥½¹…Ñ„ ¥ì(€½¹ÍÐì‘…Ñ„è‰ÕÍ¥¹•ÍÌô€ô…Ý…¥ÐÍˆ¹™É½´ ‰ÕÍ¥¹•ÍÍ•Ìœ¤¹Í•±•Ð ÝÑÝÉ}É•‘••µ•œ¤¹•Ä ¥œ°ÕÉÉ•¹Ñ	ÕÍ¥¹•ÍÍ%¤¹µ…å‰•M¥¹±” ¤ì(€¥˜€¡‰ÕÍ¥¹•ÍÌ¤ì(€€€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% É‘µ±±Q¥µ•Q½Ñ…°œ¤¹Ñ•áÑ½¹Ñ•¹Ð€ô9Õµ‰•È¡‰ÕÍ¥¹•ÍÌ¹ÝÑÝÉ}É•‘••µ•ñð€À¤¹Ñ½¥á• È¤ì(€€€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% ÍÑ…Ñ]ÑÝÈœ¤¹Ñ•áÑ½¹Ñ•¹Ð€ô9Õµ‰•È¡‰ÕÍ¥¹•ÍÌ¹ÝÑÝÉ}É•‘••µ•ñð€À¤¹Ñ½¥á• È¤ì(€€€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% ½Ù•ÉÙ¥•ÝµÁÑäœ¤¹ÍÑå±”¹‘¥ÍÁ±…ä€ô9Õµ‰•È¡‰ÕÍ¥¹•ÍÌ¹ÝÑÝÉ}É•‘••µ•ñð€À¤€ôôô€À€ü€‰±½¬œ€è€¹½¹”œì(€ô((€½¹ÍÐì‘…Ñ„è±½œô€ô…Ý…¥ÐÍˆ¹™É½´ É•‘•µÁÑ¥½¹Ìœ¤(€€€€¹Í•±•Ð ¥°ÝÑÝÉ}…µ½Õ¹Ð°ÕÍ‘}Ù…±Õ”°É•…Ñ•‘}…Ðœ¤(€€€€¹•Ä ‰ÕÍ¥¹•ÍÍ}¥œ°ÕÉÉ•¹Ñ	ÕÍ¥¹•ÍÍ%¤(€€€€¹½É‘•È É•…Ñ•‘}…Ðœ°ì…Í•¹‘¥¹œè™…±Í”ô¤(€€€€¹±¥µ¥Ð ÈÔ¤ì((€½¹ÍÐ±½°€ô‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% É‘µ1½œœ¤ì(€½¹ÍÐ•µÁÑå°€ô‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% É‘µ1½µÁÑäœ¤ì((€¥˜€ …±½œñð±½œ¹±•¹Ñ €ôôô€À¤ì(€€€±½°¹¥¹¹•É!Q50€ô€œœì(€€€•µÁÑå°¹ÍÑå±”¹‘¥ÍÁ±…ä€ô€‰±½¬œì(€€€É•ÑÕÉ¸ì(€ô((€•µÁÑå°¹ÍÑå±”¹‘¥ÍÁ±…ä€ô€¹½¹”œì(€±½°¹¥¹¹•É!Q50€ô±½œ¹µ…À ¡È¤€ôø€(€€€€ñ‘¥Ø±…ÍÌô‰±½œµÉ½Üˆø(€€€€€€ñ‘¥ØøñÍÁ…¸±…ÍÌô‰…µÐˆø‘í9Õµ‰•È¡È¹ÝÑÝÉ}…µ½Õ¹Ð¤¹Ñ½¥á• È¥ô]Q]Hð½ÍÁ…¸ø€ ‘í9Õµ‰•È¡È¹ÕÍ‘}Ù…±Õ”¤¹Ñ½¥á• È¥ô¤ð½‘¥Øø(€€€€€€ñ‘¥Ø±…ÍÌô‰Ý¡•¸ˆø‘í¹•Ü…Ñ”¡È¹É•…Ñ•‘}…Ð¤¹Ñ½1½…±•MÑÉ¥¹œ ¥ôð½‘¥Øø(€€€€ð½‘¥Øø(€€¤¹©½¥¸ œœ¤ì)ô()…Íå¹Œ™Õ¹Ñ¥½¸Í¡½Ý]½É­ÍÁ…”¡‰ÕÍ¥¹•ÍÌ¥ì(€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% Á¥Ñ¡Y¥•Üœ¤¹ÍÑå±”¹‘¥ÍÁ±…ä€ô€¹½¹”œì(€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% Ý½É­ÍÁ…•Y¥•Üœ¤¹ÍÑå±”¹‘¥ÍÁ±…ä€ô€‰±½¬œì(€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% ¹…Ù1¥¹­Í1½•‘=ÕÐœ¤¹ÍÑå±”¹‘¥ÍÁ±…ä€ô€¹½¹”œì(€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% ¹…Ù1¥¹­Í]½É­ÍÁ…”œ¤¹ÍÑå±”¹‘¥ÍÁ±…ä€ô€™±•àœì(€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% Í¥¹=ÕÑ	Ñ¸œ¤¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ±¥¬œ°Í¥¹=ÕÐ¤ì((€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% ÝÍ	¥é9…µ”œ¤¹Ñ•áÑ½¹Ñ•¹Ð€ô‰ÕÍ¥¹•ÍÌ¹‰ÕÍ¥¹•ÍÍ}¹…µ”ì(€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% ÝÍQ¥•Èœ¤¹Ñ•áÑ½¹Ñ•¹Ð€ô€¡‰ÕÍ¥¹•ÍÌ¹Ñ¥•Èñð€U9MM%9œ¤¹Ñ½UÁÁ•É…Í” ¤€¬€œQ%Hœì((€½¹ÍÐÝÑÝÈ€ô9Õµ‰•È¡‰ÕÍ¥¹•ÍÌ¹ÝÑÝÉ}É•‘••µ•ñð€À¤ì(€½¹ÍÐ½™™Í•Ð€ô9Õµ‰•È¡‰ÕÍ¥¹•ÍÌ¹‘¥ÍÁ½Í…±}½ÍÑ}Í…Ù•ñð€À¤ì(€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% ÍÑ…Ñ]ÑÝÈœ¤¹Ñ•áÑ½¹Ñ•¹Ð€ôÝÑÝÈ¹Ñ½¥á• È¤ì(€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% ÍÑ…Ñ=™™Í•Ðœ¤¹Ñ•áÑ½¹Ñ•¹Ð€ô€œœ€¬½™™Í•Ð¹Ñ½¥á• È¤ì(€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% ½Ù•ÉÙ¥•ÝµÁÑäœ¤¹ÍÑå±”¹‘¥ÍÁ±…ä€ôÝÑÝÈ€ôôô€À€ü€‰±½¬œ€è€¹½¹”œì((€ÕÉÉ•¹Ñ	ÕÍ¥¹•ÍÍ%€ô‰ÕÍ¥¹•ÍÌ¹¥ì(€ÕÉÉ•¹Ñ5Õ±Ñ¥Á±¥•È€ô9Õµ‰•È¡‰ÕÍ¥¹•ÍÌ¹µÕ±Ñ¥Á±¥•Èñð€Ä¸ÀÀ¤ì(€ÕÉÉ•¹Ñ•ÁÑ¥¹œ€ô‰ÕÍ¥¹•ÍÌ¹…•ÁÑ¥¹}ÝÑÝÈ€„ôô™…±Í”ì(€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% É‘µ±±Q¥µ•Q½Ñ…°œ¤¹Ñ•áÑ½¹Ñ•¹Ð€ôÝÑÝÈ¹Ñ½¥á• È¤ì(€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% …Á%¹ÁÕÐœ¤¹Ù…±Õ”€ô‰ÕÍ¥¹•ÍÌ¹É•‘•µÁÑ¥½¹}…Á}µ½¹Ñ¡±ä€„ô¹Õ±°€ü‰ÕÍ¥¹•ÍÌ¹É•‘•µÁÑ¥½¹}…Á}µ½¹Ñ¡±ä€è€œœì(€É•¹‘•É•ÁÑ¥¹Q½±” ¤ì(€É•¹‘•É5Õ±Ñ¥Á±¥•È ¤ì(€É•™É•Í¡I•‘•µÁÑ¥½¹…Ñ„ ¤ì((€¥¹¥ÑQ…‰Ì ¤ì(€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% ±½…‘¥¹MÑ…Ñ”œ¤¹ÍÑå±”¹‘¥ÍÁ±…ä€ô€¹½¹”œì(€‘½Õµ•¹Ð¹•Ñ±•µ•¹Ñ	å% Ý½É­ÍÁ…•	½‘äœ¤¹ÍÑå±”¹‘¥ÍÁ±…ä€ô€‰±½¬œì)ô()…Íå¹Œ™Õ¹Ñ¥½¸¥¹¥ÑA…” ¥ì(€½¹ÍÐÁ…É…µÌ€ô¹•ÜUI1M•…É¡A…É…µÌ¡Ý¥¹‘½Ü¹±½…Ñ¥½¸¹Í•…É ¤ì(€¥˜€¡Á…É…µÌ¹•Ð ¡•­½ÕÐœ¤¤Í¡½Ý¡•­½ÕÑ	…¹¹•È¡Á…É…µÌ¹•Ð ¡•­½ÕÐœ¤¤ì((€½¹ÍÐì‘…Ñ„èìÍ•ÍÍ¥½¸ôô€ô…Ý…¥ÐÍˆ¹…ÕÑ ¹•ÑM•ÍÍ¥½¸ ¤ì(€¥˜€ …Í•ÍÍ¥½¸¤É•ÑÕÉ¸ì((€½¹ÍÐì‘…Ñ„è‰ÕÍ¥¹•ÍÌô€ô…Ý…¥ÐÍˆ¹™É½´ ‰ÕÍ¥¹•ÍÍ•Ìœ¤¹Í•±•Ð œ¨œ¤¹•Ä …ÕÑ¡}¥œ°Í•ÍÍ¥½¸¹ÕÍ•È¹¥¤¹µ…å‰•M¥¹±” ¤ì(€¥˜€ …‰ÕÍ¥¹•ÍÌ¤É•ÑÕÉ¸ì((€Í¡½Ý]½É­ÍÁ…”¡‰ÕÍ¥¹•ÍÌ¤ì)ô()¥¹¥ÑA…” ¤ì(ð½ÍÉ¥ÁÐø(ð½‰½‘äø(ð½¡Ñµ°ø

@@ -15,7 +15,7 @@ module.exports = defineConfig({
   webServer: {
     command: 'node tests/static-server.js',
     url: 'http://127.0.0.1:4173/scanner.html',
-    reuseExistingServer: true,
+    reuseExistingServer: false,
     timeout: 10_000,
   },
 });
