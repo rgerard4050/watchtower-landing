@@ -7,7 +7,9 @@
     "doc": "docs"
   },
   "scripts": {
-    "test": "npm run test:api-marketplace && npm run test:scanner-checkpoint",
+    "dev": "node tests/static-server.js",
+    "test": "npm run test:api-marketplace && npm run test:api-resident && npm run test:scanner-checkpoint",
+    "test:api-resident": "node --test --test-isolation=none tests/resident-collection-api.test.js",
     "test:api-marketplace": "node --test --test-isolation=none tests/api-marketplace.test.js",
     "test:scanner-checkpoint": "playwright test tests/canonical-scanner.spec.js",
     "test:scanner-checkpoint:headed": "playwright test tests/canonical-scanner.spec.js --headed"

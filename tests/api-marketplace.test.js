@@ -74,6 +74,12 @@ test('all legacy route forms rewrite to the correct marketplace resource', () =>
     '/api/offers.js': '/api/marketplace?resource=offers',
     '/api/transactions': '/api/marketplace?resource=transactions',
     '/api/transactions.js': '/api/marketplace?resource=transactions',
+    '/api/resident-collection': '/api/resident?resource=collection',
+    '/api/resident-collection.js': '/api/resident?resource=collection',
+    '/api/resident-pickup': '/api/resident?resource=pickup',
+    '/api/resident-pickup.js': '/api/resident?resource=pickup',
+    '/api/resident-progression': '/api/resident?resource=progression',
+    '/api/resident-progression.js': '/api/resident?resource=progression',
   };
   for (const [source, destination] of Object.entries(expected)) {
     assert.equal(actual.get(source), destination);
@@ -201,7 +207,7 @@ test('stale offer rejection remains 409 with a string error', async () => {
   assert.equal(res.body.code, 'OFFER_NOT_PENDING');
 });
 
-test('deployable API set excludes duplicates and superseded handlers and totals eleven', () => {
+test('deployable API set excludes duplicates and includes twelve canonical handlers', () => {
   const ignored = new Set(
     fs.readFileSync(path.join(repositoryRoot, '.vercelignore'), 'utf8')
       .split(/\r?\n/)
@@ -214,6 +220,8 @@ test('deployable API set excludes duplicates and superseded handlers and totals 
     'api/listings.js',
     'api/offers.js',
     'api/transactions.js',
+    'api/resident-collection.js',
+    'api/resident-pickup.js',
   ];
   for (const file of requiredExclusions) assert.equal(ignored.has(file), true, file);
 
@@ -228,7 +236,10 @@ test('deployable API set excludes duplicates and superseded handlers and totals 
     .map((file) => path.relative(repositoryRoot, file).replaceAll(path.sep, '/'))
     .filter((file) => !ignored.has(file));
 
-  assert.equal(deployable.length, 11);
+  assert.equal(deployable.length, 12);
   assert.equal(deployable.includes('api/marketplace.js'), true);
+  assert.equal(deployable.includes('api/resident.js'), true);
+  assert.equal(deployable.includes('api/resident-collection.js'), false);
+  assert.equal(deployable.includes('api/resident-pickup.js'), false);
   for (const file of requiredExclusions) assert.equal(deployable.includes(file), false, file);
 });

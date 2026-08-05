@@ -2,6 +2,8 @@
 // Compatible with Vercel serverless routes in the /api folder.
 
 const MODEL = "claude-haiku-4-5-20251001";
+const crypto = require('node:crypto');
+const { signAnalysis } = require('../server/resident');
 
 const SYSTEM = `You are the Watchtower resident recycling scanner — a friendly, honest coach for everyday residents, not a dealer.
 You look at a photo of a pile of materials and help the person understand what they have.
@@ -89,7 +91,21 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ error: "Couldn't read a clean result. Try the photo again." });
     }
 
-    return res.status(200).json(parsed);
+    const estimatedValueLow = Math.max(0, Number(parsed.estimated_value_low) || 0);
+    const estimatedValueHigh = Math.max(estimatedValueLow, Number(parsed.estimated_value_high) || 0);
+    const analysis = {
+      analysisId: crypto.randomUUID(), model: MODEL, issuedAt: Date.now(), expiresAt: Date.now() + 30 * 60 * 1000,
+      summary: String(parsed.summary || '').slice(0, 2000),
+      itemsSeen: Array.isArray(parsed.items_seen) ? parsed.items_seen.map(String).slice(0, 50) : [],
+      estimatedValueLow, estimatedValueHigh,
+    };
+    return res.status(200).json({
+      summary: analysis.summary, items_seen: analysis.itemsSeen,
+      estimated_value_low: estimatedValueLow, estimated_value_high: estimatedValueHigh,
+      coaching_tip: String(parsed.coaching_tip || ''), safety_warning: String(parsed.safety_warning || ''),
+      analysis_id: analysis.analysisId, analysis_token: signAnalysis(analysis),
+      estimate_notice: 'Estimated — subject to Operator verification.'
+    });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

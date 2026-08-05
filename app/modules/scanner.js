@@ -15,7 +15,9 @@ export function render() {
 
             <canvas id="canvas" hidden></canvas>
 
-            <div id="results"></div>
+            <div id="results">
+                Ready.
+            </div>
         </section>
     `;
 }
@@ -27,8 +29,15 @@ export function init() {
     const canvas = document.getElementById("canvas");
     const results = document.getElementById("results");
 
+    if (!video || !button) {
+        console.log("Scanner elements missing");
+        return;
+    }
+
     navigator.mediaDevices.getUserMedia({
-        video: true
+        video: {
+            facingMode: "environment"
+        }
     })
     .then(stream => {
         video.srcObject = stream;
@@ -38,17 +47,25 @@ export function init() {
     });
 
 
-    button.onclick = async () => {
+    button.addEventListener("click", async () => {
+
+        results.innerHTML = "Capturing...";
 
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
 
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(video, 0, 0);
+        const context = canvas.getContext("2d");
 
-        const dataUrl = canvas.toDataURL("image/jpeg");
+        context.drawImage(
+            video,
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        );
 
-        const imageBase64 = dataUrl.split(",")[1];
+        const imageData = canvas.toDataURL("image/jpeg");
+        const imageBase64 = imageData.split(",")[1];
 
         results.innerHTML = "Analyzing materials...";
 
@@ -60,7 +77,7 @@ export function init() {
             );
 
             results.innerHTML = `
-                <h3>Results</h3>
+                <h3>Materials Found</h3>
                 <pre>${JSON.stringify(result, null, 2)}</pre>
             `;
 
@@ -70,5 +87,5 @@ export function init() {
                 "Scan failed: " + error.message;
 
         }
-    };
+    });
 }

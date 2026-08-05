@@ -27,7 +27,7 @@ const server = http.createServer((request, response) => {
     return;
   }
 
-  if (pathname === '/') pathname = '/scanner.html';
+  if (pathname === '/') pathname = '/index.html';
   const candidate = path.resolve(root, `.${pathname}`);
 
   if (candidate !== root && !candidate.startsWith(`${root}${path.sep}`)) {
@@ -50,8 +50,9 @@ const server = http.createServer((request, response) => {
   });
 });
 
-server.listen(port, '127.0.0.1', () => {
-  process.stdout.write(`Scanner checkpoint server listening on http://127.0.0.1:${port}\n`);
+const host = process.env.HOST || '0.0.0.0';
+server.listen(port, host, () => {
+  process.stdout.write(`Watchtower static server listening on http://${host}:${port}\n`);
 });
 
 function shutdown() {

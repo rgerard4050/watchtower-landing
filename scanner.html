@@ -128,6 +128,34 @@
         .verify-note button { background:none; border:none; color: var(--green); text-decoration: underline; font-size: 12px; cursor:pointer; font-family: var(--sans); }
 
         #logConfirm { text-align:center; font-family: var(--sans); font-size: 13px; margin-bottom: 12px; }
+        .progression-card { background:var(--dark); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:12px; }
+        .progression-summary { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
+        .progression-summary strong { display:block; color:var(--green); font:18px 'Share Tech Mono',monospace; }
+        .progression-summary span, .progression-note { color:var(--muted); font-size:11px; }
+        .level-track { height:8px; background:var(--panel); border-radius:10px; overflow:hidden; margin:8px 0; }
+        #levelProgress { display:block; width:0; height:100%; background:var(--green); transition:width .2s ease; }
+        .progression-list { margin:8px 0 12px; padding-left:20px; color:var(--text); font-size:13px; line-height:1.6; }
+        .xp-state { color:var(--amber); font-size:11px; text-transform:uppercase; }
+        .learning-card { border-top:1px solid var(--border); padding:10px 0; }
+        .learning-card p { color:var(--muted); font-size:12px; line-height:1.5; }
+        .learning-card .btn { padding:9px; font-size:12px; }
+        #achievementCelebration { border:1px solid var(--green); color:var(--green); padding:10px; margin-bottom:10px; border-radius:8px; }
+        .camera-actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+        .upload-label { display:flex; align-items:center; justify-content:center; text-align:center; }
+        .permission-error { color:var(--red); font:13px var(--sans); line-height:1.5; margin:0; }
+        .demo-banner { width:90%; max-width:450px; box-sizing:border-box; margin-top:14px; padding:12px; border:1px solid var(--amber); border-radius:8px; color:var(--amber); font:12px var(--sans); line-height:1.5; }
+        .lifecycle-card { background:var(--dark); border:1px solid var(--green-dim); border-radius:10px; padding:16px; margin-bottom:12px; }
+        .lifecycle-card h2 { color:var(--green); font:15px 'Share Tech Mono',monospace; letter-spacing:.08em; }
+        .review-field { display:block; width:100%; box-sizing:border-box; margin:10px 0; padding:13px; background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:6px; font:16px var(--sans); }
+        .timeline { list-style:none; padding:0; margin:16px 0 0; }
+        .timeline li { position:relative; padding:0 0 16px 28px; color:var(--muted); font:13px var(--sans); line-height:1.4; }
+        .timeline li::before { content:''; position:absolute; left:4px; top:3px; width:10px; height:10px; border:2px solid var(--border); border-radius:50%; background:var(--dark); }
+        .timeline li::after { content:''; position:absolute; left:10px; top:17px; bottom:2px; width:1px; background:var(--border); }
+        .timeline li:last-child::after { display:none; }
+        .timeline li.done { color:var(--text); }
+        .timeline li.done::before { border-color:var(--green); background:var(--green); box-shadow:0 0 8px var(--green); }
+        .timeline strong { display:block; color:inherit; }
+        @media (max-width:380px) { .camera-actions { grid-template-columns:1fr; } }
     </style>
 </head>
 <body>
@@ -139,6 +167,8 @@
 
     <p class="friendly-sub">Point your camera at what you've got. We'll tell you what it's worth, how to sort it for more, and flag anything that needs careful handling.</p>
 
+    <div id="demoBanner" class="demo-banner" hidden><strong>RESIDENT DEMO</strong> — This walkthrough uses device-only demo records. Any buyer, transfer, value, or sale shown is simulated and creates no payment or obligation.</div>
+
     <div class="viewscreen-container">
         <video id="webcam" autoplay playsinline></video>
         <img id="capturedImg" alt="Captured photo">
@@ -146,12 +176,19 @@
     </div>
 
     <div class="controls">
+        <div class="camera-actions">
+            <button class="btn" id="start-camera-btn">Enable Camera</button>
+            <label class="btn secondary upload-label" for="file-input">Upload Photo</label>
+            <input id="file-input" type="file" accept="image/*" capture="environment" hidden>
+        </div>
         <button class="btn" id="capture-btn" disabled>Execute Optical Scan</button>
         <button class="btn secondary" id="retake-btn" style="display:none">Retake Photo</button>
+        <p id="cameraError" class="permission-error" role="alert" hidden></p>
         <div class="console-output" id="console">SYSTEM READY. AWAITING SCAN INPUT...</div>
     </div>
 
     <div id="resultPanel">
+        <p id="residentContext" class="tag">BASIC · PERSONAL / RESIDENT</p>
         <section class="collection-card" aria-labelledby="collectionTitle">
             <div class="collection-head">
                 <h2 id="collectionTitle">CURRENT COLLECTION</h2>
@@ -159,22 +196,49 @@
             </div>
             <div class="collection-stats">
                 <div class="collection-stat">
-                    <span>Durable value</span>
+                    <span>Estimated dollars</span>
                     <strong id="collectionValue">$0.00</strong>
                 </div>
                 <div class="collection-stat">
-                    <span>Materials found</span>
+                    <span>Collection items</span>
                     <strong id="collectionCount">0</strong>
                 </div>
             </div>
-            <p id="collectionEmpty">Scan one collection to identify its materials.</p>
+            <p id="estimateNotice">Estimated — subject to Operator verification.</p>
+            <p id="collectionWtwr">Estimated WTWR: 0</p>
+            <p id="collectionEmpty">Capture a Resource or Material to begin.</p>
             <p id="collectionSummary" style="display:none;"></p>
             <ul id="collectionMaterials" style="display:none;"></ul>
             <div class="collection-actions">
                 <button class="btn" id="log-btn" style="display:none;">ADD TO COLLECTION</button>
-                <button class="btn secondary" id="new-collection-btn" style="display:none;">START NEW COLLECTION</button>
+                <button class="btn secondary" id="new-collection-btn" style="display:none;">SCAN ANOTHER ITEM</button>
+                <button class="btn" id="stage-btn" style="display:none;">STAGE BOUNTY</button>
+                <button class="btn" id="pickup-btn" style="display:none;">REQUEST PICKUP</button>
             </div>
+            <button class="btn secondary" id="drawer-btn" aria-expanded="false" aria-controls="collection-ledger">VIEW COLLECTION ITEMS</button>
+            <div id="collection-ledger" hidden></div>
             <div id="logConfirm" style="display:none;"></div>
+        </section>
+        <section class="progression-card" aria-labelledby="progressionTitle">
+            <div class="collection-head">
+                <h2 id="progressionTitle">LEARN MORE, EARN MORE</h2>
+                <span class="collection-status">NON-FINANCIAL XP</span>
+            </div>
+            <div id="achievementCelebration" role="status" aria-live="polite" hidden></div>
+            <div class="progression-summary">
+                <div><span>Verified XP</span><strong id="xpTotal">0 XP</strong></div>
+                <div><span>Current level</span><strong id="levelValue">Level 1</strong></div>
+            </div>
+            <div class="level-track" role="progressbar" aria-label="Progress to next level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="levelProgress"></span></div>
+            <p id="levelNext" class="progression-note">Progress loads with your Resident account.</p>
+            <p id="xpProvisional" class="progression-note">Provisional XP awaiting review: 0</p>
+            <h3>ACTIVE MISSIONS</h3>
+            <ul id="missionList" class="progression-list"><li>Loading missionsâ€¦</li></ul>
+            <button class="btn secondary" id="xp-drawer-btn" aria-expanded="false" aria-controls="xp-history">VIEW XP HISTORY</button>
+            <div id="xp-history" hidden></div>
+            <h3>RECOMMENDED LEARNING</h3>
+            <div id="learningRecommendations"><p class="progression-note">Recommendations appear from server-confirmed Material discoveries.</p></div>
+            <p class="progression-note">XP tracks learning and participation only. It is not WTWR, money, Wallet credit, compensation, or authority.</p>
         </section>
         <div id="safetyBlock" class="safety" style="display:none">
             <div class="tag">&#9888; SAFETY FIRST</div>
@@ -190,12 +254,26 @@
         </div>
         <div id="itemsBlock" class="items"></div>
 
-        <div class="verify-note">Think we got it wrong? <button onclick="alert('Coming soon: a direct line to a real person who will re-check this.')">Tell us what it really is</button></div>
+        <div class="verify-note">Think we got it wrong? Review and correct the material name before creating the asset.</div>
+        <section id="demoLifecycle" class="lifecycle-card" hidden aria-labelledby="demoLifecycleTitle">
+            <h2 id="demoLifecycleTitle">MATERIAL LIFECYCLE · DEMO</h2>
+            <p class="progression-note">Review the identification before creating a demo asset.</p>
+            <label for="materialCorrection">Identified material</label>
+            <input id="materialCorrection" class="review-field" autocomplete="off">
+            <button class="btn" id="confirm-material-btn">Confirm Identification</button>
+            <button class="btn" id="create-asset-btn" hidden>Create Recorded Asset</button>
+            <button class="btn" id="list-asset-btn" hidden>List / Transfer Asset (Demo)</button>
+            <button class="btn" id="receive-asset-btn" hidden>Receive at Demo Buyer Node</button>
+            <button class="btn" id="simulate-sale-btn" hidden>Simulate Sale — No Payment</button>
+            <p id="finalValue" class="progression-note" role="status"></p>
+            <ol id="lifecycleTimeline" class="timeline"></ol>
+        </section>
     </div>
 
     <canvas id="snapshot" style="display:none;"></canvas>
 
-    <script>
+    <!-- Non-executable historical controller retained temporarily for review; canonical behavior is the active controller below. -->
+    <script type="text/plain" id="legacy-single-scan-controller">
         // ---- Supabase (public anon key — safe to expose; scans are write-only) ----
         const SUPABASE_URL  = "https://eypovuxuddiqgncjdpkq.supabase.co";
         const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5cG92dXh1ZGRpcWduY2pkcGtxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MzU1NDgsImV4cCI6MjA5ODUxMTU0OH0.JLSmCx7bZe7yIxxdXZwCWrLeyV1zAoPTXbSP24IckBY";
@@ -568,5 +646,126 @@
 
         window.addEventListener('load', initCamera);
     </script>
+    <script type="text/plain" id="pre-demo-resident-controller">
+    (() => {
+      const SUPABASE_URL = 'https://eypovuxuddiqgncjdpkq.supabase.co';
+      const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6ImV5cG92dXh1ZGRpcWduY2pkcGtxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MzU1NDgsImV4cCI6MjA5ODUxMTU0OH0.JLSmCx7bZe7yIxxdXZwCWrLeyV1zAoPTXbSP24IckBY';
+      const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+      const $ = (id) => document.getElementById(id);
+      const video=$('webcam'), image=$('capturedImg'), canvas=$('snapshot'), capture=$('capture-btn'), retake=$('retake-btn');
+      const add=$('log-btn'), another=$('new-collection-btn'), stage=$('stage-btn'), pickup=$('pickup-btn');
+      let collection=null, progression=null, pending=null, pendingImage=null, clientItemId=null, busy=false, accessToken=null;
+      let knownAchievements=null;
+
+      function log(message) { $('console').textContent += `\n> ${message}`; }
+      function authHeaders() { return { Authorization:`Bearer ${accessToken}`, 'Content-Type':'application/json' }; }
+      async function request(url, options={}) {
+        const response=await fetch(url,{...options,headers:{...authHeaders(),...(options.headers||{})}});
+        const body=await response.json().catch(()=>({}));
+        if(!response.ok) throw new Error(body.error?.message||body.error||'Request failed.');
+        return body;
+      }
+      function renderLedger() {
+        const ledger=$('collection-ledger'); ledger.replaceChildren();
+        for(const item of collection?.items||[]) {
+          const row=document.createElement('article'); row.className='summary-card'; row.tabIndex=0;
+          const title=document.createElement('strong'); title.textContent=`Item ${item.id}`; row.append(title);
+          const time=document.createElement('p'); time.textContent=new Date(item.capturedAt).toLocaleString(); row.append(time);
+          if(item.previewUrl){const preview=document.createElement('img');preview.src=item.previewUrl;preview.alt='Protected collection evidence preview';preview.style.maxWidth='160px';row.append(preview);}
+          for(const text of [item.summary,`Materials: ${(item.materials||[]).join(', ')}`,`Estimated WTWR: ${item.estimatedWtwr}`,`Estimated dollars: $${Number(item.estimatedResidentDollars).toFixed(2)}`,`Confidence/review: ${item.confidence??'not supplied'} / ${item.reviewState}`]) { const p=document.createElement('p');p.textContent=text;row.append(p); }
+          if(collection.status==='open'){const remove=document.createElement('button');remove.className='btn secondary';remove.textContent='REMOVE ITEM';remove.onclick=()=>removeItem(item.id);row.append(remove);}
+          ledger.append(row);
+        }
+      }
+      function render() {
+        const count=collection?.itemCount||0;
+        $('collectionCount').textContent=String(count);
+        $('collectionValue').textContent=`$${Number(collection?.estimatedResidentDollars||0).toFixed(2)}`;
+        $('collectionWtwr').textContent=`Estimated WTWR: ${Number(collection?.estimatedWtwr||0).toLocaleString()}`;
+        $('collectionStatus').textContent=collection?.status||'Loading';
+        $('collectionEmpty').style.display=count?'none':'block';
+        stage.style.display=collection?.status==='open'&&count?'block':'none';
+        pickup.style.display=collection?.status==='staged'?'block':'none';
+        another.style.display=collection?.status==='open'&&count?'block':'none';
+        renderLedger();
+      }
+      function renderProgression() {
+        if(!progression)return;
+        const level=progression.level||{};
+        $('xpTotal').textContent=`${Number(progression.verifiedXp||0).toLocaleString()} XP`;
+        $('xpProvisional').textContent=`Provisional XP awaiting review: ${Number(progression.provisionalXp||0).toLocaleString()}`;
+        $('levelValue').textContent=`Level ${level.number||1} · ${level.title||'Observer'}`;
+        const percent=Math.max(0,Math.min(100,Number(level.progressPercent||0)));
+        $('levelProgress').style.width=`${percent}%`;
+        $('levelProgress').parentElement.setAttribute('aria-valuenow',String(percent));
+        $('levelNext').textContent=level.nextThreshold==null?'Highest current level reached.':`${Number(level.xpToNext||0).toLocaleString()} verified XP to the next level.`;
+        const missions=$('missionList');missions.replaceChildren();
+        for(const mission of progression.missions||[]){const li=document.createElement('li');li.textContent=`${mission.title}: ${mission.progress}/${mission.target}${mission.status==='completed'?' · COMPLETE':''}`;missions.append(li);}
+        if(!missions.children.length){const li=document.createElement('li');li.textContent='No active missions yet.';missions.append(li);}
+        const history=$('xp-history');history.replaceChildren();
+        for(const event of progression.recentXp||[]){const row=document.createElement('article');row.className='summary-card';
+          const title=document.createElement('strong');title.textContent=`${event.amount>0?'+':''}${event.amount} XP · ${event.reason}`;row.append(title);
+          const state=document.createElement('p');state.className='xp-state';state.textContent=`${event.state} · rule v${event.ruleVersion}`;row.append(state);history.append(row);}
+        if(!history.children.length){const p=document.createElement('p');p.className='progression-note';p.textContent='No XP events yet.';history.append(p);}
+        const learning=$('learningRecommendations');learning.replaceChildren();
+        for(const module of progression.learningRecommendations||[]){const card=document.createElement('article');card.className='learning-card';
+          const title=document.createElement('strong');title.textContent=module.title;card.append(title);
+          const objective=document.createElement('p');objective.textContent=module.objective;card.append(objective);
+          const button=document.createElement('button');button.className='btn secondary';button.textContent=module.completed?'COMPLETED':'ACKNOWLEDGE LEARNING';button.disabled=Boolean(module.completed);
+          button.onclick=()=>completeLearning(module.moduleId,module.version,button);card.append(button);learning.append(card);}
+        const current=new Set((progression.achievements||[]).map(item=>`${item.code}:${item.version}`));
+        if(knownAchievements){const earned=(progression.achievements||[]).find(item=>!knownAchievements.has(`${item.code}:${item.version}`));
+          if(earned){$('achievementCelebration').textContent=`ACHIEVEMENT UNLOCKED: ${earned.title}`;$('achievementCelebration').hidden=false;}}
+        knownAchievements=current;
+      }
+      async function loadProgression(){try{progression=await request('/api/resident-progression');renderProgression();}catch(error){log(`PROGRESSION UNAVAILABLE: ${error.message}`);}}
+      async function completeLearning(moduleId,moduleVersion,button){if(button.disabled)return;button.disabled=true;
+        const key=button.dataset.key||(button.dataset.key=crypto.randomUUID());
+        try{progression=await request('/api/resident-progression',{method:'POST',body:JSON.stringify({action:'complete_learning',moduleId,moduleVersion,idempotencyKey:key})});renderProgression();log('LEARNING COMPLETION SAVED.');}
+        catch(error){button.disabled=false;log(`LEARNING ERROR: ${error.message}`);}}
+      async function load() {
+        const {data:{session}}=await db.auth.getSession();
+        if(!session){ $('residentContext').textContent='SIGN IN REQUIRED · PERSONAL / RESIDENT'; capture.disabled=true; log('AUTHENTICATED RESIDENT CONTEXT REQUIRED.'); return; }
+        accessToken=session.access_token; collection=await request('/api/resident-collection'); render(); await loadProgression(); await initCamera();
+        if(collection.status==='staged') await loadPickupStatus();
+      }
+      async function initCamera(){
+        try { video.srcObject=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false}); }
+        catch { log('CAMERA ACCESS DENIED. CHECK PERMISSIONS.'); }
+      }
+      function ready(){if(video.videoWidth&&video.videoHeight){capture.disabled=false;capture.textContent='Execute Optical Scan';}}
+      video.addEventListener('loadedmetadata',ready); video.addEventListener('canplay',ready);
+      capture.onclick=async()=>{
+        if(busy||!video.videoWidth||!video.videoHeight)return; busy=true; capture.disabled=true; capture.textContent='Analyzing…';
+        canvas.width=video.videoWidth;canvas.height=video.videoHeight;canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);
+        const url=canvas.toDataURL('image/jpeg',.85);pendingImage=url.split(',')[1];image.src=url;video.style.display='none';image.style.display='block';retake.style.display='block';
+        try{pending=await request('/api/scan',{method:'POST',body:JSON.stringify({imageBase64:pendingImage,mediaType:'image/jpeg'})});clientItemId=crypto.randomUUID();
+          $('summaryText').textContent=pending.summary;$('itemsBlock').replaceChildren(...pending.items_seen.map(value=>{const s=document.createElement('span');s.textContent=value;return s;}));
+          $('earnedText').textContent='Estimate will be calculated by the server when this item is added.';add.style.display='block';log('ANALYSIS COMPLETE. REVIEW BEFORE ADDING.');
+        }catch(error){log(`ANALYSIS ERROR: ${error.message}`);capture.disabled=false;capture.textContent='TRY ANALYSIS AGAIN';}finally{busy=false;}
+      };
+      retake.onclick=()=>{pending=null;pendingImage=null;clientItemId=null;image.style.display='none';video.style.display='block';retake.style.display='none';add.style.display='none';capture.disabled=false;capture.textContent='Execute Optical Scan';log('PENDING PHOTO DISCARDED. ACCEPTED ITEMS PRESERVED.');};
+      add.onclick=async()=>{if(busy||!pending)return;busy=true;add.disabled=true;
+        try{collection=await request('/api/resident-collection',{method:'POST',body:JSON.stringify({action:'add_item',collectionId:collection.collectionId,expectedVersion:collection.version,clientItemId,analysisToken:pending.analysis_token,imageBase64:pendingImage})});
+          pending=null;pendingImage=null;add.style.display='none';retake.style.display='none';render();await loadProgression();log('ONE COLLECTION ITEM ADDED.');
+        }catch(error){log(`ADD FAILED: ${error.message}`);add.disabled=false;}finally{busy=false;}
+      };
+      another.onclick=()=>{image.style.display='none';video.style.display='block';capture.disabled=false;capture.textContent='Execute Optical Scan';$('summaryText').textContent='';$('itemsBlock').replaceChildren();log('READY FOR ANOTHER ITEM. COLLECTION PRESERVED.');};
+      stage.onclick=async()=>{if(busy)return;busy=true;stage.disabled=true;const key=stage.dataset.key||(stage.dataset.key=crypto.randomUUID());
+        try{collection=await request('/api/resident-collection',{method:'POST',body:JSON.stringify({action:'stage',collectionId:collection.collectionId,expectedVersion:collection.version,idempotencyKey:key})});render();await loadProgression();log(`BOUNTY STAGED. SCAN ${collection.scanId}.`);}catch(error){stage.disabled=false;log(`STAGE FAILED: ${error.message}`);}finally{busy=false;}
+      };
+      pickup.onclick=async()=>{if(busy)return;busy=true;pickup.disabled=true;const position=await new Promise(resolve=>navigator.geolocation?.getCurrentPosition(p=>resolve(p),()=>resolve(null),{enableHighAccuracy:true,timeout:10000}));if(!position){busy=false;pickup.disabled=false;log('PICKUP NEEDS A CURRENT LOCATION.');return;}
+        const key=pickup.dataset.key||(pickup.dataset.key=crypto.randomUUID());
+        try{const state=await request('/api/resident-pickup',{method:'POST',body:JSON.stringify({collectionId:collection.collectionId,latitude:position.coords.latitude,longitude:position.coords.longitude,locationAccuracyM:position.coords.accuracy,idempotencyKey:key})});showPickup(state);}catch(error){pickup.disabled=false;log(`PICKUP FAILED: ${error.message}`);}finally{busy=false;}
+      };
+      async function loadPickupStatus(){try{showPickup(await request(`/api/resident-pickup?collectionId=${encodeURIComponent(collection.collectionId)}`));}catch{} }
+      function showPickup(state){if(state?.pickupRequested){pickup.textContent='PICKUP REQUESTED';pickup.disabled=true;log(`PICKUP REQUESTED${state.job?` · JOB ${state.job.status}`:''}.`);}}
+      async function removeItem(id){try{collection=await request('/api/resident-collection',{method:'DELETE',body:JSON.stringify({collectionId:collection.collectionId,itemId:id,expectedVersion:collection.version})});render();}catch(error){log(`REMOVE FAILED: ${error.message}`);}}
+      $('drawer-btn').onclick=()=>{const open=$('collection-ledger').hidden;$('collection-ledger').hidden=!open;$('drawer-btn').setAttribute('aria-expanded',String(open));};
+      $('xp-drawer-btn').onclick=()=>{const open=$('xp-history').hidden;$('xp-history').hidden=!open;$('xp-drawer-btn').setAttribute('aria-expanded',String(open));};
+      window.__residentScanner={load,loadProgression,render,renderProgression,getState:()=>({collection,progression,pending})}; window.addEventListener('load',load);
+    })();
+    </script>
+    <script src="/resident-scanner.js"></script>
 </body>
 </html>

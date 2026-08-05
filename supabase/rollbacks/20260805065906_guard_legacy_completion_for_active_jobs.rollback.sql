@@ -1,4 +1,4 @@
--- Rollback for 20260804134826_guard_legacy_completion_for_active_jobs.sql
+-- Rollback for 20260805065906_guard_legacy_completion_for_active_jobs.sql
 --
 -- WARNING: applying this rollback restores the verified duplicate behavior
 -- for job-backed scan completions. It does not delete or repair any data.

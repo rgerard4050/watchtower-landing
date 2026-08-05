@@ -1,1 +1,7 @@
 node_modules/
+
+.vercel
+.env*
+!.env.example
+.agents/
+tatus --short

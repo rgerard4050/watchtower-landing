@@ -5,3 +5,5 @@ api/buyers.js
 api/listings.js
 api/offers.js
 api/transactions.js
+api/resident-collection.js
+api/resident-pickup.js

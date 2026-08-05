@@ -1,5 +1,13 @@
 # Watchtower: Current Sprint
 
+## Resident front-door checkpoint
+
+- Live verified: `20260805065906_guard_legacy_completion_for_active_jobs.sql` keeps the Jobs RPC lifecycle canonical while preserving legacy non-Job completion behavior.
+- Live verified: `20260805070355_resident_collections.sql` and `20260805070909_resident_collections_hardening.sql` provide the Resident collection, staging, pickup, evidence, RLS, and service-boundary foundation.
+- Configure `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `ANALYSIS_SIGNING_SECRET` in server runtime environments.
+- Run the Resident SQL/RLS, API, and Playwright gates before rollout.
+- Phase 5 durable gamification is authorized for repository implementation after the Resident gates passed. It remains undeployed until its migration, RLS, API, and browser checks pass independently.
+
 Sprint theme: prove the product spine  
 Status: ready for execution  
 Last updated: 2026-08-04

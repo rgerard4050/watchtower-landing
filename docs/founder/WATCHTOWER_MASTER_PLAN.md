@@ -108,6 +108,8 @@ Exit criterion: the canonical lifecycle is repeatable, monitored, and regression
 
 ### Phase 2: Consolidate surfaces
 
+Resident front-door checkpoint: authenticated Basic Personal/Resident users recover one durable open Collection, accept unlimited Resource/Material items, inspect server-derived provisional estimates, stage exactly one Scan atomically, and request pickup explicitly. The existing jobs RPC lifecycle remains canonical. Rollout requires the duplicate-lifecycle guard to be deployed and verified before Resident jobs may reach Intake/Passport completion.
+
 - Select one resident scanner and one operational job experience.
 - Move shared configuration, auth, navigation, and API helpers out of inline pages.
 - Quarantine or retire duplicate prototypes and legacy paths after data-impact review.
@@ -133,6 +135,16 @@ Exit criterion: every active persona has a least-privilege, end-to-end experienc
 
 Exit criterion: growth does not weaken custody, financial correctness, or user trust.
 
+### Phase 5: Durable gamification
+
+- Record non-financial XP in an append-only, server-awarded ledger.
+- Derive totals and levels from versioned rules and verified XP thresholds.
+- Teach safe recovery behavior through durable learning modules and missions.
+- Track Material discovery, achievements, provisional review, and recognition without changing financial balances or authority.
+- Keep Resident capture, staging, pickup, safety, and active-context visibility dominant.
+
+Exit criterion: progression survives reload and retries, remains idempotent and least-privilege, and cannot create WTWR Credit, compensation, elevated roles, Asset authority, or Founder Workspace access.
+
 ## Product invariants
 
 - A material cannot be listed as verified without the required intake and passport evidence.
@@ -155,4 +167,3 @@ Before implementing a feature, confirm:
 5. Its success and failure can be tested and observed.
 
 If any answer is unclear, update the foundation documents or record an architectural decision before implementation.
-

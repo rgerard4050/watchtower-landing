@@ -10,6 +10,12 @@
     { "source": "/api/offers", "destination": "/api/marketplace?resource=offers" },
     { "source": "/api/offers.js", "destination": "/api/marketplace?resource=offers" },
     { "source": "/api/transactions", "destination": "/api/marketplace?resource=transactions" },
-    { "source": "/api/transactions.js", "destination": "/api/marketplace?resource=transactions" }
+    { "source": "/api/transactions.js", "destination": "/api/marketplace?resource=transactions" },
+    { "source": "/api/resident-collection", "destination": "/api/resident?resource=collection" },
+    { "source": "/api/resident-collection.js", "destination": "/api/resident?resource=collection" },
+    { "source": "/api/resident-pickup", "destination": "/api/resident?resource=pickup" },
+    { "source": "/api/resident-pickup.js", "destination": "/api/resident?resource=pickup" },
+    { "source": "/api/resident-progression", "destination": "/api/resident?resource=progression" },
+    { "source": "/api/resident-progression.js", "destination": "/api/resident?resource=progression" }
   ]
 }

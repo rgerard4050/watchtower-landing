@@ -166,6 +166,18 @@ Critical actions should expose structured logs and measurable outcomes:
 
 Sensitive image data, access tokens, service keys, and unnecessary personal information must not be logged.
 
+## Resident pre-lifecycle contract
+
+An authenticated Personal/Resident context owns one editable `scan_collections` ledger containing durable `scan_collection_items`. `/api/scan` supplies signed, advisory analysis only. Add Item validates that reference and attaches protected evidence. Atomic Stage Bounty locks the ledger and creates exactly one `scans` row with `bounty_status = null`. Explicit Request Pickup remains the null-to-`open` transition that creates one active `jobs` row. `resident_estimate_v1` is provisional, server-owned, and cannot post WTWR Credit.
+
+The private `collection-evidence` bucket stores immutable JPEG evidence under `{resident_user_id}/{collection_id}/{collection_item_id}/{evidence_id}.jpg`. Browser clients receive only five-minute server-signed previews. Unstaged cleanup eligibility begins after 30 days; staged provenance defaults to seven-year retention pending jurisdiction-specific policy.
+
+## Durable progression contract
+
+Resident and future Field Partner progression is an additive, non-financial system. Postgres owns an append-only `xp_entries` ledger, versioned XP rules, verified-XP level thresholds, learning completion, mission progress, Material discovery, achievements, and recognition history. The browser receives only the safe `resident_gamification_projection()` response and never supplies XP amounts.
+
+XP, estimated WTWR, WTWR Credit, estimated dollars, and compensation are separate values. Progression triggers cannot write Wallet balances, payments, marketplace Transactions, Asset status, or role assignments. Levels provide education, missions, recognition, and application eligibility only. Watchtower Champion is recognition and training—not ownership or elevated platform authority. Field Partner progression uses an explicit future context without inventing specializations or granting Field Partner approval.
+
 ## Change rules
 
 An architectural decision is required before:
@@ -176,4 +188,3 @@ An architectural decision is required before:
 - adding a new role or broadening an existing role's permissions;
 - bypassing RLS through a service-role endpoint;
 - adding a payment or token accounting mechanism.
-

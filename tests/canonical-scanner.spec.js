@@ -1,502 +1,176 @@
 const { test, expect } = require('@playwright/test');
 
-const SCAN_RESULT = {
-  summary: 'A clean pile of aluminum cans and copper wire.',
-  estimated_value_low: 30,
-  estimated_value_high: 40,
-  coaching_tip: 'Separate the copper wire from the cans before pickup.',
-  items_seen: ['Aluminum cans', 'Copper wire'],
-  safety_warning: '',
+const collection = {
+  collectionId:'10000000-0000-4000-8000-000000000001',status:'open',version:0,scanId:null,itemCount:0,
+  estimatedResidentDollars:0,estimatedWtwr:0,items:[]
 };
 
-const TEST_STATE_KEY = 'watchtower.scanner-checkpoint.state';
-
-function fakeSupabaseClientScript() {
-  return `
-    (() => {
-      const key = ${JSON.stringify(TEST_STATE_KEY)};
-      const initialState = {
-        scanInsertAttempts: 0,
-        scanInsertCalls: 0,
-        insertFailuresRemaining: 0,
-        pickupUpdateCalls: 0,
-        uploads: 0,
-        scans: [],
-        jobs: []
-      };
-
-      function readState() {
-        try {
-          return JSON.parse(localStorage.getItem(key)) || structuredClone(initialState);
-        } catch {
-          return structuredClone(initialState);
-        }
-      }
-
-      function writeState(state) {
-        localStorage.setItem(key, JSON.stringify(state));
-      }
-
-      function scansTable() {
-        return {
-          insert(payload) {
-            return {
-              async select() {
-                const state = readState();
-                state.scanInsertAttempts += 1;
-                if (state.insertFailuresRemaining > 0) {
-                  state.insertFailuresRemaining -= 1;
-                  writeState(state);
-                  return { data: null, error: { message: 'Fixture insert failed' } };
-                }
-                const id = '10000000-0000-4000-8000-000000000001';
-                state.scanInsertCalls += 1;
-                state.scans.push({ id, ...payload });
-                writeState(state);
-                return { data: [{ id, ...payload }], error: null };
-              }
-            };
-          },
-          select() {
-            return {
-              eq(column, value) {
-                return {
-                  async maybeSingle() {
-                    const scan = readState().scans.find((row) => row[column] === value) || null;
-                    return { data: scan, error: null };
-                  }
-                };
-              }
-            };
-          },
-          update(payload) {
-            let scanId = null;
-            return {
-              eq(column, value) {
-                if (column === 'id') scanId = value;
-                return {
-                  is() {
-                    return {
-                      async select() {
-                        const state = readState();
-                        const scan = state.scans.find((row) => row.id === scanId);
-                        if (!scan || scan.bounty_status !== null) {
-                          return { data: [], error: null };
-                        }
-
-                        state.pickupUpdateCalls += 1;
-                        Object.assign(scan, payload);
-                        if (!state.jobs.some((job) => job.scan_id === scanId && job.status !== 'CANCELLED')) {
-                          state.jobs.push({ id: 7001, scan_id: scanId, status: 'PENDING' });
-                        }
-                        writeState(state);
-                        return { data: [scan], error: null };
-                      }
-                    };
-                  }
-                };
-              }
-            };
-          }
-        };
-      }
-
-      window.supabase = {
-        createClient() {
-          return {
-            auth: {
-              async getSession() {
-                return {
-                  data: {
-                    session: { user: { id: '20000000-0000-4000-8000-000000000001' } }
-                  }
-                };
-              }
-            },
-            from(table) {
-              if (table === 'scans') return scansTable();
-              if (table === 'residents') {
-                return {
-                  select() {
-                    return {
-                      eq() {
-                        return {
-                          async maybeSingle() {
-                            return {
-                              data: { id: '30000000-0000-4000-8000-000000000001' },
-                              error: null
-                            };
-                          }
-                        };
-                      }
-                    };
-                  }
-                };
-              }
-              throw new Error('Unexpected checkpoint table: ' + table);
-            },
-            storage: {
-              from(bucket) {
-                if (bucket !== 'pickup-photos') throw new Error('Unexpected checkpoint bucket: ' + bucket);
-                return {
-                  async upload() {
-                    const state = readState();
-                    state.uploads += 1;
-                    writeState(state);
-                    return { data: { path: 'fixture/pickup.jpg' }, error: null };
-                  }
-                };
-              }
-            }
-          };
-        }
-      };
-
-      window.__scannerCheckpoint = {
-        readState,
-        reset() { writeState(structuredClone(initialState)); },
-        failNextInsert() {
-          const state = readState();
-          state.insertFailuresRemaining = 1;
-          writeState(state);
-        }
-      };
-    })();
-  `;
-}
-
-async function installBrowserBoundaries(
-  page,
-  { camera = 'success', cameraReady = true, geolocation = 'success' } = {}
-) {
-  await page.addInitScript(({ cameraMode, initialCameraReady, geolocationMode }) => {
-    let videoWidth = initialCameraReady ? 320 : 0;
-    let videoHeight = initialCameraReady ? 240 : 0;
-
-    function dispatchCameraReadiness() {
-      const video = document.getElementById('webcam');
-      if (!video) return;
-      video.dispatchEvent(new Event('loadedmetadata'));
-      video.dispatchEvent(new Event('canplay'));
-    }
-
-    Object.defineProperty(navigator, 'mediaDevices', {
-      configurable: true,
-      value: {
-        async getUserMedia() {
-          if (cameraMode === 'denied') throw new DOMException('Permission denied', 'NotAllowedError');
-          if (initialCameraReady) setTimeout(dispatchCameraReadiness, 0);
-          return new MediaStream();
-        }
-      }
-    });
-
-    Object.defineProperty(HTMLVideoElement.prototype, 'videoWidth', {
-      configurable: true,
-      get: () => videoWidth
-    });
-    Object.defineProperty(HTMLVideoElement.prototype, 'videoHeight', {
-      configurable: true,
-      get: () => videoHeight
-    });
-
-    HTMLCanvasElement.prototype.getContext = () => ({ drawImage() {} });
-    HTMLCanvasElement.prototype.toDataURL = () => 'data:image/jpeg;base64,d2F0Y2h0b3dlci10ZXN0';
-    HTMLCanvasElement.prototype.toBlob = function toBlob(callback) {
-      callback(new Blob(['watchtower-test'], { type: 'image/jpeg' }));
-    };
-
-    Object.defineProperty(navigator, 'geolocation', {
-      configurable: true,
-      value: {
-        getCurrentPosition(success) {
-          if (geolocationMode === 'unavailable') return arguments[1]?.();
-          success({ coords: { latitude: 29.1872, longitude: -82.1401, accuracy: 12 } });
-        }
-      }
-    });
-
-    window.__scannerCamera = {
-      setReady(width = 320, height = 240) {
-        videoWidth = width;
-        videoHeight = height;
-        dispatchCameraReadiness();
-      },
-      canvasDimensions() {
-        const canvas = document.getElementById('snapshot');
-        return { width: canvas.width, height: canvas.height };
-      }
-    };
-  }, { cameraMode: camera, initialCameraReady: cameraReady, geolocationMode: geolocation });
-
-  await page.route('**/npm/@supabase/supabase-js@2*', (route) => route.fulfill({
-    status: 200,
-    contentType: 'text/javascript',
-    body: fakeSupabaseClientScript(),
-  }));
-  await page.route('**/npm/exifr@7.1.3/**', (route) => route.fulfill({
-    status: 200,
-    contentType: 'text/javascript',
-    body: 'window.exifr = { parse: async () => null };',
-  }));
-  await page.route('https://fonts.googleapis.com/**', (route) => route.fulfill({
-    status: 200,
-    contentType: 'text/css',
-    body: '',
-  }));
-
-  const productionRequests = [];
-  await page.route('**://*.supabase.co/**', (route) => {
-    productionRequests.push(route.request().url());
-    return route.abort('blockedbyclient');
+test.beforeEach(async ({ page, context }) => {
+  await context.grantPermissions(['geolocation'], { origin: 'http://127.0.0.1:4173' });
+  await context.setGeolocation({ latitude: 29.1, longitude: -82.1 });
+  await page.addInitScript(() => {
+    window.supabase={createClient(){return {auth:{getSession:async()=>({data:{session:{access_token:'resident-token',user:{id:'resident-user'}}}})}}}};
+    window.__cameraRequests=0;
+    navigator.mediaDevices={getUserMedia:async()=>{window.__cameraRequests+=1;return {};}};
+    HTMLCanvasElement.prototype.getContext=()=>({drawImage(){}});
+    HTMLCanvasElement.prototype.toDataURL=()=>`data:image/jpeg;base64,${btoa('jpeg')}`;
   });
-
-  return productionRequests;
-}
-
-async function routeSuccessfulScan(page, counter) {
-  await page.route('**/api/scan', async (route) => {
-    counter.count += 1;
-    counter.payloads.push(route.request().postDataJSON());
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SCAN_RESULT) });
+  let state=structuredClone(collection), addCalls=0, stageCalls=0, pickupCalls=0, progressionCalls=0, learningCalls=0, learningCompleted=false;
+  const progressionState=()=>{
+    const verifiedXp=(addCalls?95:0)+(stageCalls?175:0)+(learningCompleted?125:0);
+    const level=verifiedXp>=250
+      ?{number:3,title:'Material Scout',currentThreshold:250,nextThreshold:500,xpToNext:500-verifiedXp,progressPercent:Math.floor((verifiedXp-250)/2.5)}
+      :verifiedXp>=100
+        ?{number:2,title:'Sorter',currentThreshold:100,nextThreshold:250,xpToNext:250-verifiedXp,progressPercent:Math.floor((verifiedXp-100)/1.5)}
+        :{number:1,title:'Observer',currentThreshold:0,nextThreshold:100,xpToNext:100-verifiedXp,progressPercent:verifiedXp};
+    return {context:'resident',verifiedXp,provisionalXp:addCalls?15:0,level,
+      missions:[
+        {code:'discover_three_materials',version:1,title:'Material Explorer',description:'Identify three categories.',progress:addCalls?2:0,target:3,status:'active'},
+        {code:'complete_safe_battery_learning',version:1,title:'Battery Safety First',description:'Complete safe learning.',progress:learningCompleted?1:0,target:1,status:learningCompleted?'completed':'active'},
+        {code:'stage_first_collection',version:1,title:'Stage It Safely',description:'Stage one collection.',progress:stageCalls?1:0,target:1,status:stageCalls?'completed':'active'}],
+      recentXp:addCalls?[{id:'xp-item',reasonCode:'collection_item.first_accepted',reason:'First Collection Item accepted with durable evidence.',amount:50,state:'verified',ruleVersion:1},{id:'xp-evidence',reasonCode:'evidence.eligible_submitted',reason:'Eligible evidence submitted and awaiting review.',amount:15,state:'provisional',ruleVersion:1}]:[],
+      achievements:[...(addCalls?[{code:'first_collection',version:1,title:'Collection Started',description:'Accepted the first item.'}]:[]),...(stageCalls?[{code:'first_bounty_staged',version:1,title:'Bounty Staged',description:'Staged the first bounty.'}]:[])],
+      learningRecommendations:[{moduleId:'safe_battery_handling',version:1,title:'Safe Battery Handling',objective:'Recognize batteries that must not be dismantled.',safetyClassification:'hazard_awareness',completed:learningCompleted}],championRecognition:false};
+  };
+  await page.route('**/npm/@supabase/supabase-js@2*', route=>route.fulfill({contentType:'text/javascript',body:'window.supabase=window.supabase||{}'}));
+  await page.route('**/api/scan', route=>route.fulfill({json:{summary:'Copper wire and cans.',items_seen:['Copper','Aluminum'],estimated_value_low:10,estimated_value_high:40,analysis_id:'a',analysis_token:'signed',estimate_notice:'Estimated — subject to Operator verification.'}}));
+  await page.route('**/api/resident-collection**', async route=>{
+    const req=route.request(); const body=req.postDataJSON?.()||{};
+    if(req.method()==='GET') return route.fulfill({json:state});
+    if(body.action==='add_item') { addCalls++; if(!state.items.length){state={...state,version:1,itemCount:1,estimatedResidentDollars:16,estimatedWtwr:1600,items:[{id:'item-1',capturedAt:new Date().toISOString(),summary:'Copper wire and cans.',materials:['Copper','Aluminum'],estimatedResidentDollars:16,estimatedWtwr:1600,reviewState:'proposed',evidenceId:'e1',previewUrl:null}]};} return route.fulfill({json:state}); }
+    if(body.action==='stage'){stageCalls++;state={...state,status:'staged',version:2,scanId:'scan-1'};return route.fulfill({json:state});}
+    return route.fulfill({status:422,json:{error:{message:'bad'}}});
   });
-}
-
-async function capture(page) {
+  await page.route('**/api/resident-pickup**', route=>{pickupCalls++;return route.fulfill({json:{collectionId:state.collectionId,scanId:'scan-1',pickupRequested:true,pickupStatus:'open',job:{id:7,status:'PENDING'}}});});
+  await page.route('**/api/resident-progression**', route=>{
+    progressionCalls++;
+    if(route.request().method()==='POST'){learningCalls++;learningCompleted=true;}
+    return route.fulfill({json:progressionState()});
+  });
   await page.goto('/scanner.html');
+  await page.evaluate(() => Object.defineProperties(document.getElementById('webcam'),{videoWidth:{value:640},videoHeight:{value:480}}));
+  await page.evaluate(()=>document.getElementById('webcam').dispatchEvent(new Event('canplay')));
+  await page.exposeFunction('testCounts',()=>({addCalls,stageCalls,pickupCalls,progressionCalls,learningCalls}));
+});
+
+test('requires and displays explicit Basic Resident context', async ({page})=>{
+  await expect(page.locator('#residentContext')).toContainText('PERSONAL / RESIDENT');
   await expect(page.locator('#capture-btn')).toBeEnabled();
-  await page.locator('#capture-btn').click();
-}
+  await expect(page.locator('#xpTotal')).toHaveText('0 XP');
+  await expect(page.locator('.progression-card')).toContainText('XP tracks learning and participation only');
+  await expect(page.locator('#estimateNotice')).toHaveText('Estimated — subject to Operator verification.');
+});
 
-async function expectRecoverableFailure(page, expectedText) {
-  await expect(page.locator('#console')).toContainText(expectedText);
-  await expect(page.locator('#capture-btn')).toBeEnabled();
-  await expect(page.locator('#retake-btn')).toBeVisible();
-  await page.locator('#retake-btn').click();
-  await expect(page.locator('#capture-btn')).toHaveText('Execute Optical Scan');
-  await expect(page.locator('#capture-btn')).toBeEnabled();
-}
+test('camera permission waits for an explicit resident action', async ({page})=>{
+  await page.evaluate(()=>Object.defineProperty(navigator,'mediaDevices',{configurable:true,value:{getUserMedia:async()=>{window.__cameraRequests+=1;return {};}}}));
+  expect(await page.evaluate(()=>window.__cameraRequests)).toBe(0);
+  await page.locator('#start-camera-btn').click();
+  expect(await page.evaluate(()=>window.__cameraRequests)).toBe(1);
+});
 
-test.describe('canonical resident scanner checkpoint', () => {
-  test('reports camera permission denial without contacting production', async ({ page }) => {
-    const productionRequests = await installBrowserBoundaries(page, { camera: 'denied' });
-    await page.goto('/scanner.html');
+test('new resident demo supports upload, correction, asset, transfer, buyer, and simulated sale timeline', async ({page})=>{
+  await page.goto('/scanner.html?demo=1');
+  await page.evaluate(()=>localStorage.removeItem('watchtower_resident_demo_v1'));
+  await page.reload();
+  await expect(page.locator('#demoBanner')).toContainText('sale shown is simulated');
+  await page.locator('#file-input').setInputFiles('icon-1.png');
+  await expect(page.locator('#demoLifecycle')).toBeVisible();
+  await page.locator('#materialCorrection').fill('Corrected aluminum can');
+  await page.locator('#confirm-material-btn').click();
+  await page.locator('#create-asset-btn').click();
+  await page.locator('#list-asset-btn').click();
+  await page.locator('#receive-asset-btn').click();
+  await page.locator('#simulate-sale-btn').click();
+  await expect(page.locator('#lifecycleTimeline li.done')).toHaveCount(6);
+  await expect(page.locator('#finalValue')).toContainText('SIMULATION COMPLETE');
+  await expect(page.locator('#finalValue')).toContainText('No money, token, or payment was created');
+});
 
-    await expect(page.locator('#console')).toContainText('CAMERA ACCESS DENIED');
-    expect(productionRequests).toEqual([]);
-  });
+test('camera denial shows a useful upload fallback on a mobile viewport', async ({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.goto('/scanner.html?demo=1');
+  await page.evaluate(()=>Object.defineProperty(navigator,'mediaDevices',{configurable:true,value:{getUserMedia:async()=>{throw new DOMException('Permission denied','NotAllowedError');}}}));
+  await page.locator('#start-camera-btn').click();
+  await expect(page.locator('#cameraError')).toBeVisible();
+  await expect(page.locator('label[for="file-input"]')).toHaveText('Upload Photo');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
+});
 
-  test('one capture reaches /api/scan and renders one valid response', async ({ page }) => {
-    const productionRequests = await installBrowserBoundaries(page);
-    const requests = { count: 0, payloads: [] };
-    await routeSuccessfulScan(page, requests);
+test('accepts repeated captures as durable items without browser financial math', async ({page})=>{
+  await page.locator('#capture-btn').click(); await expect(page.locator('#log-btn')).toBeVisible();
+  await expect(page.locator('#earnedText')).toContainText('calculated by the server');
+  await page.locator('#log-btn').click();
+  await expect(page.locator('#collectionCount')).toHaveText('1');
+  await expect(page.locator('#collectionValue')).toHaveText('$16.00');
+  await expect(page.locator('#collectionWtwr')).toContainText('1,600');
+  await page.locator('#drawer-btn').click(); await expect(page.locator('#collection-ledger')).toContainText('Item item-1');
+});
 
-    await capture(page);
+test('retake changes only pending capture and keeps accepted ledger', async ({page})=>{
+  await page.locator('#capture-btn').click(); await page.locator('#log-btn').click();
+  await page.locator('#new-collection-btn').click(); await page.locator('#capture-btn').click(); await page.locator('#retake-btn').click();
+  await expect(page.locator('#collectionCount')).toHaveText('1');
+});
 
-    await expect(page.locator('#summaryText')).toHaveText(SCAN_RESULT.summary);
-    await expect(page.locator('#itemsBlock span')).toHaveCount(2);
-    await expect(page.locator('#tipText')).toHaveText(SCAN_RESULT.coaching_tip);
-    await expect(page.locator('#earnedText')).toHaveText('Estimated resident share: 1,600 WTWR ($16.00)');
-    expect(requests.count).toBe(1);
-    expect(requests.payloads[0].mediaType).toBe('image/jpeg');
-    expect(requests.payloads[0].imageBase64).toBeTruthy();
-    expect(productionRequests).toEqual([]);
-  });
+test('stages once then requests pickup separately and shows durable Job status', async ({page})=>{
+  await page.locator('#capture-btn').click(); await page.locator('#log-btn').click();
+  await page.locator('#stage-btn').dblclick(); await expect(page.locator('#collectionStatus')).toHaveText('staged');
+  await expect(page.locator('#pickup-btn')).toBeVisible(); await page.locator('#pickup-btn').dblclick();
+  await expect(page.locator('#pickup-btn')).toHaveText('PICKUP REQUESTED');
+  await expect(page.locator('#console')).toContainText('JOB PENDING');
+  const counts=await page.evaluate(()=>window.testCounts());expect(counts.stageCalls).toBe(1);expect(counts.pickupCalls).toBe(1);
+});
 
-  test('starts empty and populates the current collection from analysis', async ({ page }) => {
-    const productionRequests = await installBrowserBoundaries(page);
-    const requests = { count: 0, payloads: [] };
-    await routeSuccessfulScan(page, requests);
-    await page.goto('/scanner.html');
+test('reload recovers the same durable collection', async ({page})=>{
+  await page.locator('#capture-btn').click(); await page.locator('#log-btn').click(); await page.reload();
+  await expect(page.locator('#collectionCount')).toHaveText('1');
+  await expect(page.locator('#collection-ledger')).toContainText('item-1');
+});
 
-    await expect(page.locator('#collectionStatus')).toHaveText('Empty');
-    await expect(page.locator('#collectionValue')).toHaveText('$0.00');
-    await expect(page.locator('#collectionCount')).toHaveText('0');
-    await expect(page.locator('#collectionEmpty')).toBeVisible();
-    await expect(page.locator('#log-btn')).toBeHidden();
+test('confirmed item updates verified and provisional XP once on double-click', async ({page})=>{
+  await page.locator('#capture-btn').click(); await page.locator('#log-btn').dblclick();
+  await expect(page.locator('#xpTotal')).toHaveText('95 XP');
+  await expect(page.locator('#xpProvisional')).toContainText('15');
+  await page.locator('#xp-drawer-btn').click();
+  await expect(page.locator('#xp-history')).toContainText('verified');
+  await expect(page.locator('#xp-history')).toContainText('provisional');
+  expect((await page.evaluate(()=>window.testCounts())).addCalls).toBe(1);
+});
 
-    await expect(page.locator('#capture-btn')).toBeEnabled();
-    await page.locator('#capture-btn').click();
-    await expect(page.locator('#collectionStatus')).toHaveText('Ready to add');
-    await expect(page.locator('#collectionValue')).toHaveText('Pending · est. $40.00');
-    await expect(page.locator('#collectionCount')).toHaveText('2');
-    await expect(page.locator('#collectionSummary')).toHaveText(SCAN_RESULT.summary);
-    await expect(page.locator('#collectionMaterials li')).toHaveText(SCAN_RESULT.items_seen);
-    await expect(page.locator('#log-btn')).toHaveText('ADD TO COLLECTION');
-    expect(requests.count).toBe(1);
-    expect(productionRequests).toEqual([]);
-  });
+test('mission and level progress are server projections and survive reload', async ({page})=>{
+  await page.locator('#capture-btn').click(); await page.locator('#log-btn').click();
+  await expect(page.locator('#missionList')).toContainText('Material Explorer: 2/3');
+  await expect(page.locator('#levelValue')).toContainText('Level 1');
+  await expect(page.locator('.level-track')).toHaveAttribute('aria-valuenow','95');
+  await page.reload();
+  await expect(page.locator('#missionList')).toContainText('Material Explorer: 2/3');
+  await expect(page.locator('#xpTotal')).toHaveText('95 XP');
+});
 
-  test('failed persistence does not lock the collection', async ({ page }) => {
-    const productionRequests = await installBrowserBoundaries(page, { geolocation: 'unavailable' });
-    const requests = { count: 0, payloads: [] };
-    await routeSuccessfulScan(page, requests);
-    await capture(page);
-    await page.evaluate(() => window.__scannerCheckpoint.failNextInsert());
-    await page.locator('#log-btn').click();
+test('verified review resolves provisional XP in the server projection', async ({page})=>{
+  await page.locator('#capture-btn').click(); await page.locator('#log-btn').click();
+  await expect(page.locator('#xpProvisional')).toContainText('15');
+  await page.unroute('**/api/resident-progression**');
+  await page.route('**/api/resident-progression**',route=>route.fulfill({json:{context:'resident',verifiedXp:110,provisionalXp:0,
+    level:{number:2,title:'Sorter',nextThreshold:250,xpToNext:140,progressPercent:7},missions:[],achievements:[],learningRecommendations:[],
+    recentXp:[{id:'verified-evidence',reason:'Eligible evidence verified.',amount:15,state:'verified',ruleVersion:1}]}}));
+  await page.evaluate(()=>window.__residentScanner.loadProgression());
+  await expect(page.locator('#xpTotal')).toHaveText('110 XP');
+  await expect(page.locator('#xpProvisional')).toContainText('0');
+});
 
-    await expect(page.locator('#collectionStatus')).toHaveText('Save failed');
-    await expect(page.locator('#collectionStatus')).not.toHaveText('Bucket locked');
-    await expect(page.locator('#log-btn')).toHaveText('TRY ADDING AGAIN');
-    await expect(page.locator('#log-btn')).toBeEnabled();
-    await expect(page.locator('#new-collection-btn')).toBeHidden();
-    const state = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), TEST_STATE_KEY);
-    expect(state.scanInsertAttempts).toBe(1);
-    expect(state.scanInsertCalls).toBe(0);
-    expect(state.scans).toHaveLength(0);
-    expect(productionRequests).toEqual([]);
-  });
+test('learning completion is durable and idempotent in the presentation', async ({page})=>{
+  const learning=page.locator('#learningRecommendations button');
+  await learning.dblclick();
+  await expect(learning).toHaveText('COMPLETED');
+  expect((await page.evaluate(()=>window.testCounts())).learningCalls).toBe(1);
+  await page.reload();
+  await expect(page.locator('#learningRecommendations button')).toHaveText('COMPLETED');
+});
 
-  test('successful persistence locks once and reset starts a new empty collection', async ({ page }) => {
-    const productionRequests = await installBrowserBoundaries(page, { geolocation: 'unavailable' });
-    const requests = { count: 0, payloads: [] };
-    await routeSuccessfulScan(page, requests);
-    await capture(page);
-    await page.locator('#log-btn').evaluate((button) => {
-      button.click();
-      button.click();
-    });
-
-    await expect(page.locator('#collectionStatus')).toHaveText('Bucket locked');
-    await expect(page.locator('#collectionValue')).toHaveText('$40.00');
-    await expect(page.locator('#log-btn')).toBeDisabled();
-    await expect(page.locator('#new-collection-btn')).toBeVisible();
-    let state = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), TEST_STATE_KEY);
-    expect(state.scanInsertAttempts).toBe(1);
-    expect(state.scanInsertCalls).toBe(1);
-    expect(state.scans).toHaveLength(1);
-
-    await page.locator('#new-collection-btn').click();
-    await expect(page.locator('#collectionStatus')).toHaveText('Empty');
-    await expect(page.locator('#collectionValue')).toHaveText('$0.00');
-    await expect(page.locator('#collectionCount')).toHaveText('0');
-    await expect(page.locator('#collectionEmpty')).toBeVisible();
-    await expect(page.locator('#log-btn')).toBeHidden();
-    state = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), TEST_STATE_KEY);
-    expect(state.scanInsertCalls).toBe(1);
-    expect(state.scans).toHaveLength(1);
-    expect(productionRequests).toEqual([]);
-  });
-
-  test('waits for usable camera dimensions before submitting a capture', async ({ page }) => {
-    const productionRequests = await installBrowserBoundaries(page, { cameraReady: false });
-    const requests = { count: 0, payloads: [] };
-    await routeSuccessfulScan(page, requests);
-    await page.goto('/scanner.html');
-
-    await expect(page.locator('#capture-btn')).toBeDisabled();
-    await page.locator('#capture-btn').evaluate((button) => {
-      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await expect(page.locator('#console')).toContainText('CAMERA NOT READY');
-    expect(requests.count).toBe(0);
-
-    await page.evaluate(() => window.__scannerCamera.setReady());
-    await expect(page.locator('#capture-btn')).toBeEnabled();
-    await page.locator('#capture-btn').click();
-
-    await expect(page.locator('#summaryText')).toHaveText(SCAN_RESULT.summary);
-    expect(await page.evaluate(() => window.__scannerCamera.canvasDimensions())).toEqual({
-      width: 320,
-      height: 240,
-    });
-    expect(requests.count).toBe(1);
-    expect(requests.payloads[0].imageBase64).toBeTruthy();
-    expect(productionRequests).toEqual([]);
-  });
-
-  for (const failure of [
-    {
-      name: 'invalid JSON',
-      expected: 'CONNECTION ERROR',
-      first: (route) => route.fulfill({ status: 200, contentType: 'text/plain', body: 'not-json' }),
-    },
-    {
-      name: 'API failure',
-      expected: 'ERROR: Scanner temporarily unavailable',
-      first: (route) => route.fulfill({
-        status: 502,
-        contentType: 'application/json',
-        body: JSON.stringify({ error: 'Scanner temporarily unavailable' }),
-      }),
-    },
-    {
-      name: 'network failure',
-      expected: 'CONNECTION ERROR',
-      first: (route) => route.abort('failed'),
-    },
-  ]) {
-    test(`recovers from ${failure.name}`, async ({ page }) => {
-      const productionRequests = await installBrowserBoundaries(page);
-      let calls = 0;
-      await page.route('**/api/scan', async (route) => {
-        calls += 1;
-        if (calls === 1) return failure.first(route);
-        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SCAN_RESULT) });
-      });
-
-      await capture(page);
-      await expectRecoverableFailure(page, failure.expected);
-      await page.locator('#capture-btn').click();
-      await expect(page.locator('#summaryText')).toHaveText(SCAN_RESULT.summary);
-      expect(calls).toBe(2);
-      expect(productionRequests).toEqual([]);
-    });
-  }
-
-  test('persists one scan, opens pickup once, and reloads one active job', async ({ page }) => {
-    const productionRequests = await installBrowserBoundaries(page);
-    const requests = { count: 0, payloads: [] };
-    await routeSuccessfulScan(page, requests);
-    await page.route('**/api/verify-pickup', (route) => route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ looks_like_staged_material: true, note: 'Fixture material is staged.' }),
-    }));
-
-    await capture(page);
-    await expect(page.locator('#summaryText')).toHaveText(SCAN_RESULT.summary);
-    await page.waitForFunction(() => currentResidentId !== null);
-    await page.locator('#log-btn').click();
-    await expect(page.locator('#submit-btn')).toBeAttached();
-    expect(new URL(page.url()).searchParams.get('bounty'))
-      .toBe('10000000-0000-4000-8000-000000000001');
-
-    let state = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), TEST_STATE_KEY);
-    expect(state.scanInsertCalls).toBe(1);
-    expect(state.scans).toHaveLength(1);
-    expect(state.jobs).toHaveLength(0);
-
-    await expect(page.locator('#capture-btn')).toBeVisible();
-    await page.locator('#capture-btn').click();
-    await page.locator('#submit-btn').evaluate((button) => {
-      button.click();
-      button.click();
-    });
-    await expect(page.locator('#stateTitle')).toContainText('PICKUP SPOT SAVED');
-    await expect(page.locator('#stateText')).toContainText('Watchtower will collect from here');
-
-    state = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), TEST_STATE_KEY);
-    expect(state.scanInsertCalls).toBe(1);
-    expect(state.scanInsertAttempts).toBe(1);
-    expect(state.pickupUpdateCalls).toBe(1);
-    expect(state.scans).toHaveLength(1);
-    expect(state.scans[0].bounty_status).toBe('open');
-    expect(state.jobs).toEqual([{
-      id: 7001,
-      scan_id: '10000000-0000-4000-8000-000000000001',
-      status: 'PENDING',
-    }]);
-
-    await page.reload();
-    await expect(page.locator('#stateTitle')).toContainText('PICKUP SPOT SAVED');
-
-    state = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), TEST_STATE_KEY);
-    expect(state.scanInsertCalls).toBe(1);
-    expect(state.pickupUpdateCalls).toBe(1);
-    expect(state.scans).toHaveLength(1);
-    expect(state.jobs).toHaveLength(1);
-    expect(requests.count).toBe(1);
-    expect(productionRequests).toEqual([]);
-  });
+test('achievement celebration is accessible, non-blocking, and keeps staging available', async ({page})=>{
+  await page.locator('#capture-btn').click(); await page.locator('#log-btn').click();
+  await expect(page.locator('#achievementCelebration')).toContainText('Collection Started');
+  await expect(page.locator('#achievementCelebration')).toHaveAttribute('role','status');
+  await expect(page.locator('#stage-btn')).toBeVisible();
 });

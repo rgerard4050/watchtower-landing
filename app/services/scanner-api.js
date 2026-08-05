@@ -11,10 +11,23 @@ export async function scanMaterial(imageBase64, mediaType = "image/jpeg") {
         })
     });
 
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Scanner request failed");
+    const raw = await response.text();
+
+    console.log("WATCHTOWER SCAN API RESPONSE:", raw);
+
+    let data;
+
+    try {
+        data = JSON.parse(raw);
+    } catch (error) {
+        throw new Error(
+            "Scan API returned invalid JSON: " + raw
+        );
     }
 
-    return await response.json();
+    if (!response.ok) {
+        throw new Error(data.error || "Scanner request failed");
+    }
+
+    return data;
 }
