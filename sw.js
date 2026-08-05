@@ -4,7 +4,7 @@
 // opens (rather than showing the browser's offline error) when the network is
 // down, and so the install criteria for Chrome/TWA are satisfied.
 
-const VERSION = 'wt-v2';
+const VERSION = 'wt-v3';
 const STATIC_CACHE = `${VERSION}-static`;
 const PAGE_CACHE = `${VERSION}-pages`;
 
@@ -37,7 +37,9 @@ self.addEventListener('activate', (event) => {
 // Anything that carries live state must never be cached: Supabase reads reflect
 // RLS-scoped data per user, and /api routes have side effects.
 function isLiveData(url) {
-  return url.pathname.startsWith('/api/')
+  return url.pathname === '/scanner'
+    || url.pathname === '/scanner.html'
+    || url.pathname.startsWith('/api/')
     || url.hostname.endsWith('.supabase.co')
     || url.hostname.endsWith('.supabase.in');
 }
