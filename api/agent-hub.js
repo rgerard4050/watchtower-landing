@@ -5,6 +5,7 @@ const { ApiError, asObject, clampInteger, optionalString, requiredString, sendEr
 const { searchActiveListings } = require('../server/agent/ebay-agent');
 const { extractProcurementMatrix, refineData } = require('../server/agent/gemini-agent');
 const { fetchSamOpportunity } = require('../server/agent/sam-agent');
+const { generateLegacyListing } = require('../server/agent/listing-agent');
 const { publicCatalog, x402PaymentGate } = require('../server/agent/x402-agent');
 
 const RESOURCE_PATHS = {
@@ -101,6 +102,10 @@ function rewriteToCanonicalPath(req) {
 }
 
 module.exports = function handler(req, res) {
+  const parsed = new URL(req.url || '/', 'http://localhost');
+  if (parsed.searchParams.get('resource') === 'legacy-listing') {
+    return generateLegacyListing(req, res);
+  }
   rewriteToCanonicalPath(req);
   return app(req, res);
 };

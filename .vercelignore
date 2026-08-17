@@ -1,6 +1,7 @@
 quarantine
 api/create-checkout/route.js
 api/scan-operator.js
+api/generate-listing.js
 api/buyers.js
 api/listings.js
 api/offers.js
