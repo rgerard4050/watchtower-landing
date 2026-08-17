@@ -1,0 +1,15 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "Ocala Asset Security Agent API",
+  "name_for_model": "ocala_asset_security",
+  "description_for_human": "Paid, machine-native market evidence and procurement data refinement.",
+  "description_for_model": "Use this x402-paid API to get live eBay asking-price evidence, refine unstructured text into JSON, or extract an evidence-checked procurement matrix.",
+  "auth": { "type": "none" },
+  "api": {
+    "type": "openapi",
+    "url": "https://app.ocalaassetsecurity.com/openapi.json",
+    "is_user_authenticated": false
+  },
+  "logo_url": "https://app.ocalaassetsecurity.com/icon-maskable-512.png",
+  "legal_info_url": "https://ocalaassetsecurity.com/"
+}

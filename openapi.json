@@ -1,0 +1,199 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Ocala Asset Security Agent API",
+    "version": "1.0.0",
+    "description": "Production x402-v2 resources for autonomous agents. Send a request without payment to receive HTTP 402 and the PAYMENT-REQUIRED header, then repeat with a valid payment signature.",
+    "license": { "name": "Proprietary" }
+  },
+  "servers": [
+    { "url": "https://app.ocalaassetsecurity.com", "description": "Production" },
+    { "url": "https://ocalaassetsecurity.com", "description": "Canonical domain" }
+  ],
+  "tags": [
+    { "name": "Discovery" },
+    { "name": "Data Refinement" },
+    { "name": "Market Evidence" },
+    { "name": "Procurement" }
+  ],
+  "paths": {
+    "/api/v1/catalog": {
+      "get": {
+        "operationId": "getAgentApiCatalog",
+        "summary": "List paid agent resources and prices",
+        "tags": ["Discovery"],
+        "responses": {
+          "200": {
+            "description": "Machine-readable service catalog",
+            "content": { "application/json": { "schema": { "type": "object" } } }
+          }
+        }
+      }
+    },
+    "/api/v1/refine-data": {
+      "post": {
+        "operationId": "refineData",
+        "summary": "Extract structured data under a supplied JSON Schema",
+        "description": "Uses Google structured output and returns a SHA-256 digest of the source. Maximum source length is 10,000 characters.",
+        "tags": ["Data Refinement"],
+        "x-x402": {
+          "version": 2,
+          "network": "eip155:8453",
+          "prices": [
+            { "asset": "USDC", "amount": "0.10", "scheme": "exact" },
+            { "asset": "WTWR", "contract": "0x5852BC4A0afd2fBcd15C8261bDf30dc91585cb07", "amount": "5", "scheme": "exact", "transfer_method": "permit2" }
+          ]
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RefineRequest" },
+              "examples": {
+                "asset_record": {
+                  "value": {
+                    "text": "asset_id=123; condition=used",
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "asset_id": { "type": "string" },
+                        "condition": { "type": "string" }
+                      },
+                      "required": ["asset_id", "condition"]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/PaidJson" },
+          "402": { "$ref": "#/components/responses/PaymentRequired" },
+          "503": { "$ref": "#/components/responses/NotConfigured" }
+        }
+      }
+    },
+    "/api/v1/asset/value": {
+      "post": {
+        "operationId": "getAssetValueEvidence",
+        "summary": "Get live eBay active-listing evidence and price statistics",
+        "description": "Returns active asking prices, listing URLs, condition, seller signals, and distribution statistics. It does not label active listings as completed sales.",
+        "tags": ["Market Evidence"],
+        "x-x402": {
+          "version": 2,
+          "network": "eip155:8453",
+          "prices": [
+            { "asset": "USDC", "amount": "0.25", "scheme": "exact" },
+            { "asset": "WTWR", "contract": "0x5852BC4A0afd2fBcd15C8261bDf30dc91585cb07", "amount": "10", "scheme": "exact", "transfer_method": "permit2" }
+          ]
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AssetValueRequest" },
+              "example": { "query": "Fluke 87V multimeter used", "limit": 20 }
+            }
+          }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/PaidJson" },
+          "402": { "$ref": "#/components/responses/PaymentRequired" },
+          "503": { "$ref": "#/components/responses/NotConfigured" }
+        }
+      }
+    },
+    "/api/v1/procurement/matrix": {
+      "post": {
+        "operationId": "extractProcurementMatrix",
+        "summary": "Build an evidence-checked government submission matrix",
+        "description": "Accepts supplied solicitation text or retrieves a current opportunity by SAM.gov notice ID. Evidence quotes are checked against the exact source before delivery.",
+        "tags": ["Procurement"],
+        "x-x402": {
+          "version": 2,
+          "network": "eip155:8453",
+          "prices": [
+            { "asset": "USDC", "amount": "1.00", "scheme": "exact" },
+            { "asset": "WTWR", "contract": "0x5852BC4A0afd2fBcd15C8261bDf30dc91585cb07", "amount": "25", "scheme": "exact", "transfer_method": "permit2" }
+          ]
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ProcurementRequest" },
+              "example": { "sam_notice_id": "NOTICE_ID" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/PaidJson" },
+          "402": { "$ref": "#/components/responses/PaymentRequired" },
+          "503": { "$ref": "#/components/responses/NotConfigured" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "RefineRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "text": { "type": "string", "minLength": 1, "maxLength": 10000 },
+          "schema": { "type": "object" },
+          "instructions": { "type": "string", "maxLength": 1000 }
+        },
+        "required": ["text", "schema"]
+      },
+      "AssetValueRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "limit": { "type": "integer", "minimum": 1, "maximum": 50, "default": 20 }
+        },
+        "required": ["query"]
+      },
+      "ProcurementRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "text": { "type": "string", "minLength": 1, "maxLength": 50000 },
+          "sam_notice_id": { "type": "string", "minLength": 1, "maxLength": 80 }
+        },
+        "anyOf": [{ "required": ["text"] }, { "required": ["sam_notice_id"] }]
+      },
+      "ApiError": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" },
+          "code": { "type": "string" },
+          "detail": {}
+        },
+        "required": ["error", "code"]
+      }
+    },
+    "responses": {
+      "PaidJson": {
+        "description": "Paid resource result. PAYMENT-RESPONSE contains settlement evidence.",
+        "headers": {
+          "PAYMENT-RESPONSE": { "schema": { "type": "string" }, "description": "Base64-encoded x402 settlement response." }
+        },
+        "content": { "application/json": { "schema": { "type": "object" } } }
+      },
+      "PaymentRequired": {
+        "description": "Payment is required before the resource executes.",
+        "headers": {
+          "PAYMENT-REQUIRED": { "required": true, "schema": { "type": "string" }, "description": "Base64-encoded x402 v2 payment requirements." }
+        },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+      },
+      "NotConfigured": {
+        "description": "A server-side provider or payment receiver is not configured.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
+      }
+    }
+  }
+}

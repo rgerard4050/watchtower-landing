@@ -207,7 +207,7 @@ test('stale offer rejection remains 409 with a string error', async () => {
   assert.equal(res.body.code, 'OFFER_NOT_PENDING');
 });
 
-test('deployable API set excludes duplicates and includes twelve canonical handlers', () => {
+test('deployable API set excludes duplicates and includes thirteen canonical handlers', () => {
   const ignored = new Set(
     fs.readFileSync(path.join(repositoryRoot, '.vercelignore'), 'utf8')
       .split(/\r?\n/)
@@ -236,7 +236,8 @@ test('deployable API set excludes duplicates and includes twelve canonical handl
     .map((file) => path.relative(repositoryRoot, file).replaceAll(path.sep, '/'))
     .filter((file) => !ignored.has(file));
 
-  assert.equal(deployable.length, 12);
+  assert.equal(deployable.length, 13);
+  assert.equal(deployable.includes('api/agent-hub.js'), true);
   assert.equal(deployable.includes('api/marketplace.js'), true);
   assert.equal(deployable.includes('api/resident.js'), true);
   assert.equal(deployable.includes('api/resident-collection.js'), false);

@@ -8,7 +8,8 @@
   },
   "scripts": {
     "dev": "node tests/static-server.js",
-    "test": "npm run test:api-marketplace && npm run test:api-resident && npm run test:scanner-checkpoint",
+    "test": "npm run test:api-marketplace && npm run test:api-resident && npm run test:agent-hub && npm run test:scanner-checkpoint",
+    "test:agent-hub": "node --test --test-isolation=none tests/agent-hub.test.js",
     "test:api-resident": "node --test --test-isolation=none tests/resident-collection-api.test.js",
     "test:api-marketplace": "node --test --test-isolation=none tests/api-marketplace.test.js",
     "test:scanner-checkpoint": "playwright test tests/canonical-scanner.spec.js",
@@ -27,9 +28,20 @@
   },
   "homepage": "https://github.com/rgerard4050/watchtower-landing#readme",
   "dependencies": {
+    "@coinbase/cdp-sdk": "^1.55.0",
+    "@google/genai": "^2.17.1",
+    "@x402/core": "^2.22.0",
+    "@x402/evm": "^2.22.0",
+    "@x402/express": "^2.22.0",
+    "@x402/extensions": "^2.22.0",
+    "@x402/svm": "^2.22.0",
+    "express": "^5.2.1",
     "stripe": "^22.3.2"
   },
   "devDependencies": {
     "@playwright/test": "1.62.1"
+  },
+  "overrides": {
+    "axios": "1.19.0"
   }
 }

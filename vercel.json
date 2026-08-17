@@ -3,6 +3,12 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
+    { "source": "/", "destination": "/agent-api.html" },
+    { "source": "/agents", "destination": "/agent-api.html" },
+    { "source": "/api/v1/catalog", "destination": "/api/agent-hub?resource=catalog" },
+    { "source": "/api/v1/refine-data", "destination": "/api/agent-hub?resource=refine" },
+    { "source": "/api/v1/asset/value", "destination": "/api/agent-hub?resource=asset" },
+    { "source": "/api/v1/procurement/matrix", "destination": "/api/agent-hub?resource=matrix" },
     { "source": "/api/buyers", "destination": "/api/marketplace?resource=buyers" },
     { "source": "/api/buyers.js", "destination": "/api/marketplace?resource=buyers" },
     { "source": "/api/listings", "destination": "/api/marketplace?resource=listings" },

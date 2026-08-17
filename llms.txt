@@ -1,0 +1,19 @@
+# Ocala Asset Security Agent API
+
+> Production x402-v2 API for autonomous software agents. Every paid operation returns HTTP 402 with machine-readable payment requirements until a valid payment payload is supplied.
+
+## Discovery
+
+- API catalog: https://app.ocalaassetsecurity.com/api/v1/catalog
+- OpenAPI 3.1: https://app.ocalaassetsecurity.com/openapi.json
+- Agent card: https://app.ocalaassetsecurity.com/.well-known/agent.json
+- Network: Base mainnet (eip155:8453)
+- Payment assets: USDC and WTWR (0x5852BC4A0afd2fBcd15C8261bDf30dc91585cb07)
+
+## Paid resources
+
+- POST /api/v1/refine-data — source-supported JSON extraction — $0.10 USDC or 5 WTWR
+- POST /api/v1/asset/value — live eBay active-listing evidence — $0.25 USDC or 10 WTWR
+- POST /api/v1/procurement/matrix — evidence-checked solicitation matrix — $1.00 USDC or 25 WTWR
+
+The asset-value endpoint reports active asking prices and does not represent them as completed-sale prices. The procurement endpoint verifies that returned evidence quotes occur in the supplied source.

@@ -1,0 +1,46 @@
+{
+  "name": "Ocala Asset Security Agent API",
+  "description": "x402-native market evidence, data refinement, and government solicitation extraction for autonomous agents.",
+  "url": "https://app.ocalaassetsecurity.com/api/v1/catalog",
+  "version": "1.0.0",
+  "protocolVersion": "0.3.0",
+  "preferredTransport": "HTTP+JSON",
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false,
+    "stateTransitionHistory": false
+  },
+  "defaultInputModes": ["application/json"],
+  "defaultOutputModes": ["application/json"],
+  "securitySchemes": {
+    "x402": {
+      "type": "http",
+      "scheme": "x402",
+      "description": "HTTP 402 payment negotiation on Base mainnet; USDC and WTWR accepted."
+    }
+  },
+  "security": [{ "x402": [] }],
+  "skills": [
+    {
+      "id": "refine_data",
+      "name": "Structured data refinery",
+      "description": "Extract source-supported JSON under a caller-defined schema.",
+      "tags": ["data-refinement", "structured-output"],
+      "examples": ["POST /api/v1/refine-data"]
+    },
+    {
+      "id": "asset_value",
+      "name": "Active market evidence",
+      "description": "Return live eBay Browse listings and asking-price statistics.",
+      "tags": ["ebay", "asset-value", "market-evidence"],
+      "examples": ["POST /api/v1/asset/value"]
+    },
+    {
+      "id": "procurement_matrix",
+      "name": "Procurement matrix extraction",
+      "description": "Build an evidence-checked requirements matrix from text or a SAM.gov notice ID.",
+      "tags": ["sam-gov", "procurement", "requirements"],
+      "examples": ["POST /api/v1/procurement/matrix"]
+    }
+  ]
+}
