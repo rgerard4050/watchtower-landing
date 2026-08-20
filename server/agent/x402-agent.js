@@ -1,6 +1,5 @@
 'use strict';
 
-const { createX402Server } = require('@coinbase/cdp-sdk/x402');
 const { paymentMiddlewareFromHTTPServer } = require('@x402/express');
 const { declareDiscoveryExtension } = require('@x402/extensions/bazaar');
 const { ApiError } = require('./agent-http');
@@ -114,6 +113,7 @@ async function createMiddleware() {
     throw new ApiError(503, 'X402_PAY_TO_INVALID', 'X402_PAY_TO must be a valid EVM address.');
   }
 
+  const { createX402Server } = await import('@coinbase/cdp-sdk/x402');
   const server = await createX402Server({
     environment: 'production',
     apiKeyId: process.env.CDP_API_KEY_ID,
