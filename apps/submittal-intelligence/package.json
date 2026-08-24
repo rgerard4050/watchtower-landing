@@ -1,0 +1,19 @@
+{
+  "name": "watchtower-submittal-intelligence",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Morrow-powered, source-cited contractor submittal preflight.",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "node dev-server.js",
+    "test": "node --test --test-isolation=none tests/submittal.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@ai-sdk/google": "^3.0.111",
+    "ai": "^6.0.261",
+    "zod": "^4.4.3"
+  }
+}
