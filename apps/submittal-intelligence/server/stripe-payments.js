@@ -190,10 +190,12 @@ function runtimeStatus(env = process.env) {
   const key = String(env.STRIPE_SECRET_KEY || '');
   const checkoutReady = (mode === 'test' && /^(sk|rk)_test_/.test(key))
     || (mode === 'live' && /^(sk|rk)_live_/.test(key));
+  const analysisReady = Boolean(String(env.OPENAI_API_KEY || env.GOOGLE_GENERATIVE_AI_API_KEY || env.AI_GATEWAY_API_KEY || env.VERCEL_OIDC_TOKEN || ''));
   return {
     payment_mode: mode,
     checkout_ready: checkoutReady,
-    analysis_ready: Boolean(String(env.OPENAI_API_KEY || env.GOOGLE_GENERATIVE_AI_API_KEY || env.AI_GATEWAY_API_KEY || env.VERCEL_OIDC_TOKEN || '')),
+    analysis_ready: analysisReady,
+    paid_intake_ready: checkoutReady && analysisReady,
     analysis_provider: env.OPENAI_API_KEY
       ? 'openai'
       : (env.GOOGLE_GENERATIVE_AI_API_KEY
@@ -202,6 +204,19 @@ function runtimeStatus(env = process.env) {
     fulfillment_mode: 'human_review',
     price_cents: PILOT_PRICE_CENTS,
   };
+}
+
+function requireCheckoutReadiness(env = process.env) {
+  const status = runtimeStatus(env);
+  requirePaymentKey(env.STRIPE_SECRET_KEY, status.payment_mode);
+  if (!status.analysis_ready) {
+    throw new AppError(
+      503,
+      'FULFILLMENT_UNAVAILABLE',
+      'Paid checkout is temporarily unavailable until report fulfillment is configured.',
+    );
+  }
+  return status;
 }
 
 module.exports = {
@@ -213,6 +228,7 @@ module.exports = {
   createCheckout,
   paymentMode,
   releaseCheckout,
+  requireCheckoutReadiness,
   requirePaymentKey,
   resolveOrigin,
   retrieveCheckout,

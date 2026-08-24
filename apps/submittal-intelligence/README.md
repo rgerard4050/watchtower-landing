@@ -37,6 +37,8 @@ is supplied. Vercel AI Gateway uses the deployment's automatic OIDC token.
 
 - `SUBMITTAL_PAYMENTS_MODE=disabled|test|live` is explicit; there is no implicit
   live billing.
+- The checkout API independently fails closed unless both mode-matched Stripe
+  configuration and report analysis fulfillment are available.
 - Test mode accepts only `rk_test_` or `sk_test_` keys. Live mode accepts only
   `rk_live_` or `sk_live_` keys and requires an HTTPS public origin.
 - Prefer a restricted Stripe key limited to Checkout Session create, retrieve,

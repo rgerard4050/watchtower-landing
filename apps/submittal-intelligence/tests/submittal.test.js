@@ -12,7 +12,9 @@ const {
   claimCheckout,
   completeCheckout,
   createCheckout,
+  requireCheckoutReadiness,
   retrieveCheckout,
+  runtimeStatus,
 } = require('../server/stripe-payments');
 const { normalizeDemoReviewRequest, normalizeReviewRequest } = require('../server/validation');
 
@@ -209,6 +211,52 @@ test('Stripe uses hosted Checkout, explicit mode matching, dynamic methods, and 
   assert.equal(posted.options.headers['Stripe-Version'], STRIPE_VERSION);
   await assert.rejects(createCheckout({ key: 'sk_live_wrong_mode', mode: 'test', origin: 'https://example.test', fetchImpl }), /test checkout is not configured/);
   await assert.rejects(createCheckout({ key: 'rk_live_example', mode: 'live', origin: 'http://localhost:4175', fetchImpl }), /requires an HTTPS/);
+});
+
+test('paid intake fails closed when report fulfillment is unavailable', () => {
+  const unavailable = {
+    SUBMITTAL_PAYMENTS_MODE: 'live',
+    STRIPE_SECRET_KEY: 'rk_live_example',
+    SUBMITTAL_APP_ORIGIN: 'https://pilot.example.test',
+  };
+  assert.equal(runtimeStatus(unavailable).checkout_ready, true);
+  assert.equal(runtimeStatus(unavailable).analysis_ready, false);
+  assert.equal(runtimeStatus(unavailable).paid_intake_ready, false);
+  assert.throws(
+    () => requireCheckoutReadiness(unavailable),
+    (error) => error.status === 503 && error.code === 'FULFILLMENT_UNAVAILABLE',
+  );
+
+  const ready = { ...unavailable, AI_GATEWAY_API_KEY: 'gateway_example' };
+  assert.equal(runtimeStatus(ready).paid_intake_ready, true);
+  assert.equal(requireCheckoutReadiness(ready).payment_mode, 'live');
+});
+
+test('checkout API refuses to create a paid session without fulfillment', async () => {
+  const names = [
+    'SUBMITTAL_PAYMENTS_MODE',
+    'STRIPE_SECRET_KEY',
+    'OPENAI_API_KEY',
+    'GOOGLE_GENERATIVE_AI_API_KEY',
+    'AI_GATEWAY_API_KEY',
+    'VERCEL_OIDC_TOKEN',
+  ];
+  const original = Object.fromEntries(names.map((name) => [name, process.env[name]]));
+  try {
+    process.env.SUBMITTAL_PAYMENTS_MODE = 'test';
+    process.env.STRIPE_SECRET_KEY = 'rk_test_example';
+    names.slice(2).forEach((name) => delete process.env[name]);
+    const res = createRes();
+    await checkoutHandler({ method: 'POST' }, res);
+    assert.equal(res.statusCode, 503);
+    assert.equal(res.body.code, 'FULFILLMENT_UNAVAILABLE');
+    assert.equal(res.headers['cache-control'], 'no-store');
+  } finally {
+    names.forEach((name) => {
+      if (original[name] === undefined) delete process.env[name];
+      else process.env[name] = original[name];
+    });
+  }
 });
 
 test('Stripe verification accepts paid mode-matched sessions and rejects cross-mode sessions', async () => {
