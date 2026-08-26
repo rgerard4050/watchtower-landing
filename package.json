@@ -27,7 +27,10 @@
   },
   "homepage": "https://github.com/rgerard4050/watchtower-landing#readme",
   "dependencies": {
-    "stripe": "^22.3.2"
+    "@ai-sdk/google": "^3.0.111",
+    "ai": "^6.0.261",
+    "stripe": "^22.3.2",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@playwright/test": "1.62.1"
