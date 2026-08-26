@@ -3,6 +3,13 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
+    { "source": "/submittal", "destination": "/apps/submittal-intelligence/index.html" },
+    { "source": "/submittal/pilot", "destination": "/apps/submittal-intelligence/pilot.html" },
+    { "source": "/submittal/morrow-sample-correction-packet.pdf", "destination": "/apps/submittal-intelligence/morrow-sample-correction-packet.pdf" },
+    { "source": "/api/submittal/config", "destination": "/apps/submittal-intelligence/api/config.js" },
+    { "source": "/api/submittal/checkout", "destination": "/apps/submittal-intelligence/api/checkout.js" },
+    { "source": "/api/submittal/review", "destination": "/apps/submittal-intelligence/api/review.js" },
+    { "source": "/api/submittal/local-demo-review", "destination": "/apps/submittal-intelligence/api/local-demo-review.js" },
     { "source": "/api/buyers", "destination": "/api/marketplace?resource=buyers" },
     { "source": "/api/buyers.js", "destination": "/api/marketplace?resource=buyers" },
     { "source": "/api/listings", "destination": "/api/marketplace?resource=listings" },
