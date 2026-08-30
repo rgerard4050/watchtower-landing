@@ -7,6 +7,11 @@ const test = require('node:test');
 const { app, rewriteToCanonicalPath } = require('../api/agent-hub');
 const { summarizePrices } = require('../server/agent/ebay-agent');
 const { sanitizeSchema, verifyEvidenceQuotes } = require('../server/agent/gemini-agent');
+const {
+  CAPABILITIES,
+  CAPABILITY_STATUS,
+  listCapabilities,
+} = require('../server/agent/capability-registry');
 const { buildRoutes, publicCatalog } = require('../server/agent/x402-agent');
 const { validateBazaarRouteExtensions } = require('@x402/extensions/bazaar');
 
@@ -58,8 +63,25 @@ function requestJson(urlValue, options = {}) {
 test('catalog exposes three production paid resources', () => {
   const catalog = publicCatalog();
   assert.equal(catalog.protocol, 'x402-v2');
+  assert.equal(catalog.router, 'Compass Economic Router');
   assert.deepEqual(Object.keys(catalog.endpoints), ['refine', 'asset', 'matrix']);
   assert.equal(catalog.payment_assets.WTWR.decimals, 18);
+});
+
+test('Compass seller registry keeps planned products out of paid x402 routes', () => {
+  const planned = listCapabilities({ status: CAPABILITY_STATUS.PLANNED });
+  assert.ok(planned.length >= 7);
+  assert.equal(CAPABILITIES.submittal_preflight.status, 'planned');
+  assert.equal(CAPABILITIES.bounty_search.status, 'planned');
+
+  const routes = buildRoutes('0x1111111111111111111111111111111111111111');
+  assert.equal(routes['POST /api/v1/submittal/preflight'], undefined);
+  assert.equal(routes['POST /api/v1/bounty/search'], undefined);
+  assert.ok(routes['POST /api/v1/procurement/matrix']);
+
+  const catalog = publicCatalog();
+  assert.equal(catalog.seller_factory.live_capability_count, 3);
+  assert.equal(catalog.seller_factory.planned_capability_count, planned.length);
 });
 
 test('rewrite normalizes consolidated Vercel function paths before x402 matching', () => {

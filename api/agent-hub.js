@@ -2,6 +2,7 @@
 
 const express = require('express');
 const { ApiError, asObject, clampInteger, optionalString, requiredString, sendError } = require('../server/agent/agent-http');
+const { searchSamOpportunities } = require('../server/agent/bounty-agent');
 const { searchActiveListings } = require('../server/agent/ebay-agent');
 const { extractProcurementMatrix, refineData } = require('../server/agent/gemini-agent');
 const { fetchSamOpportunity } = require('../server/agent/sam-agent');
@@ -10,6 +11,7 @@ const { publicCatalog, x402PaymentGate } = require('../server/agent/x402-agent')
 
 const RESOURCE_PATHS = {
   catalog: '/api/v1/catalog',
+  bounty_preview: '/api/v1/bounty/preview',
   refine: '/api/v1/refine-data',
   asset: '/api/v1/asset/value',
   matrix: '/api/v1/procurement/matrix',
@@ -30,6 +32,19 @@ app.use((req, res, next) => {
 
 app.options('*splat', (_req, res) => res.status(204).end());
 app.get('/api/v1/catalog', (_req, res) => res.status(200).json(publicCatalog()));
+app.get('/api/v1/bounty/preview', async (req, res, next) => {
+  try {
+    const result = await searchSamOpportunities({
+      query: req.query.query,
+      state: req.query.state,
+      due_within_days: req.query.due_within_days,
+      limit: req.query.limit,
+    });
+    return res.status(200).json(result);
+  } catch (error) {
+    return next(error);
+  }
+});
 
 app.use(x402PaymentGate);
 
@@ -98,7 +113,11 @@ function rewriteToCanonicalPath(req) {
   const parsed = new URL(req.url || '/', 'http://localhost');
   const resource = parsed.searchParams.get('resource');
   const canonical = RESOURCE_PATHS[resource];
-  if (canonical) req.url = canonical;
+  if (!canonical) return;
+  const passthrough = new URLSearchParams(parsed.searchParams);
+  passthrough.delete('resource');
+  const query = passthrough.toString();
+  req.url = query ? `${canonical}?${query}` : canonical;
 }
 
 module.exports = function handler(req, res) {
