@@ -3,27 +3,97 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
-    { "source": "/", "destination": "/agent-api.html" },
-    { "source": "/agents", "destination": "/agent-api.html" },
-    { "source": "/api/v1/catalog", "destination": "/api/agent-hub?resource=catalog" },
-    { "source": "/api/v1/refine-data", "destination": "/api/agent-hub?resource=refine" },
-    { "source": "/api/v1/asset/value", "destination": "/api/agent-hub?resource=asset" },
-    { "source": "/api/v1/procurement/matrix", "destination": "/api/agent-hub?resource=matrix" },
-    { "source": "/api/generate-listing", "destination": "/api/agent-hub?resource=legacy-listing" },
-    { "source": "/api/generate-listing.js", "destination": "/api/agent-hub?resource=legacy-listing" },
-    { "source": "/api/buyers", "destination": "/api/marketplace?resource=buyers" },
-    { "source": "/api/buyers.js", "destination": "/api/marketplace?resource=buyers" },
-    { "source": "/api/listings", "destination": "/api/marketplace?resource=listings" },
-    { "source": "/api/listings.js", "destination": "/api/marketplace?resource=listings" },
-    { "source": "/api/offers", "destination": "/api/marketplace?resource=offers" },
-    { "source": "/api/offers.js", "destination": "/api/marketplace?resource=offers" },
-    { "source": "/api/transactions", "destination": "/api/marketplace?resource=transactions" },
-    { "source": "/api/transactions.js", "destination": "/api/marketplace?resource=transactions" },
-    { "source": "/api/resident-collection", "destination": "/api/resident?resource=collection" },
-    { "source": "/api/resident-collection.js", "destination": "/api/resident?resource=collection" },
-    { "source": "/api/resident-pickup", "destination": "/api/resident?resource=pickup" },
-    { "source": "/api/resident-pickup.js", "destination": "/api/resident?resource=pickup" },
-    { "source": "/api/resident-progression", "destination": "/api/resident?resource=progression" },
-    { "source": "/api/resident-progression.js", "destination": "/api/resident?resource=progression" }
+    {
+      "source": "/",
+      "destination": "/agent-api.html"
+    },
+    {
+      "source": "/app-rescue",
+      "destination": "/app-rescue.html"
+    },
+    {
+      "source": "/agents",
+      "destination": "/agent-api.html"
+    },
+    {
+      "source": "/api/v1/catalog",
+      "destination": "/api/agent-hub?resource=catalog"
+    },
+    {
+      "source": "/api/v1/refine-data",
+      "destination": "/api/agent-hub?resource=refine"
+    },
+    {
+      "source": "/api/v1/asset/value",
+      "destination": "/api/agent-hub?resource=asset"
+    },
+    {
+      "source": "/api/v1/procurement/matrix",
+      "destination": "/api/agent-hub?resource=matrix"
+    },
+    {
+      "source": "/api/generate-listing",
+      "destination": "/api/agent-hub?resource=legacy-listing"
+    },
+    {
+      "source": "/api/generate-listing.js",
+      "destination": "/api/agent-hub?resource=legacy-listing"
+    },
+    {
+      "source": "/api/buyers",
+      "destination": "/api/marketplace?resource=buyers"
+    },
+    {
+      "source": "/api/buyers.js",
+      "destination": "/api/marketplace?resource=buyers"
+    },
+    {
+      "source": "/api/listings",
+      "destination": "/api/marketplace?resource=listings"
+    },
+    {
+      "source": "/api/listings.js",
+      "destination": "/api/marketplace?resource=listings"
+    },
+    {
+      "source": "/api/offers",
+      "destination": "/api/marketplace?resource=offers"
+    },
+    {
+      "source": "/api/offers.js",
+      "destination": "/api/marketplace?resource=offers"
+    },
+    {
+      "source": "/api/transactions",
+      "destination": "/api/marketplace?resource=transactions"
+    },
+    {
+      "source": "/api/transactions.js",
+      "destination": "/api/marketplace?resource=transactions"
+    },
+    {
+      "source": "/api/resident-collection",
+      "destination": "/api/resident?resource=collection"
+    },
+    {
+      "source": "/api/resident-collection.js",
+      "destination": "/api/resident?resource=collection"
+    },
+    {
+      "source": "/api/resident-pickup",
+      "destination": "/api/resident?resource=pickup"
+    },
+    {
+      "source": "/api/resident-pickup.js",
+      "destination": "/api/resident?resource=pickup"
+    },
+    {
+      "source": "/api/resident-progression",
+      "destination": "/api/resident?resource=progression"
+    },
+    {
+      "source": "/api/resident-progression.js",
+      "destination": "/api/resident?resource=progression"
+    }
   ]
 }
