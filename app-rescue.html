@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>App Rescue | Watchtower</title>
+  <meta name="description" content="Built your app with AI and got stuck on the last 20%? Watchtower App Rescue fixes production blockers in Next.js, Supabase, Stripe, Vercel, auth, payments, and launch-readiness.">
+  <meta property="og:title" content="Watchtower App Rescue">
+  <meta property="og:description" content="Your AI built 80% of the app. We finish the dangerous 20%.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://watchtower-landing-lime.vercel.app/app-rescue">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{--bg:#07100e;--panel:#0d1714;--panel2:#101f1a;--text:#effbf4;--muted:#9cb7aa;--line:#244338;--green:#4cff9b;--green2:#1ccf72;--danger:#ff7b7b}
+    *{box-sizing:border-box} body{margin:0;background:radial-gradient(circle at 70% -10%,rgba(76,255,155,.12),transparent 35%),var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    a{color:inherit}.wrap{width:min(1120px,calc(100% - 32px));margin:auto}.nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0}.brand{font-weight:800;letter-spacing:.08em}.tag{font-size:12px;color:var(--green);border:1px solid var(--line);border-radius:999px;padding:8px 12px}
+    .hero{padding:72px 0 42px;display:grid;grid-template-columns:1.1fr .9fr;gap:42px;align-items:start}.eyebrow{color:var(--green);font-weight:800;letter-spacing:.12em;text-transform:uppercase;font-size:12px}.hero h1{font-size:clamp(42px,7vw,78px);line-height:.98;margin:16px 0 20px;letter-spacing:-.045em}.hero h1 span{color:var(--green)}.lead{font-size:20px;line-height:1.6;color:var(--muted);max-width:700px}.proof{display:flex;flex-wrap:wrap;gap:10px;margin:28px 0}.pill{background:var(--panel);border:1px solid var(--line);padding:9px 12px;border-radius:999px;font-size:13px;color:#d8e9df}
+    .price-card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid #2c5d4b;border-radius:18px;padding:28px;position:sticky;top:20px;box-shadow:0 24px 80px rgba(0,0,0,.25)}.price{font-size:48px;font-weight:800;color:var(--green);margin:5px 0}.small{color:var(--muted);font-size:14px;line-height:1.6}.price-card ul{padding-left:20px;color:#d7e7de;line-height:1.9}.cta{display:inline-block;background:var(--green);color:#04100a;font-weight:900;border:none;border-radius:10px;padding:15px 18px;text-decoration:none;cursor:pointer;font-size:15px}.cta:hover{background:#70ffb0}
+    section{padding:48px 0;border-top:1px solid rgba(36,67,56,.7)}h2{font-size:34px;margin:0 0 12px}.sub{color:var(--muted);max-width:760px;line-height:1.7}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:26px}.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px}.card b{display:block;font-size:18px;margin-bottom:8px}.card p{margin:0;color:var(--muted);line-height:1.6;font-size:14px}
+    .process{counter-reset:steps}.step{display:grid;grid-template-columns:52px 1fr;gap:15px;align-items:start;padding:18px 0;border-bottom:1px solid var(--line)}.step:before{counter-increment:steps;content:counter(steps);display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:rgba(76,255,155,.08);border:1px solid #3b745e;color:var(--green);font-weight:900}.step b{font-size:18px}.step p{margin:5px 0 0;color:var(--muted);line-height:1.6}
+    .form-wrap{display:grid;grid-template-columns:.85fr 1.15fr;gap:28px}.form-card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px}.field{margin-bottom:14px}label{display:block;font-size:13px;font-weight:700;margin-bottom:7px}input,textarea,select{width:100%;background:#08120f;color:var(--text);border:1px solid #345344;border-radius:9px;padding:13px;font:inherit}textarea{min-height:150px;resize:vertical}input:focus,textarea:focus,select:focus{outline:2px solid rgba(76,255,155,.24);border-color:var(--green)}.form-note{font-size:12px;color:var(--muted);line-height:1.5}.status{margin-top:12px;font-size:14px;min-height:22px}.status.ok{color:var(--green)}.status.err{color:var(--danger)}
+    .footer{padding:34px 0 50px;color:var(--muted);font-size:13px}.footer a{color:var(--green)}
+    @media(max-width:820px){.hero,.form-wrap{grid-template-columns:1fr}.price-card{position:static}.grid{grid-template-columns:1fr}.hero{padding-top:40px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="nav"><div class="brand">WATCHTOWER</div><div class="tag">APP RESCUE</div></nav>
+    <main>
+      <div class="hero">
+        <div>
+          <div class="eyebrow">Production rescue for AI-built apps</div>
+          <h1>Your AI built 80%.<br><span>We finish the dangerous 20%.</span></h1>
+          <p class="lead">Built with v0, Cursor, Claude, ChatGPT, Lovable, Bolt or Replit—and now auth, payments, Supabase, deployment, or production bugs are blocking launch? We trace the code you already have, preserve what works, and fix the blockers that matter.</p>
+          <div class="proof">
+            <span class="pill">Next.js / React</span><span class="pill">Supabase / Postgres</span><span class="pill">Stripe</span><span class="pill">Vercel</span><span class="pill">APIs</span><span class="pill">AI-generated codebases</span>
+          </div>
+          <a class="cta" href="#intake">Start a $149 Rescue Diagnostic</a>
+        </div>
+        <aside class="price-card">
+          <div class="eyebrow">First engagement</div>
+          <div class="price">$149</div>
+          <div class="small">Fixed-price App Rescue Diagnostic</div>
+          <ul>
+            <li>Existing app/codebase review</li>
+            <li>Critical production blocker map</li>
+            <li>Auth / permissions / payment flow check</li>
+            <li>Deployment and persistence check</li>
+            <li>One defined fix where scope allows</li>
+            <li>Clear repair quote for the remaining work</li>
+          </ul>
+          <a class="cta" href="#intake">Submit Your App</a>
+        </aside>
+      </div>
+
+      <section>
+        <h2>What we rescue</h2>
+        <p class="sub">This is not a blank-sheet rebuild service. It is for founders who already have an app and need the last mile to be real.</p>
+        <div class="grid">
+          <div class="card"><b>“It works locally.”</b><p>Vercel deploys fail, environment variables are wrong, production APIs break, or state disappears after refresh.</p></div>
+          <div class="card"><b>Auth is almost working</b><p>Signup, login, user roles, Supabase RLS, customer/admin boundaries, magic links, or session state are inconsistent.</p></div>
+          <div class="card"><b>Stripe is wired but unsafe</b><p>Checkout works in a demo but subscriptions, webhooks, refunds, entitlements, or order state are not trustworthy.</p></div>
+          <div class="card"><b>AI code became a maze</b><p>v0/Cursor/Lovable generated multiple competing patterns and nobody knows which path is authoritative.</p></div>
+          <div class="card"><b>The app is “90% done”</b><p>The remaining 10% contains the hard parts: persistence, edge cases, permissions, recovery, monitoring, and real user flows.</p></div>
+          <div class="card"><b>You are afraid to charge</b><p>That hesitation is usually useful. We turn it into a checklist of concrete risks and remove the ones blocking launch.</p></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>How App Rescue works</h2>
+        <div class="process">
+          <div class="step"><div><b>Send the existing app</b><p>Repo or deployed URL, stack, and the specific thing stopping launch.</p></div></div>
+          <div class="step"><div><b>We trace the real workflow</b><p>We identify what is production code, what is demo state, and where the system breaks.</p></div></div>
+          <div class="step"><div><b>We fix the smallest high-value blocker first</b><p>No unnecessary rewrite. Preserve working code and target the failure that is preventing revenue.</p></div></div>
+          <div class="step"><div><b>You get the repair path</b><p>Small issues can be closed inside the diagnostic. Larger rescues receive a fixed, scoped follow-on quote.</p></div></div>
+        </div>
+      </section>
+
+      <section id="intake">
+        <div class="form-wrap">
+          <div>
+            <div class="eyebrow">Start here</div>
+            <h2>What is stopping your app from launching?</h2>
+            <p class="sub">Tell us what you built and where it gets stuck. No sales deck needed. If the problem is a fit, we’ll reply with the first thing we would inspect.</p>
+            <p class="small">Typical repair engagements after the diagnostic: <strong style="color:#fff">$500–$3,000+</strong> depending on scope. Ongoing maintenance is available after rescue.</p>
+          </div>
+          <form class="form-card" id="rescueForm">
+            <div class="field"><label for="name">Name *</label><input id="name" name="name" required maxlength="120"></div>
+            <div class="field"><label for="email">Email *</label><input id="email" name="email" type="email" required maxlength="254"></div>
+            <div class="field"><label for="company">Company / product</label><input id="company" name="company" maxlength="160"></div>
+            <div class="field"><label for="app_url">App or repo URL</label><input id="app_url" name="app_url" type="url" placeholder="https://" maxlength="500"></div>
+            <div class="field"><label for="stack">What did you build it with?</label><input id="stack" name="stack" placeholder="e.g. Lovable + Supabase + Stripe" maxlength="500"></div>
+            <div class="field"><label for="problem">What is broken or blocking launch? *</label><textarea id="problem" name="problem" required minlength="10" maxlength="5000" placeholder="Tell us what currently works, what fails, and what you are afraid to put in front of paying users."></textarea></div>
+            <div class="field"><label for="budget">Budget range</label><select id="budget" name="budget"><option value="">Select</option><option>$149 diagnostic only</option><option>$500–$1,000</option><option>$1,000–$3,000</option><option>$3,000+</option><option>Not sure yet</option></select></div>
+            <button class="cta" id="submitBtn" type="submit">Submit App Rescue Request</button>
+            <div class="status" id="status" aria-live="polite"></div>
+            <p class="form-note">Submitting this form does not grant access to your code or create a paid engagement. We’ll contact you first.</p>
+          </form>
+        </div>
+      </section>
+    </main>
+    <footer class="footer">Watchtower App Rescue · Built by Ryan Gerard · <a href="mailto:contact.watchtowerer@gmail.com">contact.watchtowerer@gmail.com</a></footer>
+  </div>
+  <script>
+    const SUPABASE_URL='https://eypovuxuddiqgncjdpkq.supabase.co';
+    const SUPABASE_KEY='sb_publishable_ZlykauNc-3YY80w6nxzsKw_Z2lgAgU1';
+    const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+    const params=new URLSearchParams(location.search);
+    const form=document.getElementById('rescueForm');
+    const statusEl=document.getElementById('status');
+    const submitBtn=document.getElementById('submitBtn');
+
+    form.addEventListener('submit',async(e)=>{
+      e.preventDefault();
+      statusEl.className='status';
+      statusEl.textContent='Submitting…';
+      submitBtn.disabled=true;
+      const data=new FormData(form);
+      const payload={
+        name:String(data.get('name')||'').trim(),
+        email:String(data.get('email')||'').trim().toLowerCase(),
+        company:String(data.get('company')||'').trim()||null,
+        app_url:String(data.get('app_url')||'').trim()||null,
+        stack:String(data.get('stack')||'').trim()||null,
+        problem:String(data.get('problem')||'').trim(),
+        budget:String(data.get('budget')||'').trim()||null,
+        source:'app-rescue',
+        utm_source:params.get('utm_source'),
+        utm_medium:params.get('utm_medium'),
+        utm_campaign:params.get('utm_campaign')
+      };
+      try{
+        const {error}=await sb.from('app_rescue_leads').insert(payload);
+        if(error) throw error;
+        form.reset();
+        statusEl.className='status ok';
+        statusEl.textContent='Received. We’ll review the app and reply with the first thing we would inspect.';
+        if(window.gtag) window.gtag('event','generate_lead',{currency:'USD',value:149});
+      }catch(err){
+        console.error(err);
+        statusEl.className='status err';
+        statusEl.textContent='Could not submit right now. Email contact.watchtowerer@gmail.com and include your app URL plus the blocker.';
+      }finally{submitBtn.disabled=false;}
+    });
+  </script>
+</body>
+</html>
