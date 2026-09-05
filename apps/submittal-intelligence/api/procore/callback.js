@@ -1,7 +1,7 @@
 'use strict';
 
 const {
-  COOKIE_STATE, exchangeCode, handlerError, requireConfig, sessionCookie, verifyState,
+  COOKIE_STATE, exchangeCode, handlerError, requireConfig, sessionCookie, stateCookieName, verifyState,
 } = require('../../server/procore');
 
 module.exports = async function callbackHandler(req, res) {
@@ -19,7 +19,11 @@ module.exports = async function callbackHandler(req, res) {
     }
     if (!query.code) return res.status(400).json({ error: 'Procore did not return an authorization code.', code: 'PROCORE_CODE_MISSING' });
     const token = await exchangeCode(query.code, config);
-    res.setHeader('Set-Cookie', [sessionCookie(token, config.clientSecret), `${COOKIE_STATE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`]);
+    res.setHeader('Set-Cookie', [
+      sessionCookie(token, config.clientSecret),
+      `${stateCookieName(query.state)}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`,
+      `${COOKIE_STATE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`,
+    ]);
     res.setHeader('Location', '/?procore=connected');
     return res.status(302).json({ connected: true });
   } catch (error) {

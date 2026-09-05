@@ -36,14 +36,20 @@ function stateDigest(state, secret) {
   return crypto.createHmac('sha256', secret).update(state).digest('base64url');
 }
 
+function stateCookieName(state) {
+  const suffix = crypto.createHash('sha256').update(String(state || '')).digest('hex').slice(0, 16);
+  return `${COOKIE_STATE}_${suffix}`;
+}
+
 function createStateCookie(secret) {
   const state = crypto.randomBytes(24).toString('base64url');
   const signed = `${state}.${stateDigest(state, secret)}`;
-  return { state, cookie: baseCookie(COOKIE_STATE, signed, 600) };
+  return { state, cookie: baseCookie(stateCookieName(state), signed, 600) };
 }
 
 function verifyState(req, receivedState, secret) {
-  const signed = cookieMap(req.headers && req.headers.cookie)[COOKIE_STATE] || '';
+  const cookies = cookieMap(req.headers && req.headers.cookie);
+  const signed = cookies[stateCookieName(receivedState)] || cookies[COOKIE_STATE] || '';
   const [state, digest] = signed.split('.');
   if (!state || !digest || !receivedState || state !== receivedState) return false;
   const expected = stateDigest(state, secret);
@@ -136,5 +142,5 @@ function handlerError(res, error) {
 
 module.exports = {
   API_BASE, COOKIE_SESSION, COOKIE_STATE, LOGIN_BASE, apiRequest, createStateCookie,
-  exchangeCode, handlerError, readSession, requireConfig, sessionCookie, verifyState,
+  exchangeCode, handlerError, readSession, requireConfig, sessionCookie, stateCookieName, verifyState,
 };

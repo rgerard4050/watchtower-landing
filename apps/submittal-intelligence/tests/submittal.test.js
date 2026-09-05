@@ -349,6 +349,16 @@ test('Procore OAuth state is signed and token sessions are encrypted cookies', (
   assert.equal(session.accessToken, 'access-token');
 });
 
+test('Procore OAuth state remains valid across concurrent login attempts', () => {
+  const secret = 'sandbox-secret';
+  const first = createStateCookie(secret);
+  const second = createStateCookie(secret);
+  const req = { headers: { cookie: `${first.cookie.split(';')[0]}; ${second.cookie.split(';')[0]}` } };
+
+  assert.equal(verifyState(req, first.state, secret), true);
+  assert.equal(verifyState(req, second.state, secret), true);
+});
+
 test('Procore OAuth exchanges authorization code and API imports use sandbox hosts', async () => {
   let tokenCall;
   const token = await exchangeCode('authorization-code', {
