@@ -1,6 +1,8 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const test = require('node:test');
 
 const checkoutHandler = require('../api/checkout');
@@ -216,6 +218,15 @@ test('Stripe uses hosted Checkout, explicit mode matching, dynamic methods, and 
   assert.equal(posted.options.headers['Stripe-Version'], STRIPE_VERSION);
   await assert.rejects(createCheckout({ key: 'sk_live_wrong_mode', mode: 'test', origin: 'https://example.test', fetchImpl }), /test checkout is not configured/);
   await assert.rejects(createCheckout({ key: 'rk_live_example', mode: 'live', origin: 'http://localhost:4175', fetchImpl }), /requires an HTTPS/);
+});
+
+test('paid handoff preserves intake, restores the report, and exposes cited evidence', () => {
+  const page = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  assert.match(page, /watchtower_submittal_intake/);
+  assert.match(page, /watchtower_submittal_report:/);
+  assert.match(page, /maybeRunPaidProcoreReview/);
+  assert.match(page, /Submitted evidence:/);
+  assert.match(page, /item\.source\.quote/);
 });
 
 test('paid intake fails closed when report fulfillment is unavailable', () => {
