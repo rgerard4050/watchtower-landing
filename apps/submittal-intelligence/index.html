@@ -125,6 +125,7 @@ const selectionKey='watchtower_procore_selection';
 function savedSelection(){try{return JSON.parse(sessionStorage.getItem(selectionKey)||'{}')}catch{return {}}}
 function saveSelection(){sessionStorage.setItem(selectionKey,JSON.stringify({company_id:procoreCompany.value,project_id:procoreProject.value,submittal_id:procoreSubmittal.value}))}
 let procorePackage=null;
+function isSandboxTest(){return !sessionId&&procorePackage&&procorePackage.company_id==='4289092'&&procorePackage.project_id==='364046'}
 function setProcorePackage(value,files=[]){
   procorePackage=value;
   const imported=Boolean(value);
@@ -137,6 +138,8 @@ function setProcorePackage(value,files=[]){
   document.getElementById('submittedHint').textContent=imported
     ? 'Ready from Procore: '+((files.find(file=>file.role==='submittal')||{}).name||'submitted package PDF')
     : (document.getElementById('workflowType').value==='denied'?'The package that was rejected.':'The package you plan to send.');
+  if(isSandboxTest()){reviewBtn.disabled=false;reviewBtn.textContent='RUN SANDBOX TEST REVIEW'}
+  else if(!sessionId&&!localDemo){reviewBtn.disabled=true;reviewBtn.textContent='RUN REVIEW'}
 }
 function addOptions(select,items){
   const placeholder=select===procoreCompany?'Choose company':select===procoreProject?'Choose project':'Choose submittal';
@@ -264,7 +267,8 @@ document.getElementById('printBtn').addEventListener('click',()=>window.print())
 
 document.getElementById('reviewForm').addEventListener('submit',async e=>{
   e.preventDefault();
-  if(!sessionId&&!localDemo)return show('Complete checkout first.');
+  const sandboxTest=isSandboxTest();
+  if(!sessionId&&!localDemo&&!sandboxTest)return show('Complete checkout first.');
   const a=document.getElementById('expectedFile').files[0],b=document.getElementById('submittedFile').files[0];
   try{
     reviewBtn.disabled=true;show('Reviewing the package against the requirements...');
@@ -275,7 +279,7 @@ document.getElementById('reviewForm').addEventListener('submit',async e=>{
       const [ad,bd]=await Promise.all([b64(a),b64(b)]);
       files=[{role:'specification',name:a.name,data_base64:ad},{role:'submittal',name:b.name,data_base64:bd}];
     }
-    const endpoint=localDemo?'/api/local-demo-review':'/api/review';
+    const endpoint=localDemo?'/api/local-demo-review':(sandboxTest?'/api/procore/sandbox-review':'/api/review');
     const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
       session_id:sessionId,
       workflow_type:document.getElementById('workflowType').value,

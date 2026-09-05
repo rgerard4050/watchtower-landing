@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 const checkoutHandler = require('../api/checkout');
+const sandboxReviewHandler = require('../api/procore/sandbox-review');
 const reviewHandler = require('../api/review');
 const { INSTRUCTIONS, runMorrowPreflight } = require('../server/morrow-preflight');
 const { buildLocalDemoReport, localDemoHandler } = require('../server/local-demo');
@@ -450,4 +451,16 @@ test('Procore package assigns named PDFs to review roles without exposing file U
   assert.match(prepared.files[1].name, /submitted/);
   assert.equal(prepared.files.some((file) => Object.hasOwn(file, 'url')), false);
   assert.equal(downloaded.length, 2);
+});
+
+test('free Procore review is restricted to the configured sandbox company and project', async () => {
+  const methodRes = createRes();
+  await sandboxReviewHandler({ method: 'GET' }, methodRes);
+  assert.equal(methodRes.statusCode, 405);
+  assert.equal(methodRes.headers.allow, 'POST');
+
+  const scopeRes = createRes();
+  await sandboxReviewHandler({ method: 'POST', body: { procore: { company_id: '1', project_id: '2', submittal_id: '3' } } }, scopeRes);
+  assert.equal(scopeRes.statusCode, 403);
+  assert.equal(scopeRes.body.code, 'SANDBOX_REVIEW_ONLY');
 });
