@@ -4,7 +4,7 @@ const crypto = require('node:crypto');
 const { AppError } = require('./errors');
 
 const STRIPE_API = 'https://api.stripe.com/v1';
-const STRIPE_VERSION = '2026-06-24.dahlia';
+const STRIPE_VERSION = '2026-07-29.dahlia';
 const PRODUCT_CODE = 'morrow_submittal_preflight_pilot';
 const PILOT_PRICE_CENTS = 4900;
 const MODES = new Set(['test', 'live']);
