@@ -210,7 +210,7 @@ test('Stripe uses hosted Checkout, explicit mode matching, dynamic methods, and 
   assert.match(posted.options.body, /integration_identifier=watchtower_submittal_/);
   assert.match(posted.options.body, /metadata%5Bpayment_mode%5D=test/);
   assert.match(posted.options.body, /metadata%5Bfulfillment_mode%5D=human_review/);
-  assert.match(posted.options.body, /success_url=https%3A%2F%2Fpreview.example.test%2Fpilot%3Fcheckout%3Dsuccess/);
+  assert.match(posted.options.body, /success_url=https%3A%2F%2Fpreview.example.test%2F%3Fcheckout%3Dsuccess/);
   assert.match(posted.options.body, /Human-reviewed/);
   assert.equal(posted.options.headers['Stripe-Version'], STRIPE_VERSION);
   await assert.rejects(createCheckout({ key: 'sk_live_wrong_mode', mode: 'test', origin: 'https://example.test', fetchImpl }), /test checkout is not configured/);

@@ -7,6 +7,7 @@
 <style>
 :root{--bg:#08100d;--panel:#111b17;--line:#294137;--text:#f3f7f5;--muted:#a9b8b1;--accent:#42e79a;--warn:#ffd071}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.wrap{width:min(920px,calc(100% - 28px));margin:auto}.top{padding:22px 0;border-bottom:1px solid var(--line);font-weight:800;letter-spacing:.08em}.hero{padding:58px 0 28px}.hero h1{font-size:clamp(40px,7vw,72px);line-height:1;margin:0 0 18px}.hero p{font-size:19px;color:var(--muted);max-width:720px;line-height:1.55}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:28px 0}.choice{border:1px solid var(--line);background:var(--panel);padding:22px;border-radius:14px;cursor:pointer}.choice.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}.choice h2{margin:0 0 8px}.choice p{margin:0;color:var(--muted);line-height:1.5}.card{border:1px solid var(--line);background:var(--panel);padding:24px;border-radius:14px;margin-bottom:24px}.field{margin:0 0 16px}label{display:block;font-size:13px;font-weight:800;margin-bottom:7px}input,textarea,select{width:100%;padding:12px;border-radius:9px;border:1px solid var(--line);background:#07100d;color:var(--text)}textarea{min-height:96px}.filebox{border:1px dashed var(--line);padding:15px;border-radius:10px}.hint{color:var(--muted);font-size:13px;line-height:1.45}.button{display:block;width:100%;padding:14px;border-radius:9px;border:1px solid var(--accent);background:var(--accent);color:#04120b;font-weight:900;cursor:pointer;text-align:center;text-decoration:none}.button.secondary{background:transparent;color:var(--accent);margin-top:10px}.button:disabled{opacity:.5;cursor:not-allowed}.status{display:none;padding:13px;margin-top:14px;border-radius:9px;border:1px solid var(--line)}.status.show{display:block}.report{display:none}.report.show{display:block}.finding{padding:14px 0;border-top:1px solid var(--line)}.source{font-size:12px;color:#c8f5df}.price{font-size:34px;font-weight:900}.notice{font-size:13px;color:var(--warn);margin-top:10px}.procore-fields{display:none;margin-top:16px}.procore-fields.show{display:block}.connected{color:var(--accent);font-weight:800}@media(max-width:700px){.grid{grid-template-columns:1fr}}
+@media print{body *{visibility:hidden}#report,#report *{visibility:visible}#report{position:absolute;inset:0;width:100%;border:0;background:#fff;color:#111}.source,.hint{color:#333!important}#printBtn{display:none!important}}
 </style>
 </head>
 <body>
@@ -74,7 +75,13 @@
 <section id="report" class="card report">
   <h2 id="decision"></h2>
   <p id="summary" class="hint"></p>
+  <p id="reviewNotice" class="hint"></p>
+  <h3>Requirement findings</h3>
   <div id="findings"></div>
+  <h3>Priority risks</h3><ul id="risks"></ul>
+  <h3>Missing documents</h3><ul id="missingDocuments"></ul>
+  <h3>Limitations</h3><ul id="limitations"></ul>
+  <button id="printBtn" class="button secondary" type="button">PRINT / SAVE CORRECTION REPORT</button>
 </section>
 </main>
 
@@ -114,6 +121,9 @@ const procoreCompany=document.getElementById('procoreCompany');
 const procoreProject=document.getElementById('procoreProject');
 const procoreSubmittal=document.getElementById('procoreSubmittal');
 const procoreStatus=document.getElementById('procoreStatus');
+const selectionKey='watchtower_procore_selection';
+function savedSelection(){try{return JSON.parse(sessionStorage.getItem(selectionKey)||'{}')}catch{return {}}}
+function saveSelection(){sessionStorage.setItem(selectionKey,JSON.stringify({company_id:procoreCompany.value,project_id:procoreProject.value,submittal_id:procoreSubmittal.value}))}
 let procorePackage=null;
 function setProcorePackage(value,files=[]){
   procorePackage=value;
@@ -142,6 +152,7 @@ async function loadProcore(){
     if(!response.ok)throw new Error(data.error||'Companies could not be loaded.');
     addOptions(procoreCompany,data.companies||[]);
     procoreStatus.textContent=data.companies.length?'Choose the sandbox company.':'No accessible sandbox companies were returned.';
+    const saved=savedSelection();if(saved.company_id&&[...procoreCompany.options].some(option=>option.value===saved.company_id)){procoreCompany.value=saved.company_id;procoreCompany.dispatchEvent(new Event('change'))}
   }catch(error){
     procoreConnect.style.display='block';procoreConnect.textContent='RECONNECT PROCORE SANDBOX';
     procoreFields.classList.remove('show');procoreStatus.textContent=error.message+' Reconnect and try again.';
@@ -149,6 +160,7 @@ async function loadProcore(){
 }
 procoreCompany.addEventListener('change',async()=>{
   setProcorePackage(null);
+  saveSelection();
   procoreProject.disabled=true;addOptions(procoreProject,[]);procoreSubmittal.disabled=true;addOptions(procoreSubmittal,[]);
   if(!procoreCompany.value)return;
   procoreStatus.textContent='Loading sandbox projects...';
@@ -157,10 +169,12 @@ procoreCompany.addEventListener('change',async()=>{
     if(!response.ok)throw new Error(data.error||'Projects could not be loaded.');
     addOptions(procoreProject,data.projects||[]);procoreProject.disabled=false;
     procoreStatus.textContent=data.projects.length?'Choose the project to import.':'No active projects were returned.';
+    const saved=savedSelection();if(saved.project_id&&[...procoreProject.options].some(option=>option.value===saved.project_id)){procoreProject.value=saved.project_id;procoreProject.dispatchEvent(new Event('change'))}
   }catch(error){procoreStatus.textContent=error.message}
 });
 procoreProject.addEventListener('change',async()=>{
   setProcorePackage(null);
+  saveSelection();
   procoreSubmittal.disabled=true;addOptions(procoreSubmittal,[]);
   const option=procoreProject.selectedOptions[0];
   if(!procoreProject.value||!option)return;
@@ -171,10 +185,12 @@ procoreProject.addEventListener('change',async()=>{
     if(!response.ok)throw new Error(data.error||'Submittals could not be loaded.');
     addOptions(procoreSubmittal,data.submittals||[]);procoreSubmittal.disabled=false;
     procoreStatus.textContent=data.submittals.length?'Choose a submittal to import.':'This sandbox project has no submittals yet.';
+    const saved=savedSelection();if(saved.submittal_id&&[...procoreSubmittal.options].some(option=>option.value===saved.submittal_id)){procoreSubmittal.value=saved.submittal_id;procoreSubmittal.dispatchEvent(new Event('change'))}
   }catch(error){procoreStatus.textContent=error.message}
 });
 procoreSubmittal.addEventListener('change',async()=>{
   setProcorePackage(null);
+  saveSelection();
   const option=procoreSubmittal.selectedOptions[0];
   if(!procoreSubmittal.value||!option)return;
   procoreStatus.textContent='Importing submittal details...';
@@ -228,6 +244,7 @@ document.getElementById('sampleBtn').addEventListener('click',async()=>{
 function render(report){
   document.getElementById('decision').textContent=report.decision.replaceAll('_',' ').toUpperCase();
   document.getElementById('summary').textContent=report.summary;
+  document.getElementById('reviewNotice').textContent=report.review_notice||'';
   const box=document.getElementById('findings');box.replaceChildren();
   report.requirements.forEach(item=>{
     const d=document.createElement('div');d.className='finding';
@@ -236,9 +253,14 @@ function render(report){
     const s=document.createElement('p');s.className='source';s.textContent=src(item.source);d.appendChild(s);
     box.appendChild(d);
   });
+  const fillList=(id,items,text)=>{const list=document.getElementById(id);list.replaceChildren();(items||[]).forEach(item=>{const li=document.createElement('li');li.textContent=text(item);list.appendChild(li)});if(!list.children.length){const li=document.createElement('li');li.textContent='None identified.';list.appendChild(li)}};
+  fillList('risks',report.risks,item=>[item.severity&&item.severity.toUpperCase(),item.finding,item.suggested_action].filter(Boolean).join(' — '));
+  fillList('missingDocuments',report.missing_documents,item=>[item.document,item.why_needed].filter(Boolean).join(' — '));
+  fillList('limitations',report.limitations,item=>String(item));
   document.getElementById('report').className='card report show';
   document.getElementById('report').scrollIntoView({behavior:'smooth'});
 }
+document.getElementById('printBtn').addEventListener('click',()=>window.print());
 
 document.getElementById('reviewForm').addEventListener('submit',async e=>{
   e.preventDefault();
