@@ -119,12 +119,15 @@ async function loadProcore(){
   try{
     const status=await fetch('/api/procore/status').then(r=>r.json());
     if(!status.connected){if(params.get('procore'))procoreStatus.textContent='Connection was not completed. Try again.';return}
-    procoreConnect.style.display='none';procoreFields.classList.add('show');
+    procoreConnect.style.display='none';procoreFields.classList.add('show');procoreStatus.textContent='Loading sandbox companies...';
     const response=await fetch('/api/procore/companies');const data=await response.json();
     if(!response.ok)throw new Error(data.error||'Companies could not be loaded.');
     addOptions(procoreCompany,data.companies||[]);
     procoreStatus.textContent=data.companies.length?'Choose the sandbox company.':'No accessible sandbox companies were returned.';
-  }catch(error){procoreStatus.textContent=error.message}
+  }catch(error){
+    procoreConnect.style.display='block';procoreConnect.textContent='RECONNECT PROCORE SANDBOX';
+    procoreFields.classList.remove('show');procoreStatus.textContent=error.message+' Reconnect and try again.';
+  }
 }
 procoreCompany.addEventListener('change',async()=>{
   procoreProject.disabled=true;addOptions(procoreProject,[]);

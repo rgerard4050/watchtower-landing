@@ -6,7 +6,7 @@ const { AppError } = require('./errors');
 const COOKIE_STATE = 'wt_procore_state';
 const COOKIE_SESSION = 'wt_procore_session';
 const LOGIN_BASE = 'https://login-sandbox.procore.com';
-const API_BASE = 'https://api-sandbox.procore.com';
+const API_BASE = 'https://sandbox.procore.com';
 
 function requireConfig(env = process.env) {
   const clientId = String(env.PROCORE_CLIENT_ID || '').trim();

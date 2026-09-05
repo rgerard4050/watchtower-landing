@@ -380,6 +380,6 @@ test('Procore OAuth exchanges authorization code and API imports use sandbox hos
     },
   });
   assert.equal(companies[0].name, 'information exchange');
-  assert.equal(apiCall.url, 'https://api-sandbox.procore.com/rest/v1.0/companies');
+  assert.equal(apiCall.url, 'https://sandbox.procore.com/rest/v1.0/companies');
   assert.equal(apiCall.options.headers['Procore-Company-Id'], '42');
 });
