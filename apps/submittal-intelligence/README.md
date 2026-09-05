@@ -55,6 +55,18 @@ is supplied. Vercel AI Gateway uses the deployment's automatic OIDC token.
 `/pilot` is the contractor-facing sales page. `/` is the paid intake and working
 demonstration.
 
+## Procore sandbox connection
+
+The working intake includes a read-only Procore Authorization Code flow for the
+developer sandbox. Tokens are encrypted in a secure, HTTP-only, short-lived
+cookie; they are never exposed to browser JavaScript or written to application
+storage. The first slice imports accessible companies and active projects and
+prefills the existing project intake field. It does not write to Procore.
+
+Required production environment variables for the sandbox pilot are
+`PROCORE_CLIENT_ID`, `PROCORE_CLIENT_SECRET`, and `PROCORE_REDIRECT_URI`. The
+redirect URI must exactly match `/api/procore/callback` on the production origin.
+
 ## Deployment boundary
 
 Create a separate Vercel project whose Root Directory is

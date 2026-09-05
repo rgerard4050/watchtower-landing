@@ -17,6 +17,9 @@ const {
   runtimeStatus,
 } = require('../server/stripe-payments');
 const { normalizeDemoReviewRequest, normalizeReviewRequest } = require('../server/validation');
+const {
+  apiRequest, createStateCookie, exchangeCode, readSession, requireConfig, sessionCookie, verifyState,
+} = require('../server/procore');
 
 function response(status, body) {
   return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
@@ -321,4 +324,52 @@ test('public sample API returns the complete no-charge demonstration', async () 
   assert.equal(sampleRes.body.local_only, true);
   assert.equal(sampleRes.body.report.requirements.length, 6);
   assert.equal(sampleRes.body.report.missing_documents.length, 3);
+});
+
+test('Procore sandbox configuration fails closed and requires an HTTPS callback', () => {
+  assert.throws(() => requireConfig({}), /not configured/);
+  assert.throws(() => requireConfig({
+    PROCORE_CLIENT_ID: 'client', PROCORE_CLIENT_SECRET: 'secret', PROCORE_REDIRECT_URI: 'http://example.test/callback',
+  }), /must use HTTPS/);
+  assert.deepEqual(requireConfig({
+    PROCORE_CLIENT_ID: 'client', PROCORE_CLIENT_SECRET: 'secret', PROCORE_REDIRECT_URI: 'https://pilot.example.test/api/procore/callback',
+  }), { clientId: 'client', clientSecret: 'secret', redirectUri: 'https://pilot.example.test/api/procore/callback' });
+});
+
+test('Procore OAuth state is signed and token sessions are encrypted cookies', () => {
+  const secret = 'sandbox-secret';
+  const state = createStateCookie(secret);
+  const req = { headers: { cookie: state.cookie.split(';')[0] } };
+  assert.equal(verifyState(req, state.state, secret), true);
+  assert.equal(verifyState(req, `${state.state}x`, secret), false);
+
+  const cookie = sessionCookie({ access_token: 'access-token', refresh_token: 'refresh-token', expires_in: 600 }, secret);
+  assert.doesNotMatch(cookie, /access-token|refresh-token/);
+  const session = readSession({ headers: { cookie: cookie.split(';')[0] } }, secret);
+  assert.equal(session.accessToken, 'access-token');
+});
+
+test('Procore OAuth exchanges authorization code and API imports use sandbox hosts', async () => {
+  let tokenCall;
+  const token = await exchangeCode('authorization-code', {
+    clientId: 'client', clientSecret: 'secret', redirectUri: 'https://pilot.example.test/api/procore/callback',
+  }, async (url, options) => {
+    tokenCall = { url, options };
+    return response(200, { access_token: 'token', expires_in: 7200 });
+  });
+  assert.equal(token.access_token, 'token');
+  assert.equal(tokenCall.url, 'https://login-sandbox.procore.com/oauth/token');
+  assert.equal(JSON.parse(tokenCall.options.body).code, 'authorization-code');
+
+  let apiCall;
+  const companies = await apiRequest({ accessToken: 'token' }, '/rest/v1.0/companies', {
+    companyId: 42,
+    fetchImpl: async (url, options) => {
+      apiCall = { url, options };
+      return response(200, [{ id: 42, name: 'information exchange' }]);
+    },
+  });
+  assert.equal(companies[0].name, 'information exchange');
+  assert.equal(apiCall.url, 'https://api-sandbox.procore.com/rest/v1.0/companies');
+  assert.equal(apiCall.options.headers['Procore-Company-Id'], '42');
 });

@@ -7,6 +7,11 @@ const path = require('node:path');
 const checkout = require('./api/checkout');
 const config = require('./api/config');
 const review = require('./api/review');
+const procoreConnect = require('./api/procore/connect');
+const procoreCallback = require('./api/procore/callback');
+const procoreStatus = require('./api/procore/status');
+const procoreCompanies = require('./api/procore/companies');
+const procoreProjects = require('./api/procore/projects');
 const { localDemoHandler } = require('./server/local-demo');
 const PORT = Number(process.env.PORT || 4175);
 const MAX_BODY = 4_200_000;
@@ -39,16 +44,27 @@ async function readJson(request) {
 
 http.createServer(async (request, response) => {
   const pathname = new URL(request.url, `http://${request.headers.host}`).pathname;
-  if (pathname === '/api/checkout' || pathname === '/api/config' || pathname === '/api/review' || pathname === '/api/local-demo-review') {
+  if (pathname === '/api/checkout' || pathname === '/api/config' || pathname === '/api/review' || pathname === '/api/local-demo-review' || pathname.startsWith('/api/procore/')) {
     try {
       request.body = await readJson(request);
+      request.query = Object.fromEntries(new URL(request.url, `http://${request.headers.host}`).searchParams);
       const handler = pathname === '/api/checkout'
         ? checkout
         : pathname === '/api/config'
           ? config
         : pathname === '/api/review'
           ? review
-          : localDemoHandler;
+          : pathname === '/api/local-demo-review'
+            ? localDemoHandler
+            : pathname === '/api/procore/connect'
+              ? procoreConnect
+              : pathname === '/api/procore/callback'
+                ? procoreCallback
+                : pathname === '/api/procore/status'
+                  ? procoreStatus
+                  : pathname === '/api/procore/companies'
+                    ? procoreCompanies
+                    : procoreProjects;
       return await handler(request, responseAdapter(response));
     } catch (error) {
       response.statusCode = 413;

@@ -6,7 +6,7 @@
 <title>Watchtower Submittals</title>
 <style>
 :root{--bg:#08100d;--panel:#111b17;--line:#294137;--text:#f3f7f5;--muted:#a9b8b1;--accent:#42e79a;--warn:#ffd071}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.wrap{width:min(920px,calc(100% - 28px));margin:auto}.top{padding:22px 0;border-bottom:1px solid var(--line);font-weight:800;letter-spacing:.08em}.hero{padding:58px 0 28px}.hero h1{font-size:clamp(40px,7vw,72px);line-height:1;margin:0 0 18px}.hero p{font-size:19px;color:var(--muted);max-width:720px;line-height:1.55}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:28px 0}.choice{border:1px solid var(--line);background:var(--panel);padding:22px;border-radius:14px;cursor:pointer}.choice.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}.choice h2{margin:0 0 8px}.choice p{margin:0;color:var(--muted);line-height:1.5}.card{border:1px solid var(--line);background:var(--panel);padding:24px;border-radius:14px;margin-bottom:24px}.field{margin:0 0 16px}label{display:block;font-size:13px;font-weight:800;margin-bottom:7px}input,textarea{width:100%;padding:12px;border-radius:9px;border:1px solid var(--line);background:#07100d;color:var(--text)}textarea{min-height:96px}.filebox{border:1px dashed var(--line);padding:15px;border-radius:10px}.hint{color:var(--muted);font-size:13px;line-height:1.45}.button{width:100%;padding:14px;border-radius:9px;border:1px solid var(--accent);background:var(--accent);color:#04120b;font-weight:900;cursor:pointer}.button.secondary{background:transparent;color:var(--accent);margin-top:10px}.button:disabled{opacity:.5;cursor:not-allowed}.status{display:none;padding:13px;margin-top:14px;border-radius:9px;border:1px solid var(--line)}.status.show{display:block}.report{display:none}.report.show{display:block}.finding{padding:14px 0;border-top:1px solid var(--line)}.source{font-size:12px;color:#c8f5df}.price{font-size:34px;font-weight:900}.notice{font-size:13px;color:var(--warn);margin-top:10px}@media(max-width:700px){.grid{grid-template-columns:1fr}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.wrap{width:min(920px,calc(100% - 28px));margin:auto}.top{padding:22px 0;border-bottom:1px solid var(--line);font-weight:800;letter-spacing:.08em}.hero{padding:58px 0 28px}.hero h1{font-size:clamp(40px,7vw,72px);line-height:1;margin:0 0 18px}.hero p{font-size:19px;color:var(--muted);max-width:720px;line-height:1.55}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:28px 0}.choice{border:1px solid var(--line);background:var(--panel);padding:22px;border-radius:14px;cursor:pointer}.choice.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}.choice h2{margin:0 0 8px}.choice p{margin:0;color:var(--muted);line-height:1.5}.card{border:1px solid var(--line);background:var(--panel);padding:24px;border-radius:14px;margin-bottom:24px}.field{margin:0 0 16px}label{display:block;font-size:13px;font-weight:800;margin-bottom:7px}input,textarea,select{width:100%;padding:12px;border-radius:9px;border:1px solid var(--line);background:#07100d;color:var(--text)}textarea{min-height:96px}.filebox{border:1px dashed var(--line);padding:15px;border-radius:10px}.hint{color:var(--muted);font-size:13px;line-height:1.45}.button{display:block;width:100%;padding:14px;border-radius:9px;border:1px solid var(--accent);background:var(--accent);color:#04120b;font-weight:900;cursor:pointer;text-align:center;text-decoration:none}.button.secondary{background:transparent;color:var(--accent);margin-top:10px}.button:disabled{opacity:.5;cursor:not-allowed}.status{display:none;padding:13px;margin-top:14px;border-radius:9px;border:1px solid var(--line)}.status.show{display:block}.report{display:none}.report.show{display:block}.finding{padding:14px 0;border-top:1px solid var(--line)}.source{font-size:12px;color:#c8f5df}.price{font-size:34px;font-weight:900}.notice{font-size:13px;color:var(--warn);margin-top:10px}.procore-fields{display:none;margin-top:16px}.procore-fields.show{display:block}.connected{color:var(--accent);font-weight:800}@media(max-width:700px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -25,6 +25,18 @@
     <h2>Pre-Prep</h2>
     <p>Upload what the project expects and the package you plan to submit.</p>
   </div>
+</div>
+
+<div class="card" id="procoreCard">
+  <h2>Import from Procore Sandbox</h2>
+  <p class="hint">Connect read-only access, then choose the test company and project. Watchtower will not publish changes back to Procore.</p>
+  <a id="procoreConnect" class="button secondary" href="/api/procore/connect">CONNECT PROCORE SANDBOX</a>
+  <div id="procoreFields" class="procore-fields">
+    <p class="connected">PROCORE SANDBOX CONNECTED</p>
+    <div class="field"><label for="procoreCompany">Company</label><select id="procoreCompany"><option value="">Choose company</option></select></div>
+    <div class="field"><label for="procoreProject">Project</label><select id="procoreProject" disabled><option value="">Choose project</option></select></div>
+  </div>
+  <div id="procoreStatus" class="notice"></div>
 </div>
 
 <div class="card">
@@ -93,6 +105,43 @@ function show(msg){statusBox.textContent=msg;statusBox.className='status show'}
 function b64(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result).split(',')[1]||'');r.onerror=reject;r.readAsDataURL(file)})}
 function check(file,label){if(!file)throw new Error('Choose '+label+'.');if(!file.name.toLowerCase().endsWith('.pdf'))throw new Error(label+' must be a PDF.');if(file.size>MAX)throw new Error(label+' exceeds the 1.5 MB pilot limit.')}
 function src(s){if(!s)return 'Source unavailable';return [s.file,s.page?'page '+s.page:null,s.section].filter(Boolean).join(' · ')}
+
+const procoreConnect=document.getElementById('procoreConnect');
+const procoreFields=document.getElementById('procoreFields');
+const procoreCompany=document.getElementById('procoreCompany');
+const procoreProject=document.getElementById('procoreProject');
+const procoreStatus=document.getElementById('procoreStatus');
+function addOptions(select,items){
+  select.replaceChildren(new Option(select===procoreCompany?'Choose company':'Choose project',''));
+  items.forEach(item=>select.add(new Option(item.name||('ID '+item.id),String(item.id))));
+}
+async function loadProcore(){
+  try{
+    const status=await fetch('/api/procore/status').then(r=>r.json());
+    if(!status.connected){if(params.get('procore'))procoreStatus.textContent='Connection was not completed. Try again.';return}
+    procoreConnect.style.display='none';procoreFields.classList.add('show');
+    const response=await fetch('/api/procore/companies');const data=await response.json();
+    if(!response.ok)throw new Error(data.error||'Companies could not be loaded.');
+    addOptions(procoreCompany,data.companies||[]);
+    procoreStatus.textContent=data.companies.length?'Choose the sandbox company.':'No accessible sandbox companies were returned.';
+  }catch(error){procoreStatus.textContent=error.message}
+}
+procoreCompany.addEventListener('change',async()=>{
+  procoreProject.disabled=true;addOptions(procoreProject,[]);
+  if(!procoreCompany.value)return;
+  procoreStatus.textContent='Loading sandbox projects...';
+  try{
+    const response=await fetch('/api/procore/projects?company_id='+encodeURIComponent(procoreCompany.value));const data=await response.json();
+    if(!response.ok)throw new Error(data.error||'Projects could not be loaded.');
+    addOptions(procoreProject,data.projects||[]);procoreProject.disabled=false;
+    procoreStatus.textContent=data.projects.length?'Choose the project to import.':'No active projects were returned.';
+  }catch(error){procoreStatus.textContent=error.message}
+});
+procoreProject.addEventListener('change',()=>{
+  const option=procoreProject.selectedOptions[0];
+  if(procoreProject.value&&option){document.getElementById('project').value=option.textContent;procoreStatus.textContent='Project selected. Submittal import is the next connection step.'}
+});
+loadProcore();
 
 fetch('/api/config').then(r=>r.json()).then(c=>{
   const ready=c.checkout_ready&&c.analysis_ready;
