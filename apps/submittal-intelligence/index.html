@@ -156,9 +156,23 @@ procoreProject.addEventListener('change',async()=>{
     procoreStatus.textContent=data.submittals.length?'Choose a submittal to import.':'This sandbox project has no submittals yet.';
   }catch(error){procoreStatus.textContent=error.message}
 });
-procoreSubmittal.addEventListener('change',()=>{
+procoreSubmittal.addEventListener('change',async()=>{
   const option=procoreSubmittal.selectedOptions[0];
-  if(procoreSubmittal.value&&option){procoreStatus.textContent='Submittal selected. Importing its details and documents is the next step.'}
+  if(!procoreSubmittal.value||!option)return;
+  procoreStatus.textContent='Importing submittal details...';
+  try{
+    const query='?company_id='+encodeURIComponent(procoreCompany.value)+'&project_id='+encodeURIComponent(procoreProject.value)+'&submittal_id='+encodeURIComponent(procoreSubmittal.value);
+    const response=await fetch('/api/procore/submittal'+query);const data=await response.json();
+    if(!response.ok||!data.submittal)throw new Error(data.error||'Submittal details could not be loaded.');
+    const item=data.submittal;
+    document.getElementById('reason').value=item.description||[item.status,item.title].filter(Boolean).join(': ');
+    if(item.specification_section&&!document.getElementById('trade').value)document.getElementById('trade').value=item.specification_section;
+    const parts=['Details imported'];
+    if(item.status)parts.push('status: '+item.status);
+    parts.push((item.attachments||[]).length+' attachment(s)');
+    parts.push((item.responses||[]).length+' workflow response(s)');
+    procoreStatus.textContent=parts.join(' · ')+'.';
+  }catch(error){procoreStatus.textContent=error.message}
 });
 loadProcore();
 

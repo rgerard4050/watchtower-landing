@@ -17,6 +17,7 @@ const {
   runtimeStatus,
 } = require('../server/stripe-payments');
 const { normalizeDemoReviewRequest, normalizeReviewRequest } = require('../server/validation');
+const { normalizeSubmittal } = require('../server/procore-submittal');
 const {
   apiRequest, createStateCookie, exchangeCode, readSession, requireConfig, sessionCookie, verifyState,
 } = require('../server/procore');
@@ -392,4 +393,22 @@ test('Procore OAuth exchanges authorization code and API imports use sandbox hos
   });
   assert.equal(apiCall.url, 'https://sandbox.procore.com/rest/v1.1/projects/1234/submittals');
   assert.equal(apiCall.options.headers['Procore-Company-Id'], '42');
+});
+
+test('Procore submittal details normalize review context without exposing download URLs', () => {
+  const item = normalizeSubmittal({
+    id: 9,
+    formatted_number: '08 71 00-1.0',
+    title: 'Door Hardware',
+    description: 'Mechanical-only hardware was submitted.',
+    status: { name: 'Open' },
+    specification_section: { number: '08 71 00', description: 'Door Hardware' },
+    submittal_manager: { name: 'Test Architect' },
+    attachments: [{ id: 2, name: 'product-data.pdf', url: 'https://example.test/private' }],
+    workflow_data: [{ responder: { name: 'Architect' }, response: { name: 'Revise and Resubmit' }, comments: 'Provide electrified hardware.' }],
+  });
+  assert.equal(item.number, '08 71 00-1.0');
+  assert.equal(item.attachments[0].name, 'product-data.pdf');
+  assert.equal(item.attachments[0].url, undefined);
+  assert.equal(item.responses[0].response, 'Revise and Resubmit');
 });
