@@ -5,6 +5,9 @@
   "functions": {
     "api/review.js": {
       "maxDuration": 60
+    },
+    "api/procore/package.js": {
+      "maxDuration": 30
     }
   }
 }

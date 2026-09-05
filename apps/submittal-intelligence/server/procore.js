@@ -7,6 +7,8 @@ const COOKIE_STATE = 'wt_procore_state';
 const COOKIE_SESSION = 'wt_procore_session';
 const LOGIN_BASE = 'https://login-sandbox.procore.com';
 const API_BASE = 'https://sandbox.procore.com';
+const MAX_ATTACHMENT_BYTES = 1_500_000;
+const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 
 function requireConfig(env = process.env) {
   const clientId = String(env.PROCORE_CLIENT_ID || '').trim();
@@ -132,6 +134,51 @@ async function apiRequest(session, path, { companyId, fetchImpl = fetch } = {}) 
   return body;
 }
 
+function isProcoreHost(hostname) {
+  const host = String(hostname || '').toLowerCase();
+  return host === 'procore.com' || host.endsWith('.procore.com');
+}
+
+async function downloadFile(session, fileUrl, { fetchImpl = fetch, maxBytes = MAX_ATTACHMENT_BYTES } = {}) {
+  let url;
+  try { url = new URL(String(fileUrl || ''), API_BASE); } catch {
+    throw new AppError(502, 'PROCORE_FILE_URL_INVALID', 'Procore returned an invalid attachment link.');
+  }
+  if (url.protocol !== 'https:' || !isProcoreHost(url.hostname)) {
+    throw new AppError(502, 'PROCORE_FILE_URL_INVALID', 'Procore returned an untrusted attachment link.');
+  }
+
+  for (let redirects = 0; redirects <= 5; redirects += 1) {
+    const headers = { Accept: 'application/pdf,application/octet-stream;q=0.9,*/*;q=0.1' };
+    if (isProcoreHost(url.hostname)) headers.Authorization = `Bearer ${session.accessToken}`;
+    const response = await fetchImpl(url.toString(), { headers, redirect: 'manual' });
+    if (REDIRECT_STATUSES.has(response.status)) {
+      const location = response.headers.get('location');
+      if (!location || redirects === 5) {
+        throw new AppError(502, 'PROCORE_FILE_DOWNLOAD_FAILED', 'Procore did not provide the attachment.');
+      }
+      url = new URL(location, url);
+      if (url.protocol !== 'https:') {
+        throw new AppError(502, 'PROCORE_FILE_URL_INVALID', 'Procore returned an insecure attachment link.');
+      }
+      continue;
+    }
+    if (!response.ok) {
+      if (response.status === 401) throw new AppError(401, 'PROCORE_SESSION_EXPIRED', 'The Procore connection expired. Connect again.');
+      throw new AppError(502, 'PROCORE_FILE_DOWNLOAD_FAILED', 'A Procore attachment could not be downloaded.');
+    }
+    const announced = Number(response.headers.get('content-length') || 0);
+    if (announced > maxBytes) throw new AppError(413, 'PROCORE_FILE_TOO_LARGE', 'A Procore attachment exceeds the 1.5 MB pilot limit.');
+    const buffer = Buffer.from(await response.arrayBuffer());
+    if (buffer.length > maxBytes) throw new AppError(413, 'PROCORE_FILE_TOO_LARGE', 'A Procore attachment exceeds the 1.5 MB pilot limit.');
+    if (!buffer.subarray(0, 5).equals(Buffer.from('%PDF-'))) {
+      throw new AppError(400, 'PROCORE_PDF_REQUIRED', 'The selected Procore package must contain PDF attachments.');
+    }
+    return { buffer, contentType: response.headers.get('content-type') || 'application/pdf' };
+  }
+  throw new AppError(502, 'PROCORE_FILE_DOWNLOAD_FAILED', 'A Procore attachment could not be downloaded.');
+}
+
 function handlerError(res, error) {
   const known = error instanceof AppError;
   return res.status(known ? error.status : 500).json({
@@ -142,5 +189,5 @@ function handlerError(res, error) {
 
 module.exports = {
   API_BASE, COOKIE_SESSION, COOKIE_STATE, LOGIN_BASE, apiRequest, createStateCookie,
-  exchangeCode, handlerError, readSession, requireConfig, sessionCookie, stateCookieName, verifyState,
+  downloadFile, exchangeCode, handlerError, readSession, requireConfig, sessionCookie, stateCookieName, verifyState,
 };

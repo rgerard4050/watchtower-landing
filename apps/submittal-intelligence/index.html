@@ -54,13 +54,13 @@
   <div class="field"><label>Trade / Scope</label><input id="trade" required placeholder="Plumbing, electrical, HVAC, fencing..."></div>
   <div class="field"><label id="reasonLabel">What did they say was wrong?</label><textarea id="reason" placeholder="Paste the rejection reason, reviewer note, or anything the GC/architect told you."></textarea></div>
 
-  <div class="field filebox">
+  <div class="field filebox" id="expectedFileBox">
     <label id="expectedLabel">Rejection / Requirements PDF</label>
     <input id="expectedFile" type="file" accept="application/pdf,.pdf" required>
     <p class="hint" id="expectedHint">Reviewer comments, marked-up return, governing spec, or requirements.</p>
   </div>
 
-  <div class="field filebox">
+  <div class="field filebox" id="submittedFileBox">
     <label id="submittedLabel">Submitted Package PDF</label>
     <input id="submittedFile" type="file" accept="application/pdf,.pdf" required>
     <p class="hint" id="submittedHint">The product data, shop drawing, certificate, or package that was submitted.</p>
@@ -99,6 +99,7 @@ function setMode(mode){
   document.getElementById('submittedLabel').textContent=denied?'Submitted Package PDF':'Planned Submittal PDF';
   document.getElementById('expectedHint').textContent=denied?'Reviewer comments, marked-up return, governing spec, or requirements.':'Specification, schedule, requirement sheet, or expected criteria.';
   document.getElementById('submittedHint').textContent=denied?'The package that was rejected.':'The package you plan to send.';
+  if(procorePackage)setProcorePackage(procorePackage,procorePackage.files||[]);
 }
 document.querySelectorAll('.choice').forEach(x=>x.addEventListener('click',()=>setMode(x.dataset.mode)));
 
@@ -113,6 +114,20 @@ const procoreCompany=document.getElementById('procoreCompany');
 const procoreProject=document.getElementById('procoreProject');
 const procoreSubmittal=document.getElementById('procoreSubmittal');
 const procoreStatus=document.getElementById('procoreStatus');
+let procorePackage=null;
+function setProcorePackage(value,files=[]){
+  procorePackage=value;
+  const imported=Boolean(value);
+  const expected=document.getElementById('expectedFile'),submitted=document.getElementById('submittedFile');
+  expected.required=!imported;submitted.required=!imported;
+  expected.disabled=imported;submitted.disabled=imported;
+  document.getElementById('expectedHint').textContent=imported
+    ? 'Ready from Procore: '+((files.find(file=>file.role==='specification')||{}).name||'requirements PDF')
+    : (document.getElementById('workflowType').value==='denied'?'Reviewer comments, marked-up return, governing spec, or requirements.':'Specification, schedule, requirement sheet, or expected criteria.');
+  document.getElementById('submittedHint').textContent=imported
+    ? 'Ready from Procore: '+((files.find(file=>file.role==='submittal')||{}).name||'submitted package PDF')
+    : (document.getElementById('workflowType').value==='denied'?'The package that was rejected.':'The package you plan to send.');
+}
 function addOptions(select,items){
   const placeholder=select===procoreCompany?'Choose company':select===procoreProject?'Choose project':'Choose submittal';
   select.replaceChildren(new Option(placeholder,''));
@@ -133,6 +148,7 @@ async function loadProcore(){
   }
 }
 procoreCompany.addEventListener('change',async()=>{
+  setProcorePackage(null);
   procoreProject.disabled=true;addOptions(procoreProject,[]);procoreSubmittal.disabled=true;addOptions(procoreSubmittal,[]);
   if(!procoreCompany.value)return;
   procoreStatus.textContent='Loading sandbox projects...';
@@ -144,6 +160,7 @@ procoreCompany.addEventListener('change',async()=>{
   }catch(error){procoreStatus.textContent=error.message}
 });
 procoreProject.addEventListener('change',async()=>{
+  setProcorePackage(null);
   procoreSubmittal.disabled=true;addOptions(procoreSubmittal,[]);
   const option=procoreProject.selectedOptions[0];
   if(!procoreProject.value||!option)return;
@@ -157,6 +174,7 @@ procoreProject.addEventListener('change',async()=>{
   }catch(error){procoreStatus.textContent=error.message}
 });
 procoreSubmittal.addEventListener('change',async()=>{
+  setProcorePackage(null);
   const option=procoreSubmittal.selectedOptions[0];
   if(!procoreSubmittal.value||!option)return;
   procoreStatus.textContent='Importing submittal details...';
@@ -171,7 +189,15 @@ procoreSubmittal.addEventListener('change',async()=>{
     if(item.status)parts.push('status: '+item.status);
     parts.push((item.attachments||[]).length+' attachment(s)');
     parts.push((item.responses||[]).length+' workflow response(s)');
-    procoreStatus.textContent=parts.join(' · ')+'.';
+    procoreStatus.textContent=parts.join(' · ')+'. Checking attached PDFs...';
+    if((item.attachments||[]).length>=2){
+      const packageResponse=await fetch('/api/procore/package'+query);const packageData=await packageResponse.json();
+      if(!packageResponse.ok||!packageData.ready)throw new Error(packageData.error||'The attached Procore PDFs could not be prepared.');
+      setProcorePackage({company_id:procoreCompany.value,project_id:procoreProject.value,submittal_id:procoreSubmittal.value,files:packageData.files||[]},packageData.files||[]);
+      procoreStatus.textContent=parts.join(' · ')+' · PDFs ready for review. No duplicate upload needed.';
+    }else{
+      procoreStatus.textContent=parts.join(' · ')+'. Attach both PDFs in Procore or upload them below.';
+    }
   }catch(error){procoreStatus.textContent=error.message}
 });
 loadProcore();
@@ -219,10 +245,14 @@ document.getElementById('reviewForm').addEventListener('submit',async e=>{
   if(!sessionId&&!localDemo)return show('Complete checkout first.');
   const a=document.getElementById('expectedFile').files[0],b=document.getElementById('submittedFile').files[0];
   try{
-    check(a,'requirements file');check(b,'submittal file');
-    if(a.size+b.size>3000000)throw new Error('Combined PDFs exceed the 3 MB pilot limit.');
     reviewBtn.disabled=true;show('Reviewing the package against the requirements...');
-    const [ad,bd]=await Promise.all([b64(a),b64(b)]);
+    let files;
+    if(procorePackage){files=undefined}else{
+      check(a,'requirements file');check(b,'submittal file');
+      if(a.size+b.size>3000000)throw new Error('Combined PDFs exceed the 3 MB pilot limit.');
+      const [ad,bd]=await Promise.all([b64(a),b64(b)]);
+      files=[{role:'specification',name:a.name,data_base64:ad},{role:'submittal',name:b.name,data_base64:bd}];
+    }
     const endpoint=localDemo?'/api/local-demo-review':'/api/review';
     const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
       session_id:sessionId,
@@ -230,10 +260,8 @@ document.getElementById('reviewForm').addEventListener('submit',async e=>{
       reason:document.getElementById('reason').value,
       project:document.getElementById('project').value,
       trade:document.getElementById('trade').value,
-      files:[
-        {role:'specification',name:a.name,data_base64:ad},
-        {role:'submittal',name:b.name,data_base64:bd}
-      ]
+      files,
+      procore:procorePackage
     })});
     const d=await r.json();if(!r.ok||!d.report)throw new Error(d.error||'Review could not be completed.');
     show('Review complete.');render(d.report);

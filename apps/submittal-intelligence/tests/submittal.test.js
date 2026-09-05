@@ -17,9 +17,9 @@ const {
   runtimeStatus,
 } = require('../server/stripe-payments');
 const { normalizeDemoReviewRequest, normalizeReviewRequest } = require('../server/validation');
-const { normalizeSubmittal } = require('../server/procore-submittal');
+const { normalizeSubmittal, preparePackage } = require('../server/procore-submittal');
 const {
-  apiRequest, createStateCookie, exchangeCode, readSession, requireConfig, sessionCookie, verifyState,
+  apiRequest, createStateCookie, downloadFile, exchangeCode, readSession, requireConfig, sessionCookie, verifyState,
 } = require('../server/procore');
 
 function response(status, body) {
@@ -411,4 +411,43 @@ test('Procore submittal details normalize review context without exposing downlo
   assert.equal(item.attachments[0].name, 'product-data.pdf');
   assert.equal(item.attachments[0].url, undefined);
   assert.equal(item.responses[0].response, 'Revise and Resubmit');
+});
+
+test('Procore attachment download keeps bearer token on Procore domains and validates the PDF', async () => {
+  const calls = [];
+  const file = await downloadFile({ accessToken: 'private-token' }, 'https://sandbox.procore.com/files/secure', {
+    fetchImpl: async (url, options) => {
+      calls.push({ url, options });
+      if (calls.length === 1) {
+        return new Response(null, { status: 302, headers: { location: 'https://signed-storage.example.test/file.pdf' } });
+      }
+      return new Response(Buffer.from('%PDF-1.4\ntest'), { status: 200, headers: { 'content-type': 'application/pdf' } });
+    },
+  });
+  assert.equal(file.buffer.subarray(0, 5).toString(), '%PDF-');
+  assert.equal(calls[0].options.headers.Authorization, 'Bearer private-token');
+  assert.equal(calls[1].options.headers.Authorization, undefined);
+  assert.equal(calls.every((call) => call.options.redirect === 'manual'), true);
+  await assert.rejects(
+    downloadFile({ accessToken: 'token' }, 'https://attacker.example/file.pdf', { fetchImpl: async () => response(200, {}) }),
+    /untrusted attachment link/,
+  );
+});
+
+test('Procore package assigns named PDFs to review roles without exposing file URLs', async () => {
+  const downloaded = [];
+  const prepared = await preparePackage({
+    attachments: [
+      { id: 1, name: 'watchtower-test-submitted-product-data.pdf', url: 'https://sandbox.procore.com/files/product' },
+      { id: 2, name: 'watchtower-test-project-requirements.pdf', url: 'https://sandbox.procore.com/files/spec' },
+    ],
+  }, async (url) => {
+    downloaded.push(url);
+    return { buffer: Buffer.from('%PDF-1.4\ntest') };
+  });
+  assert.deepEqual(prepared.files.map((file) => file.role), ['specification', 'submittal']);
+  assert.match(prepared.files[0].name, /requirements/);
+  assert.match(prepared.files[1].name, /submitted/);
+  assert.equal(prepared.files.some((file) => Object.hasOwn(file, 'url')), false);
+  assert.equal(downloaded.length, 2);
 });
