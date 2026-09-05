@@ -7,9 +7,6 @@
       "maxDuration": 60
     },
     "api/procore/package.js": {
-      "maxDuration": 30
-    },
-    "api/procore/sandbox-review.js": {
       "maxDuration": 60
     }
   }

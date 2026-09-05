@@ -279,7 +279,7 @@ document.getElementById('reviewForm').addEventListener('submit',async e=>{
       const [ad,bd]=await Promise.all([b64(a),b64(b)]);
       files=[{role:'specification',name:a.name,data_base64:ad},{role:'submittal',name:b.name,data_base64:bd}];
     }
-    const endpoint=localDemo?'/api/local-demo-review':(sandboxTest?'/api/procore/sandbox-review':'/api/review');
+    const endpoint=localDemo?'/api/local-demo-review':(sandboxTest?'/api/procore/package':'/api/review');
     const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
       session_id:sessionId,
       workflow_type:document.getElementById('workflowType').value,
