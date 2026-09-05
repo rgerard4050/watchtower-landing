@@ -382,4 +382,14 @@ test('Procore OAuth exchanges authorization code and API imports use sandbox hos
   assert.equal(companies[0].name, 'information exchange');
   assert.equal(apiCall.url, 'https://sandbox.procore.com/rest/v1.0/companies');
   assert.equal(apiCall.options.headers['Procore-Company-Id'], '42');
+
+  await apiRequest({ accessToken: 'token' }, '/rest/v1.1/projects/1234/submittals', {
+    companyId: 42,
+    fetchImpl: async (url, options) => {
+      apiCall = { url, options };
+      return response(200, [{ id: 9, number: '08 71 00-1', title: 'Door Hardware' }]);
+    },
+  });
+  assert.equal(apiCall.url, 'https://sandbox.procore.com/rest/v1.1/projects/1234/submittals');
+  assert.equal(apiCall.options.headers['Procore-Company-Id'], '42');
 });

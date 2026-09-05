@@ -35,6 +35,7 @@
     <p class="connected">PROCORE SANDBOX CONNECTED</p>
     <div class="field"><label for="procoreCompany">Company</label><select id="procoreCompany"><option value="">Choose company</option></select></div>
     <div class="field"><label for="procoreProject">Project</label><select id="procoreProject" disabled><option value="">Choose project</option></select></div>
+    <div class="field"><label for="procoreSubmittal">Submittal</label><select id="procoreSubmittal" disabled><option value="">Choose submittal</option></select></div>
   </div>
   <div id="procoreStatus" class="notice"></div>
 </div>
@@ -110,9 +111,11 @@ const procoreConnect=document.getElementById('procoreConnect');
 const procoreFields=document.getElementById('procoreFields');
 const procoreCompany=document.getElementById('procoreCompany');
 const procoreProject=document.getElementById('procoreProject');
+const procoreSubmittal=document.getElementById('procoreSubmittal');
 const procoreStatus=document.getElementById('procoreStatus');
 function addOptions(select,items){
-  select.replaceChildren(new Option(select===procoreCompany?'Choose company':'Choose project',''));
+  const placeholder=select===procoreCompany?'Choose company':select===procoreProject?'Choose project':'Choose submittal';
+  select.replaceChildren(new Option(placeholder,''));
   items.forEach(item=>select.add(new Option(item.name||('ID '+item.id),String(item.id))));
 }
 async function loadProcore(){
@@ -130,7 +133,7 @@ async function loadProcore(){
   }
 }
 procoreCompany.addEventListener('change',async()=>{
-  procoreProject.disabled=true;addOptions(procoreProject,[]);
+  procoreProject.disabled=true;addOptions(procoreProject,[]);procoreSubmittal.disabled=true;addOptions(procoreSubmittal,[]);
   if(!procoreCompany.value)return;
   procoreStatus.textContent='Loading sandbox projects...';
   try{
@@ -140,9 +143,22 @@ procoreCompany.addEventListener('change',async()=>{
     procoreStatus.textContent=data.projects.length?'Choose the project to import.':'No active projects were returned.';
   }catch(error){procoreStatus.textContent=error.message}
 });
-procoreProject.addEventListener('change',()=>{
+procoreProject.addEventListener('change',async()=>{
+  procoreSubmittal.disabled=true;addOptions(procoreSubmittal,[]);
   const option=procoreProject.selectedOptions[0];
-  if(procoreProject.value&&option){document.getElementById('project').value=option.textContent;procoreStatus.textContent='Project selected. Submittal import is the next connection step.'}
+  if(!procoreProject.value||!option)return;
+  document.getElementById('project').value=option.textContent;procoreStatus.textContent='Loading project submittals...';
+  try{
+    const query='?company_id='+encodeURIComponent(procoreCompany.value)+'&project_id='+encodeURIComponent(procoreProject.value);
+    const response=await fetch('/api/procore/submittals'+query);const data=await response.json();
+    if(!response.ok)throw new Error(data.error||'Submittals could not be loaded.');
+    addOptions(procoreSubmittal,data.submittals||[]);procoreSubmittal.disabled=false;
+    procoreStatus.textContent=data.submittals.length?'Choose a submittal to import.':'This sandbox project has no submittals yet.';
+  }catch(error){procoreStatus.textContent=error.message}
+});
+procoreSubmittal.addEventListener('change',()=>{
+  const option=procoreSubmittal.selectedOptions[0];
+  if(procoreSubmittal.value&&option){procoreStatus.textContent='Submittal selected. Importing its details and documents is the next step.'}
 });
 loadProcore();
 
