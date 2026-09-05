@@ -90,12 +90,38 @@ const MAX=1500000;
 const params=new URLSearchParams(location.search);
 const returned=params.get('checkout')==='success'?params.get('session_id'):null;
 const sessionId=returned||sessionStorage.getItem('watchtower_submittal_session');
+const intakeKey='watchtower_submittal_intake';
+const reportKey=sessionId?'watchtower_submittal_report:'+sessionId:'';
 const localDemo=!sessionId&&['localhost','127.0.0.1'].includes(location.hostname);
 const checkoutBtn=document.getElementById('checkoutBtn');
 const reviewBtn=document.getElementById('reviewBtn');
 const statusBox=document.getElementById('status');
 if(returned){sessionStorage.setItem('watchtower_submittal_session',returned);history.replaceState({},'',location.pathname)}
 if(sessionId||localDemo) reviewBtn.disabled=false;
+
+function readStored(key,storage=sessionStorage){try{return JSON.parse(storage.getItem(key)||'null')}catch{return null}}
+function saveIntake(){
+  sessionStorage.setItem(intakeKey,JSON.stringify({
+    workflow_type:document.getElementById('workflowType').value,
+    project:document.getElementById('project').value,
+    trade:document.getElementById('trade').value,
+    reason:document.getElementById('reason').value,
+    authorized:document.getElementById('authority').checked
+  }));
+}
+function restoreIntake(){
+  const saved=readStored(intakeKey);if(!saved)return;
+  if(saved.workflow_type)setMode(saved.workflow_type);
+  if(saved.project)document.getElementById('project').value=saved.project;
+  if(saved.trade)document.getElementById('trade').value=saved.trade;
+  if(saved.reason)document.getElementById('reason').value=saved.reason;
+  document.getElementById('authority').checked=saved.authorized===true;
+}
+function saveReport(report){
+  if(!reportKey)return true;
+  try{localStorage.setItem(reportKey,JSON.stringify({report,saved_at:Date.now()}));return true}catch{return false}
+}
+function storedReport(){const saved=reportKey?readStored(reportKey,localStorage):null;return saved&&saved.report||null}
 
 function setMode(mode){
   document.getElementById('workflowType').value=mode;
@@ -125,7 +151,13 @@ const selectionKey='watchtower_procore_selection';
 function savedSelection(){try{return JSON.parse(sessionStorage.getItem(selectionKey)||'{}')}catch{return {}}}
 function saveSelection(){sessionStorage.setItem(selectionKey,JSON.stringify({company_id:procoreCompany.value,project_id:procoreProject.value,submittal_id:procoreSubmittal.value}))}
 let procorePackage=null;
+let paidAutoReviewStarted=false;
 function isSandboxTest(){return !sessionId&&procorePackage&&procorePackage.company_id==='4289092'&&procorePackage.project_id==='364046'}
+function maybeRunPaidProcoreReview(){
+  if(!returned||!sessionId||!procorePackage||paidAutoReviewStarted||storedReport())return;
+  if(!document.getElementById('authority').checked){show('Payment received. Confirm authorization below to run the imported Procore review.');return}
+  paidAutoReviewStarted=true;document.getElementById('reviewForm').requestSubmit();
+}
 function setProcorePackage(value,files=[]){
   procorePackage=value;
   const imported=Boolean(value);
@@ -140,6 +172,7 @@ function setProcorePackage(value,files=[]){
     : (document.getElementById('workflowType').value==='denied'?'The package that was rejected.':'The package you plan to send.');
   if(isSandboxTest()){reviewBtn.disabled=false;reviewBtn.textContent='RUN SANDBOX TEST REVIEW'}
   else if(!sessionId&&!localDemo){reviewBtn.disabled=true;reviewBtn.textContent='RUN REVIEW'}
+  if(imported)maybeRunPaidProcoreReview();
 }
 function addOptions(select,items){
   const placeholder=select===procoreCompany?'Choose company':select===procoreProject?'Choose project':'Choose submittal';
@@ -229,6 +262,7 @@ fetch('/api/config').then(r=>r.json()).then(c=>{
 checkoutBtn.addEventListener('click',async()=>{
   checkoutBtn.disabled=true;
   try{
+    saveIntake();
     const r=await fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
     const d=await r.json();
     if(!r.ok||!d.checkout_url)throw new Error(d.error||'Checkout could not be started.');
@@ -252,8 +286,9 @@ function render(report){
   report.requirements.forEach(item=>{
     const d=document.createElement('div');d.className='finding';
     const h=document.createElement('strong');h.textContent=item.status.toUpperCase()+' — '+item.requirement;d.appendChild(h);
+    if(item.package_evidence){const e=document.createElement('p');e.textContent='Submitted evidence: '+item.package_evidence;d.appendChild(e)}
     const p=document.createElement('p');p.className='hint';p.textContent=item.recommended_fix;d.appendChild(p);
-    const s=document.createElement('p');s.className='source';s.textContent=src(item.source);d.appendChild(s);
+    const s=document.createElement('p');s.className='source';s.textContent=src(item.source)+(item.source&&item.source.quote?' — “'+item.source.quote+'”':'');d.appendChild(s);
     box.appendChild(d);
   });
   const fillList=(id,items,text)=>{const list=document.getElementById(id);list.replaceChildren();(items||[]).forEach(item=>{const li=document.createElement('li');li.textContent=text(item);list.appendChild(li)});if(!list.children.length){const li=document.createElement('li');li.textContent='None identified.';list.appendChild(li)}};
@@ -261,6 +296,8 @@ function render(report){
   fillList('missingDocuments',report.missing_documents,item=>[item.document,item.why_needed].filter(Boolean).join(' — '));
   fillList('limitations',report.limitations,item=>String(item));
   document.getElementById('report').className='card report show';
+  const saved=saveReport(report);
+  if(sessionId&&!saved)show('Review complete. Print or save this report before closing the page.');
   document.getElementById('report').scrollIntoView({behavior:'smooth'});
 }
 document.getElementById('printBtn').addEventListener('click',()=>window.print());
@@ -290,10 +327,15 @@ document.getElementById('reviewForm').addEventListener('submit',async e=>{
       procore:procorePackage
     })});
     const d=await r.json();if(!r.ok||!d.report)throw new Error(d.error||'Review could not be completed.');
-    show('Review complete.');render(d.report);
+    show('Review complete. Saved on this device.');render(d.report);
   }catch(err){show(err.message)}
   finally{reviewBtn.disabled=false}
 });
+
+restoreIntake();
+const recoveredReport=storedReport();
+if(recoveredReport){show('Your completed review was restored on this device.');render(recoveredReport)}
+else if(returned)show('Checkout returned. Your payment will be verified when the review runs.');
 </script>
 </body>
 </html>
